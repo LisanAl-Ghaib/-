@@ -110,3 +110,19 @@ curl -X POST http://localhost:3000/convert \
 
 The response contains the absolute path to `converted.zip` which can be
 downloaded or copied for further use.
+
+## Limitations and Next Steps (Plan Step 9)
+
+This MVP targets simple PHP sites without heavy frameworks. Only basic route
+patterns and direct MySQL queries are handled, so manual tweaks might be needed
+for complex projects. The service expects Node.js 16 or newer and a local MySQL
+instance when running the generated code.
+
+Possible future improvements include:
+
+- Support for popular PHP frameworks and routing libraries
+- Compatibility with additional databases like PostgreSQL
+- More comprehensive automated tests for generated applications
+
+These enhancements are out of scope for the initial MVP but would expand the
+range of projects that can be converted automatically.
