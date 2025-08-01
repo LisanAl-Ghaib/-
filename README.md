@@ -123,13 +123,14 @@ SQL queries were found.
 temporary port. The script then performs HTTP requests to each detected route
 to ensure the server responds correctly.
 
-Run it with the path to a PHP project:
+Run it with the bundled test project:
 
 ```bash
-npm run testgen -- test_data/simple
+npm test
 ```
 
-The console will show the status code returned for every route.
+This command converts `test_data/simple`, launches the server and prints the
+status code for every detected route.
 
 ## Packaging the Generated Project (Plan Step 7)
 
@@ -173,6 +174,17 @@ curl -X POST http://localhost:3000/convert \
 
 The response contains the absolute path to `converted.zip` which can be
 downloaded or copied for further use.
+
+## Automated Tests and Linting (Plan Step 6)
+
+Run the basic code quality checks and sample conversion test with:
+
+```bash
+npm run lint
+npm test
+```
+
+GitHub Actions executes the same commands automatically for each pull request.
 
 ## Limitations and Next Steps (Plan Step 9)
 

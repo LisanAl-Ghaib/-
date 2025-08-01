@@ -32,7 +32,7 @@ function analyze(dir) {
 
   for (const file of result.phpFiles) {
     const content = fs.readFileSync(file, 'utf8');
-    if (/mysql_(connect|query|select_db)/i.test(content) || /new\s+mysqli\b/i.test(content) || /PDO\(\s*['\"]mysql:/i.test(content)) {
+    if (/mysql_(connect|query|select_db)/i.test(content) || /new\s+mysqli\b/i.test(content) || /PDO\(\s*['"]mysql:/i.test(content)) {
       result.mysqlUsage.push(file);
     }
     if (/require(_once)?\s*\(|include(_once)?\s*\(/i.test(content)) {

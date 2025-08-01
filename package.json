@@ -10,12 +10,17 @@
     "generate": "node app/generate/generate_express.js",
     "testgen": "node tools/test/test_generated.js",
     "package": "node app/package/package_output.js",
-    "demo": "node tools/run_demo.js"
+    "demo": "node tools/run_demo.js",
+    "test": "node tools/test/test_generated.js test_data/simple",
+    "lint": "eslint app tools"
   },
   "dependencies": {
     "express": "^4.18.2",
     "multer": "^2.0.2",
-    "php-parser": "^3.2.5",
-    "mysql2": "^3.9.2"
+    "mysql2": "^3.9.2",
+    "php-parser": "^3.2.5"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1"
   }
 }
