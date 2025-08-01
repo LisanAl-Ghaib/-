@@ -9,7 +9,8 @@
     "parse": "node app/parse/parse_php.js",
     "generate": "node app/generate/generate_express.js",
     "testgen": "node tools/test/test_generated.js",
-    "package": "node app/package/package_output.js"
+    "package": "node app/package/package_output.js",
+    "demo": "node tools/run_demo.js"
   },
   "dependencies": {
     "express": "^4.18.2",

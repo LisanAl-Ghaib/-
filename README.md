@@ -7,6 +7,7 @@ This project aims to build a minimal viable product that automatically converts 
 ```bash
 npm install
 npm start
+npm run demo # optional demo using test data
 ```
 
 The server listens on port 3000. Upload a project with `POST /upload` or trigger conversion with `POST /convert`.
@@ -95,6 +96,18 @@ npm run package -- test_data/simple
 This produces `converted.zip` in the current directory containing the generated
 Express project, which you can unzip and run with `npm install` and
 `npm start`.
+
+## CLI Helper
+
+For quick commands you can use the simple CLI script:
+
+```bash
+# convert a PHP project and create converted.zip
+node app/cli.js convert test_data/simple
+
+# start the upload service
+node app/cli.js serve
+```
 
 ## Minimal User Interaction (Plan Step 8)
 
