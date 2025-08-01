@@ -12,7 +12,7 @@
 
 Сделать небольшой CLI с аргументами (node cli.js convert /path, node cli.js serve), чтобы не запоминать длинные команды.
 
-3. Создать Docker‑образ или инструкцию для окружения
+3. Создать Docker‑образ или инструкцию для окружения ✅
 
 Описать в README, как запустить сервис в Docker: docker build -t php2express . и docker run -p 8080:8080 php2express. Это избавит от проблем с локальной установкой Node.js и npm.
 

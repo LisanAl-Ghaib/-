@@ -12,6 +12,23 @@ npm run demo # optional demo using test data
 
 The server listens on port 3000. Upload a project with `POST /upload` or trigger conversion with `POST /convert`.
 
+## Docker Usage
+
+Run the service in an isolated container if you don't want to install Node.js locally:
+
+```bash
+docker build -t php2express .
+docker run -p 8080:8080 php2express
+```
+
+The service will be available at `http://localhost:8080`.
+
+The included `docker-compose.yml` allows the same with a single command:
+
+```bash
+docker compose up
+```
+
 ## Repository Structure
 
 - `app/` – command-line tools and server used by the user
