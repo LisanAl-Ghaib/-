@@ -23,3 +23,19 @@ npm start
 ```
 
 See `PLAN.md` for the complete roadmap.
+
+## PHP Project Analysis (Plan Step 3)
+
+The `analyze_php.js` script scans a PHP project directory and outputs a JSON
+summary with detected PHP files, presence of `.htaccess`, files that use MySQL
+APIs, and basic entry points. Run it with:
+
+```bash
+npm run analyze -- path/to/php/project
+```
+
+Example using the provided test data:
+
+```bash
+npm run analyze -- test_data/simple
+```

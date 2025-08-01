@@ -4,7 +4,8 @@
   "description": "MVP service to convert legacy PHP sites to Node.js",
   "main": "src/upload_service.js",
   "scripts": {
-    "start": "node src/upload_service.js"
+    "start": "node src/upload_service.js",
+    "analyze": "node src/analyze_php.js"
   },
   "dependencies": {
     "express": "^4.18.2",
