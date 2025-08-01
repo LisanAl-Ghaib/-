@@ -10,7 +10,7 @@ npm start
 npm run demo # optional demo using test data
 ```
 
-The server listens on port 3000. Upload a project with `POST /upload` or trigger conversion with `POST /convert`.
+The server listens on port 3000. Visiting the root URL shows a brief message, and you can upload a project with `POST /upload` or trigger conversion with `POST /convert`.
 
 ## Docker Usage
 

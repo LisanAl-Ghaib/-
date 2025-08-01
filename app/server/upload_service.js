@@ -11,6 +11,11 @@ const upload = multer({ dest: path.join(os.tmpdir(), 'uploads') });
 
 app.use(express.json());
 
+// simple health check / info endpoint
+app.get('/', (req, res) => {
+  res.send('Upload service running. Use /upload or /convert.');
+});
+
 // POST /upload - accepts a zip archive
 app.post('/upload', upload.single('archive'), (req, res) => {
   if (!req.file) {
