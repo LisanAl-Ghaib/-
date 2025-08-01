@@ -51,3 +51,17 @@ Run it similarly to the analysis step:
 ```bash
 npm run parse -- test_data/simple
 ```
+
+## Express Project Generation (Plan Step 5)
+
+Use `generate_express.js` to create a basic Express application from a PHP
+project. The generator scans the PHP code, extracts discovered routes and SQL
+queries, and produces a runnable Node.js project under a `generated/` directory
+by default.
+
+```bash
+npm run generate -- test_data/simple
+```
+
+The output contains `app.js`, route modules and a placeholder `db.js` if any
+SQL queries were found.
