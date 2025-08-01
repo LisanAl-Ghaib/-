@@ -1,0 +1,2 @@
+example:
+	./tools/example.sh

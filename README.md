@@ -45,6 +45,36 @@ A simple Express server provides two endpoints:
 
 See `PLAN.md` for the complete roadmap.
 
+## API Usage Examples (Plan Step 4)
+
+The upload service exposes three main endpoints. The snippets below show how to
+use them with `curl`:
+
+```bash
+# 1) Upload a zip archive
+curl -F "archive=@project.zip" http://localhost:3000/upload
+
+# 2) Clone a git repository
+curl -X POST http://localhost:3000/clone \
+  -H 'Content-Type: application/json' \
+  -d '{"repoUrl":"https://example.com/repo.git"}'
+
+# 3) Run the full conversion
+curl -X POST http://localhost:3000/convert \
+  -H 'Content-Type: application/json' \
+  -d '{"projectDir":"/tmp/path/from/upload"}'
+```
+
+For convenience a small helper script is provided. After starting the server,
+run:
+
+```bash
+make example
+```
+
+This will zip the sample project under `test_data/simple`, upload it, trigger
+the conversion and copy the resulting `converted.zip` to the current directory.
+
 ## PHP Project Analysis (Plan Step 3)
 
 The `analyze_php.js` script scans a PHP project directory and outputs a JSON
