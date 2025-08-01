@@ -5,10 +5,12 @@
   "main": "src/upload_service.js",
   "scripts": {
     "start": "node src/upload_service.js",
-    "analyze": "node src/analyze_php.js"
+    "analyze": "node src/analyze_php.js",
+    "parse": "node src/parse_php.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "php-parser": "^3.2.5"
   }
 }

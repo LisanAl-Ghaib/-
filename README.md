@@ -39,3 +39,15 @@ Example using the provided test data:
 ```bash
 npm run analyze -- test_data/simple
 ```
+
+## PHP Parsing and Intermediate Representation (Plan Step 4)
+
+The `parse_php.js` script performs a lightweight scan of PHP files to
+extract potential routes and SQL queries. It outputs a JSON structure
+that can later be used for generating Express code.
+
+Run it similarly to the analysis step:
+
+```bash
+npm run parse -- test_data/simple
+```
