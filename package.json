@@ -1,0 +1,26 @@
+{
+  "name": "auto-converter",
+  "version": "0.1.0",
+  "description": "MVP service to convert legacy PHP sites to Node.js",
+  "main": "app/server/upload_service.js",
+  "scripts": {
+    "start": "node app/server/upload_service.js",
+    "analyze": "node app/analyze/analyze_php.js",
+    "parse": "node app/parse/parse_php.js",
+    "generate": "node app/generate/generate_express.js",
+    "testgen": "node tools/test/test_generated.js",
+    "package": "node app/package/package_output.js",
+    "demo": "node tools/run_demo.js",
+    "test": "node tools/test/test_generated.js test_data/simple",
+    "lint": "eslint app tools"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "multer": "^2.0.2",
+    "mysql2": "^3.9.2",
+    "php-parser": "^3.2.5"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1"
+  }
+}
