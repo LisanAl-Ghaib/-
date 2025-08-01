@@ -7,7 +7,8 @@
     "start": "node src/upload_service.js",
     "analyze": "node src/analyze_php.js",
     "parse": "node src/parse_php.js",
-    "generate": "node src/generate_express.js"
+    "generate": "node src/generate_express.js",
+    "testgen": "node src/test_generated.js"
   },
   "dependencies": {
     "express": "^4.18.2",

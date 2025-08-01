@@ -65,3 +65,17 @@ npm run generate -- test_data/simple
 
 The output contains `app.js`, route modules and a placeholder `db.js` if any
 SQL queries were found.
+
+## Running and Testing the Generated Server (Plan Step 6)
+
+`test_generated.js` generates the Express project and starts it on a
+temporary port. The script then performs HTTP requests to each detected route
+to ensure the server responds correctly.
+
+Run it with the path to a PHP project:
+
+```bash
+npm run testgen -- test_data/simple
+```
+
+The console will show the status code returned for every route.
