@@ -8,7 +8,8 @@
     "analyze": "node src/analyze_php.js",
     "parse": "node src/parse_php.js",
     "generate": "node src/generate_express.js",
-    "testgen": "node src/test_generated.js"
+    "testgen": "node src/test_generated.js",
+    "package": "node src/package_output.js"
   },
   "dependencies": {
     "express": "^4.18.2",

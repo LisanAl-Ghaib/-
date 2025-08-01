@@ -79,3 +79,16 @@ npm run testgen -- test_data/simple
 ```
 
 The console will show the status code returned for every route.
+
+## Packaging the Generated Project (Plan Step 7)
+
+`package_output.js` wraps the generation step and creates a zip archive with a
+README and a migration report. Use it like so:
+
+```bash
+npm run package -- test_data/simple
+```
+
+This produces `converted.zip` in the current directory containing the generated
+Express project, which you can unzip and run with `npm install` and
+`npm start`.
