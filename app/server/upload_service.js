@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { exec } = require('child_process');
-const { packageProject } = require('./package_output');
+const { packageProject } = require('../package/package_output');
 
 const app = express();
 const upload = multer({ dest: path.join(os.tmpdir(), 'uploads') });

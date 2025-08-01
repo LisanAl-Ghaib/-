@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { generate } = require('./generate_express');
+const { generate } = require('../generate/generate_express');
 
 function packageProject(phpDir, outDir = 'generated', archiveName = 'converted.zip') {
   const info = generate(phpDir, outDir);

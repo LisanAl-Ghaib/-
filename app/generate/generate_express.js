@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { parseProject } = require('./parse_php');
+const { parseProject } = require('../parse/parse_php');
 
 function sanitizeRoute(route) {
   return route

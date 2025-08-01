@@ -1,4 +1,4 @@
-const { generate } = require('./generate_express');
+const { generate } = require('../../app/generate/generate_express');
 const { spawn } = require('child_process');
 const http = require('http');
 
