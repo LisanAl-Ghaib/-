@@ -92,3 +92,21 @@ npm run package -- test_data/simple
 This produces `converted.zip` in the current directory containing the generated
 Express project, which you can unzip and run with `npm install` and
 `npm start`.
+
+## Minimal User Interaction (Plan Step 8)
+
+The upload service also exposes a `/convert` endpoint that runs the full
+conversion pipeline. Send a JSON body with `projectDir` pointing to a directory
+obtained via `/upload` or `/clone`. The service responds with the path to the
+generated archive.
+
+Example using a previously uploaded project:
+
+```bash
+curl -X POST http://localhost:3000/convert \
+  -H 'Content-Type: application/json' \
+  -d '{"projectDir":"/tmp/uploads/abcd"}'
+```
+
+The response contains the absolute path to `converted.zip` which can be
+downloaded or copied for further use.

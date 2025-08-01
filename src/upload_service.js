@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { exec } = require('child_process');
+const { packageProject } = require('./package_output');
 
 const app = express();
 const upload = multer({ dest: path.join(os.tmpdir(), 'uploads') });
@@ -32,6 +33,23 @@ app.post('/clone', async (req, res) => {
     }
     return res.json({ cloned: target });
   });
+});
+
+// POST /convert - accepts JSON { projectDir: "..." }
+app.post('/convert', (req, res) => {
+  const { projectDir } = req.body;
+  if (!projectDir || !fs.existsSync(projectDir)) {
+    return res.status(400).json({ error: 'valid projectDir required' });
+  }
+  try {
+    const tempOut = fs.mkdtempSync(path.join(os.tmpdir(), 'convert-'));
+    const archivePath = path.join(tempOut, 'converted.zip');
+    const result = packageProject(projectDir, path.join(tempOut, 'generated'), archivePath);
+    return res.json({ archive: result.archive });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'conversion failed' });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
