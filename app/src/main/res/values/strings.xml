@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Traces</string>
+
+    <!-- Навигация -->
+    <string name="nav_map">Карта</string>
+    <string name="nav_profile">Профиль</string>
+
+    <!-- Карта -->
+    <string name="map_mode_world">Мир</string>
+    <string name="map_mode_mine">Моя карта</string>
+    <string name="map_hint_long_press">Задержи палец на карте, чтобы отметить место</string>
+    <string name="map_hint_dismiss">Понятно</string>
+    <string name="map_zoomed_out_count">%1$d %2$s в этой области</string>
+    <string name="map_zoomed_out_hint">Приблизь карту, чтобы увидеть метки</string>
+    <string name="map_fab_here">Отметить здесь</string>
+    <string name="map_fab_center">Отметить в центре</string>
+    <string name="map_empty_mine_title">Здесь пока пусто</string>
+    <string name="map_empty_mine_body">Задержи палец на карте или нажми «Отметить в центре» — и первое место станет твоим.</string>
+    <string name="map_empty_world_title">Ни одного воспоминания</string>
+    <string name="map_empty_world_body">Похоже, база пуста. Отметь первое место сам.</string>
+
+    <!-- Склонение слова «воспоминание» -->
+    <plurals name="memories_count">
+        <item quantity="one">воспоминание</item>
+        <item quantity="few">воспоминания</item>
+        <item quantity="many">воспоминаний</item>
+        <item quantity="other">воспоминаний</item>
+    </plurals>
+
+    <!-- Разрешения -->
+    <string name="permission_location_rationale">Без доступа к геолокации карта работает, но не покажет, где ты, и не посчитает расстояние до мест.</string>
+
+    <!-- Создание и редактирование -->
+    <string name="editor_title_create">Новое воспоминание</string>
+    <string name="editor_title_edit">Изменить воспоминание</string>
+    <string name="editor_text_placeholder">Что здесь было?</string>
+    <string name="editor_counter">%1$d/%2$d</string>
+    <string name="editor_coordinates">%1$s, %2$s</string>
+    <string name="editor_drag_marker">Перетащи метку, чтобы уточнить место</string>
+    <string name="editor_date_now">Сейчас</string>
+    <string name="editor_date_year">Год…</string>
+    <string name="editor_date_exact">Точная дата</string>
+    <string name="editor_year_picker_title">Выбери год</string>
+    <string name="editor_photo_add">Добавить фото</string>
+    <string name="editor_photo_remove">Убрать фото</string>
+    <string name="editor_visibility_private">Только я</string>
+    <string name="editor_visibility_public">Все</string>
+    <string name="editor_save">Сохранить</string>
+    <string name="editor_cancel">Отмена</string>
+    <string name="editor_done">Готово</string>
+
+    <!-- Детали -->
+    <string name="detail_here_year">Здесь, в %1$d</string>
+    <string name="detail_here_month">Здесь, в %1$s %2$d</string>
+    <string name="detail_here_date">Здесь, %1$d %2$s %3$d</string>
+    <string name="detail_distance_meters">в %1$d м отсюда</string>
+    <string name="detail_distance_km">в %1$s км отсюда</string>
+    <string name="detail_edit">Изменить</string>
+    <string name="detail_delete">Удалить</string>
+    <string name="detail_delete_title">Удалить воспоминание?</string>
+    <string name="detail_delete_body">Текст и фотография исчезнут без возможности вернуть.</string>
+    <string name="detail_delete_confirm">Удалить</string>
+    <string name="detail_delete_cancel">Отмена</string>
+    <string name="detail_private_badge">Только я</string>
+
+    <!-- Профиль -->
+    <string name="profile_default_name">Вы</string>
+    <string name="profile_edit_name">Изменить имя</string>
+    <string name="profile_name_dialog_title">Как тебя подписывать?</string>
+    <string name="profile_name_save">Сохранить</string>
+    <string name="profile_stat_memories">Воспоминаний</string>
+    <string name="profile_stat_earliest">Самый ранний год</string>
+    <string name="profile_stat_none">—</string>
+    <string name="profile_tab_map">Карта</string>
+    <string name="profile_tab_timeline">Хронология</string>
+    <string name="profile_empty_title">Ни одной отметки</string>
+    <string name="profile_empty_body">Открой карту и задержи палец на месте, которое хочешь запомнить.</string>
+
+    <!-- Общее -->
+    <string name="cd_photo">Фотография воспоминания</string>
+    <string name="cd_add_memory">Добавить воспоминание</string>
+
+    <string-array name="months_genitive">
+        <item>января</item>
+        <item>февраля</item>
+        <item>марта</item>
+        <item>апреля</item>
+        <item>мая</item>
+        <item>июня</item>
+        <item>июля</item>
+        <item>августа</item>
+        <item>сентября</item>
+        <item>октября</item>
+        <item>ноября</item>
+        <item>декабря</item>
+    </string-array>
+
+    <string-array name="months_prepositional">
+        <item>январе</item>
+        <item>феврале</item>
+        <item>марте</item>
+        <item>апреле</item>
+        <item>мае</item>
+        <item>июне</item>
+        <item>июле</item>
+        <item>августе</item>
+        <item>сентябре</item>
+        <item>октябре</item>
+        <item>ноябре</item>
+        <item>декабре</item>
+    </string-array>
+</resources>
