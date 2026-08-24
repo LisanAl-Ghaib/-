@@ -80,6 +80,7 @@ private data class MemoryClusterItem(val memory: Memory) : ClusterItem {
     override fun getPosition(): LatLng = LatLng(memory.lat, memory.lng)
     override fun getTitle(): String? = null
     override fun getSnippet(): String? = null
+    override fun getZIndex(): Float? = 0f
 }
 
 @OptIn(MapsComposeExperimentalApi::class, FlowPreview::class)
