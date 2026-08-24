@@ -11,11 +11,14 @@
 
 ## Быстрый старт
 
-1. Открой проект в Android Studio (Ladybug или новее) — она предложит
-   сгенерировать Gradle wrapper, если его нет.
-2. Получи ключ Google Maps (см. ниже) и положи его в `local.properties`.
+1. Получи ключ Google Maps (см. ниже) и положи его в `local.properties`.
+2. Открой проект в Android Studio (Ladybug или новее) либо собери из
+   консоли: `./gradlew :app:assembleDebug`.
 3. Запусти на устройстве или эмуляторе с Google Play Services (образ
    «Google Play», не «AOSP» — иначе карта не отрисуется).
+
+Wrapper в репозитории (Gradle 8.9), Android SDK нужен свой: `sdk.dir` в
+`local.properties` Android Studio пропишет сама.
 
 ## Google Maps API-ключ
 
@@ -83,9 +86,10 @@ Traces/
 ├── build.gradle.kts
 ├── gradle.properties
 ├── local.defaults.properties          # заглушка ключа, чтобы сборка не падала
+├── gradlew / gradlew.bat
 ├── gradle/
 │   ├── libs.versions.toml
-│   └── wrapper/gradle-wrapper.properties
+│   └── wrapper/{gradle-wrapper.jar,gradle-wrapper.properties}
 └── app/
     ├── build.gradle.kts
     ├── proguard-rules.pro
