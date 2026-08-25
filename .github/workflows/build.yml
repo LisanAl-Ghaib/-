@@ -35,7 +35,18 @@ jobs:
           fi
 
       - name: Assemble debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug --no-daemon --console=plain 2>&1 | tee build.log
+
+      # Gradle buries Kotlin's "e:" lines under a 200-line stack trace. Echoing
+      # them again at the very end makes a failure readable from the log tail.
+      - name: Compiler errors
+        if: failure()
+        run: |
+          echo "----- KOTLIN / KSP ERRORS -----"
+          grep -E "^(e|w): |Unresolved reference|error:" build.log | head -60 || echo "(no compiler error lines found)"
+          echo "----- END -----"
 
       - uses: actions/upload-artifact@v4
         if: success()
