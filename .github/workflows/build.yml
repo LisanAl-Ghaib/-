@@ -5,6 +5,9 @@ on:
     branches: [main, 'claude/**']
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -40,3 +43,17 @@ jobs:
           name: traces-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      # Actions artifacts are zipped and undownloadable from the GitHub mobile
+      # app. A rolling prerelease gives a stable, direct .apk link a phone
+      # browser can install in one tap.
+      - name: Publish APK to a rolling release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk traces-debug.apk
+          gh release delete debug-latest --yes --cleanup-tag || true
+          gh release create debug-latest traces-debug.apk \
+            --title "Traces — debug build" \
+            --notes "Debug APK built from ${GITHUB_SHA}. Android 8.0+, needs Google Play Services. Allow installation from this source when prompted." \
+            --prerelease
