@@ -42,6 +42,13 @@
     <string name="editor_date_year">Год…</string>
     <string name="editor_date_exact">Точная дата</string>
     <string name="editor_year_picker_title">Выбери год</string>
+    <string name="editor_audio_title">Музыка</string>
+    <string name="editor_audio_add">Прикрепить трек</string>
+    <string name="editor_audio_remove">Убрать трек</string>
+    <string name="audio_play">Воспроизвести</string>
+    <string name="audio_pause">Пауза</string>
+    <string name="audio_untitled">Без названия</string>
+    <string name="audio_failed">Не удалось открыть файл</string>
     <string name="editor_photos_title">Фотографии</string>
     <string name="editor_photo_add">Добавить фото</string>
     <string name="editor_photo_remove">Убрать фото</string>

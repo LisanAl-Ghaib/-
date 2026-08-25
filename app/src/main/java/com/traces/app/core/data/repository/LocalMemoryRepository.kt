@@ -4,9 +4,10 @@ import android.net.Uri
 import com.traces.app.core.data.db.MemoryDao
 import com.traces.app.core.data.db.MemoryEntity
 import com.traces.app.core.data.db.toDomain
-import com.traces.app.core.data.photo.PhotoStorage
+import com.traces.app.core.data.media.MediaStorage
 import com.traces.app.core.data.prefs.UserPreferences
 import com.traces.app.core.domain.geo.Geohash
+import com.traces.app.core.domain.model.AudioRef
 import com.traces.app.core.domain.model.AuthorRef
 import com.traces.app.core.domain.model.GeoBounds
 import com.traces.app.core.domain.model.MapMode
@@ -26,7 +27,7 @@ import java.util.UUID
  */
 class LocalMemoryRepository(
     private val dao: MemoryDao,
-    private val photoStorage: PhotoStorage,
+    private val mediaStorage: MediaStorage,
     private val preferences: UserPreferences,
 ) : MemoryRepository {
 
@@ -92,6 +93,8 @@ class LocalMemoryRepository(
                 text = text,
                 textLower = text.lowercase(),
                 photoPaths = resolvePhotos(draft.photos),
+                audioPath = resolveAudio(draft.audio),
+                audioTitle = draft.audio?.title,
                 happenedYear = draft.happenedYear,
                 happenedMonth = draft.happenedMonth,
                 happenedDay = draft.happenedDay,
@@ -107,6 +110,7 @@ class LocalMemoryRepository(
         val existing = dao.getById(id) ?: return
         val text = draft.text
         val photoPaths = resolvePhotos(draft.photos)
+        val audioPath = resolveAudio(draft.audio)
         dao.update(
             existing.copy(
                 lat = draft.lat,
@@ -115,6 +119,8 @@ class LocalMemoryRepository(
                 text = text,
                 textLower = text.lowercase(),
                 photoPaths = photoPaths,
+                audioPath = audioPath,
+                audioTitle = draft.audio?.title,
                 happenedYear = draft.happenedYear,
                 happenedMonth = draft.happenedMonth,
                 happenedDay = draft.happenedDay,
@@ -124,13 +130,17 @@ class LocalMemoryRepository(
         )
         // Only after the row is safely updated, so a failed write never orphans
         // the user's only copy of a photo.
-        existing.photoPaths.filterNot { it in photoPaths }.forEach { photoStorage.delete(it) }
+        existing.photoPaths.filterNot { it in photoPaths }.forEach { mediaStorage.delete(it) }
+        if (existing.audioPath != null && existing.audioPath != audioPath) {
+            mediaStorage.delete(existing.audioPath)
+        }
     }
 
     override suspend fun delete(id: String) {
         val existing = dao.getById(id) ?: return
         dao.deleteById(id)
-        existing.photoPaths.forEach { photoStorage.delete(it) }
+        existing.photoPaths.forEach { mediaStorage.delete(it) }
+        mediaStorage.delete(existing.audioPath)
     }
 
     /** Keeps already-written records in sync with a renamed local profile. */
@@ -154,9 +164,16 @@ class LocalMemoryRepository(
         photos.take(MAX_PHOTOS).mapNotNull { photo ->
             when (photo) {
                 is PhotoRef.Stored -> photo.path
-                is PhotoRef.Picked -> photoStorage.copyToInternal(Uri.parse(photo.uri))
+                is PhotoRef.Picked -> mediaStorage.copyPhoto(Uri.parse(photo.uri))
             }
         }
+
+    /** Copies a freshly picked track in; an already-stored one passes through. */
+    private suspend fun resolveAudio(audio: AudioRef?): String? = when (audio) {
+        null -> null
+        is AudioRef.Stored -> audio.path
+        is AudioRef.Picked -> mediaStorage.copyAudio(Uri.parse(audio.uri))
+    }
 
     private fun MemoryFilter.normalisedQuery(): String = query.trim().lowercase()
 }

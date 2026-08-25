@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddAPhoto
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -32,6 +33,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -56,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -170,6 +173,8 @@ fun CreateMemorySheet(
             DateChips(state = state, viewModel = viewModel)
 
             PhotoStrip(state = state, viewModel = viewModel)
+
+            AudioRow(state = state, viewModel = viewModel)
 
             VisibilityChips(
                 visibility = state.visibility,
@@ -400,7 +405,7 @@ private fun PhotoStrip(state: EditorState, viewModel: CreateMemoryViewModel) {
                         // A stored photo resolves to a file, a freshly picked
                         // one is still just its content:// uri.
                         model = when (photo) {
-                            is PhotoRef.Stored -> container.photoFile(photo.path)
+                            is PhotoRef.Stored -> container.mediaFile(photo.path)
                             is PhotoRef.Picked -> photo.uri
                         },
                         contentDescription = stringResource(R.string.cd_photo),
@@ -446,6 +451,75 @@ private fun PhotoStrip(state: EditorState, viewModel: CreateMemoryViewModel) {
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One track per memory. Picked through OpenDocument rather than the photo
+ * picker, which does not offer audio at all.
+ */
+@Composable
+private fun AudioRow(state: EditorState, viewModel: CreateMemoryViewModel) {
+    val container = LocalAppContainer.current
+    val scope = rememberCoroutineScope()
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                viewModel.onAudioPicked(uri.toString(), container.mediaDisplayName(uri))
+            }
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.editor_audio_title),
+            style = MaterialTheme.typography.labelLarge,
+        )
+
+        val attached = state.audio
+        if (attached == null) {
+            OutlinedButton(onClick = { launcher.launch(arrayOf("audio/*")) }) {
+                Icon(Icons.Outlined.MusicNote, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(
+                    text = stringResource(R.string.editor_audio_add),
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+        } else {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+            ) {
+                Row(
+                    modifier = Modifier.padding(start = 14.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Outlined.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = attached.title ?: stringResource(R.string.audio_untitled),
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 10.dp),
+                    )
+                    IconButton(onClick = viewModel::onAudioRemoved) {
+                        Icon(
+                            Icons.Outlined.Close,
+                            contentDescription = stringResource(R.string.editor_audio_remove),
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
                 }
             }

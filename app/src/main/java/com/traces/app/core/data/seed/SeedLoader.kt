@@ -59,6 +59,8 @@ class SeedLoader(
                 text = item.text,
                 textLower = item.text.lowercase(),
                 photoPaths = emptyList(),
+                audioPath = null,
+                audioTitle = null,
                 happenedYear = item.happenedYear,
                 happenedMonth = item.happenedMonth,
                 happenedDay = item.happenedDay,

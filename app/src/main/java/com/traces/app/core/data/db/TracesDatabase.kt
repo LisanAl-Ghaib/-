@@ -8,7 +8,7 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [MemoryEntity::class], version = 2, exportSchema = true)
+@Database(entities = [MemoryEntity::class], version = 3, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class TracesDatabase : RoomDatabase() {
 
@@ -74,6 +74,17 @@ abstract class TracesDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v3 attaches a track to a memory. Both columns are nullable, so unlike
+         * v2 this needs no table rebuild.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE memories ADD COLUMN audioPath TEXT")
+                db.execSQL("ALTER TABLE memories ADD COLUMN audioTitle TEXT")
+            }
+        }
+
         @Volatile
         private var instance: TracesDatabase? = null
 
@@ -85,7 +96,7 @@ abstract class TracesDatabase : RoomDatabase() {
         fun getInstance(context: Context): TracesDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(context.applicationContext, TracesDatabase::class.java, NAME)
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { instance = it }
             }

@@ -32,6 +32,9 @@ data class MemoryEntity(
     val textLower: String,
     /** Paths relative to filesDir, JSON-encoded. Never content:// uris. */
     val photoPaths: List<String>,
+    /** Relative path of an attached track, plus the name it was picked under. */
+    val audioPath: String?,
+    val audioTitle: String?,
     val happenedYear: Int,
     /** null means only the year is known. */
     val happenedMonth: Int?,
@@ -49,6 +52,8 @@ fun MemoryEntity.toDomain(): Memory = Memory(
     lng = lng,
     text = text,
     photoPaths = photoPaths,
+    audioPath = audioPath,
+    audioTitle = audioTitle,
     happenedYear = happenedYear,
     happenedMonth = happenedMonth,
     happenedDay = happenedDay,

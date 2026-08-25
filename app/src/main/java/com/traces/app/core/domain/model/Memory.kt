@@ -24,6 +24,9 @@ data class Memory(
     val text: String,
     /** Paths relative to filesDir, in display order. Empty when there is no photo. */
     val photoPaths: List<String>,
+    /** Path relative to filesDir of an attached track, and the name it had. */
+    val audioPath: String?,
+    val audioTitle: String?,
     val happenedYear: Int,
     val happenedMonth: Int?,
     val happenedDay: Int?,
@@ -33,6 +36,7 @@ data class Memory(
 ) {
     val isEditable: Boolean get() = !isSeed && authorId == LOCAL_AUTHOR_ID
     val coverPhoto: String? get() = photoPaths.firstOrNull()
+    val hasAudio: Boolean get() = audioPath != null
 }
 
 /**
@@ -47,12 +51,23 @@ sealed interface PhotoRef {
     data class Picked(val uri: String) : PhotoRef
 }
 
+/** A track attached to a memory. Same two states as a photo. */
+sealed interface AudioRef {
+    val title: String?
+
+    data class Stored(val path: String, override val title: String?) : AudioRef
+
+    data class Picked(val uri: String, override val title: String?) : AudioRef
+}
+
 data class MemoryDraft(
     val lat: Double,
     val lng: Double,
     val text: String,
     /** The complete desired photo list — additions, removals and order all at once. */
     val photos: List<PhotoRef>,
+    /** null means the memory has no track — or that its track was removed. */
+    val audio: AudioRef?,
     val happenedYear: Int,
     val happenedMonth: Int?,
     val happenedDay: Int?,

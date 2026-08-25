@@ -44,6 +44,7 @@ import com.traces.app.core.domain.model.GeoPoint
 import com.traces.app.core.domain.model.Memory
 import com.traces.app.core.domain.model.Visibility
 import com.traces.app.core.ui.LocalAppContainer
+import com.traces.app.core.ui.component.AudioPlayer
 import com.traces.app.core.ui.component.PhotoViewerDialog
 import com.traces.app.core.ui.format.rememberDistanceLabel
 import com.traces.app.core.ui.format.rememberHappenedLabel
@@ -63,7 +64,7 @@ fun MemoryDetailSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var confirmDeleteVisible by remember { mutableStateOf(false) }
     var viewerIndex by remember { mutableStateOf<Int?>(null) }
-    val photoFiles = remember(memory.photoPaths) { memory.photoPaths.map(container::photoFile) }
+    val photoFiles = remember(memory.photoPaths) { memory.photoPaths.map(container::mediaFile) }
 
     val happenedLabel = rememberHappenedLabel(memory)
     val distanceLabel = rememberDistanceLabel(memory, userLocation)
@@ -116,6 +117,13 @@ fun MemoryDetailSheet(
                 PhotoCarousel(
                     files = photoFiles,
                     onPhotoClick = { viewerIndex = it },
+                )
+            }
+
+            memory.audioPath?.let { path ->
+                AudioPlayer(
+                    file = container.mediaFile(path),
+                    title = memory.audioTitle,
                 )
             }
 

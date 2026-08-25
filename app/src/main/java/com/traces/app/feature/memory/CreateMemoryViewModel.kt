@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.traces.app.core.di.AppContainer
+import com.traces.app.core.domain.model.AudioRef
 import com.traces.app.core.domain.model.MAX_PHOTOS
 import com.traces.app.core.domain.model.MAX_TEXT_LENGTH
 import com.traces.app.core.domain.model.MIN_MEMORY_YEAR
@@ -50,6 +51,8 @@ data class EditorState(
     val text: String = "",
     /** Stored paths and freshly picked uris side by side, in display order. */
     val photos: List<PhotoRef> = emptyList(),
+    /** null when nothing is attached, or when the user detached the track. */
+    val audio: AudioRef? = null,
     val dateMode: DateMode = DateMode.NOW,
     val year: Int = LocalDate.now().year,
     val month: Int? = LocalDate.now().monthValue,
@@ -101,6 +104,7 @@ class CreateMemoryViewModel(
                         lng = memory.lng,
                         text = memory.text,
                         photos = memory.photoPaths.map(PhotoRef::Stored),
+                        audio = memory.audioPath?.let { AudioRef.Stored(it, memory.audioTitle) },
                         dateMode = if (memory.happenedMonth == null) DateMode.YEAR else DateMode.EXACT,
                         year = memory.happenedYear,
                         month = memory.happenedMonth,
@@ -169,6 +173,14 @@ class CreateMemoryViewModel(
         }
     }
 
+    fun onAudioPicked(uri: String, title: String?) {
+        _state.update { it.copy(audio = AudioRef.Picked(uri, title)) }
+    }
+
+    fun onAudioRemoved() {
+        _state.update { it.copy(audio = null) }
+    }
+
     fun onVisibilityChange(visibility: Visibility) {
         _state.update { it.copy(visibility = visibility) }
     }
@@ -184,6 +196,7 @@ class CreateMemoryViewModel(
                 lng = current.lng,
                 text = current.text.trim(),
                 photos = current.photos,
+                audio = current.audio,
                 happenedYear = current.year,
                 happenedMonth = current.month,
                 happenedDay = current.day,

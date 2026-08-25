@@ -2,7 +2,7 @@ package com.traces.app.core.di
 
 import android.content.Context
 import com.traces.app.core.data.db.TracesDatabase
-import com.traces.app.core.data.photo.PhotoStorage
+import com.traces.app.core.data.media.MediaStorage
 import com.traces.app.core.data.prefs.UserPreferences
 import com.traces.app.core.data.repository.LocalMemoryRepository
 import com.traces.app.core.data.seed.SeedLoader
@@ -23,19 +23,22 @@ class AppContainer(context: Context) {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val database by lazy { TracesDatabase.getInstance(appContext) }
-    private val photoStorage by lazy { PhotoStorage(appContext) }
+    private val mediaStorage by lazy { MediaStorage(appContext) }
 
     val userPreferences by lazy { UserPreferences(appContext) }
 
     val localRepository: LocalMemoryRepository by lazy {
-        LocalMemoryRepository(database.memoryDao(), photoStorage, userPreferences)
+        LocalMemoryRepository(database.memoryDao(), mediaStorage, userPreferences)
     }
 
     val memoryRepository: MemoryRepository get() = localRepository
 
     val locationProvider by lazy { LocationProvider(appContext) }
 
-    fun photoFile(relativePath: String) = photoStorage.resolve(relativePath)
+    fun mediaFile(relativePath: String) = mediaStorage.resolve(relativePath)
+
+    /** The name a picked file carried where the user picked it, for display. */
+    suspend fun mediaDisplayName(uri: android.net.Uri): String? = mediaStorage.displayName(uri)
 
     /** Seeds the world map and fills the search column. Both run once per install. */
     fun warmUp() {
