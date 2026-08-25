@@ -15,8 +15,8 @@ android {
         applicationId = "com.traces.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "2.0.0-alpha01"
     }
 
     buildTypes {
@@ -37,6 +37,8 @@ android {
 
     buildFeatures {
         compose = true
+        // The splash shows the version name, which lives in BuildConfig.
+        buildConfig = true
     }
 
     packaging {

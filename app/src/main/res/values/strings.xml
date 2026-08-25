@@ -3,8 +3,43 @@
     <string name="app_name">Traces</string>
 
     <!-- Навигация -->
-    <string name="nav_map">Карта</string>
+    <string name="nav_world">Мир</string>
+    <string name="nav_home">Поиск</string>
+    <string name="nav_collection">Коллекция</string>
     <string name="nav_profile">Профиль</string>
+
+    <!-- Главная -->
+    <string name="home_search_placeholder">Карты, места, воспоминания</string>
+    <string name="home_world_map">World map</string>
+    <string name="home_section_yours">Ваши карты</string>
+    <string name="home_section_popular">Больше всего точек</string>
+    <string name="home_section_recent">Новые карты</string>
+    <string name="home_nothing_found_title">Ничего не нашлось</string>
+    <string name="home_nothing_found_body">Ни одна карта не подходит под запрос. Попробуйте другое слово.</string>
+    <string name="home_no_maps_title">Карт пока нет</string>
+    <string name="home_no_maps_body">Создайте первую во вкладке «Коллекция» — и она появится здесь.</string>
+
+    <!-- Коллекция -->
+    <string name="collection_create">Создать карту</string>
+    <string name="collection_pinned">Закреплённые</string>
+    <string name="collection_all">Все карты</string>
+    <string name="collection_pin_toggle">Закрепить</string>
+    <string name="collection_map_title">Название</string>
+    <string name="collection_map_description">Описание</string>
+    <string name="collection_empty_title">Коллекция пуста</string>
+    <string name="collection_empty_body">Создайте свою карту или присоединитесь к чужой из ленты на главной.</string>
+
+    <!-- Карта-коллекция -->
+    <string name="mapdetail_join">Присоединиться</string>
+    <string name="mapdetail_leave">Выйти</string>
+    <string name="mapdetail_yours">Ваша карта</string>
+    <string name="mapdetail_missing_title">Карта не найдена</string>
+    <string name="mapdetail_missing_body">Похоже, её удалили.</string>
+    <string name="mapdetail_no_points_title">Здесь пока нет точек</string>
+    <string name="mapdetail_no_points_body">Отметьте место на карте мира и выберите эту карту при сохранении.</string>
+
+    <string name="map_points_and_author">%1$d %2$s · %3$s</string>
+    <string name="action_back">Назад</string>
 
     <!-- Карта -->
     <string name="map_mode_world">Мир</string>
@@ -21,6 +56,13 @@
     <string name="map_empty_world_body">Похоже, база пуста. Отметь первое место сам.</string>
 
     <!-- Склонение слова «воспоминание» -->
+    <plurals name="points_count">
+        <item quantity="one">точка</item>
+        <item quantity="few">точки</item>
+        <item quantity="many">точек</item>
+        <item quantity="other">точек</item>
+    </plurals>
+
     <plurals name="memories_count">
         <item quantity="one">воспоминание</item>
         <item quantity="few">воспоминания</item>
@@ -42,6 +84,10 @@
     <string name="editor_date_year">Год…</string>
     <string name="editor_date_exact">Точная дата</string>
     <string name="editor_year_picker_title">Выбери год</string>
+    <string name="editor_personal_map">Добавить в мою карту</string>
+    <string name="editor_personal_map_hint">Точка всё равно попадёт на карту мира</string>
+    <string name="editor_pick_map">Карта</string>
+    <string name="editor_no_map">Без карты</string>
     <string name="editor_audio_title">Музыка</string>
     <string name="editor_audio_add">Прикрепить трек</string>
     <string name="editor_audio_remove">Убрать трек</string>

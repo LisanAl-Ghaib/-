@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108"
+    android:tint="#FFFFFF">
+    <!-- One path with evenOdd so the aperture stays transparent and the mark
+         can be tinted to any single colour. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M54,16 C37,16 23,30 23,47 C23,70 54,96 54,96 C54,96 85,70 85,47 C85,30 71,16 54,16 Z M54,34 A13,13 0 1 1 54,60 A13,13 0 1 1 54,34 Z" />
+</vector>

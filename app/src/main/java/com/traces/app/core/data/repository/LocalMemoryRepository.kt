@@ -61,6 +61,10 @@ class LocalMemoryRepository(
             )
         }
 
+    /** Every point filed under one themed map. */
+    fun observeByMap(mapId: String): Flow<List<Memory>> =
+        dao.observeByMap(mapId).map { list -> list.map(MemoryEntity::toDomain) }
+
     override fun observeOwn(filter: MemoryFilter): Flow<List<Memory>> =
         dao.observeOwn(preferences.authorId, filter.fromYear, filter.toYear, filter.normalisedQuery())
             .map { list -> list.map(MemoryEntity::toDomain) }
@@ -95,6 +99,8 @@ class LocalMemoryRepository(
                 photoPaths = resolvePhotos(draft.photos),
                 audioPath = resolveAudio(draft.audio),
                 audioTitle = draft.audio?.title,
+                mapId = draft.mapId,
+                inPersonalMap = draft.inPersonalMap,
                 happenedYear = draft.happenedYear,
                 happenedMonth = draft.happenedMonth,
                 happenedDay = draft.happenedDay,
@@ -121,6 +127,8 @@ class LocalMemoryRepository(
                 photoPaths = photoPaths,
                 audioPath = audioPath,
                 audioTitle = draft.audio?.title,
+                mapId = draft.mapId,
+                inPersonalMap = draft.inPersonalMap,
                 happenedYear = draft.happenedYear,
                 happenedMonth = draft.happenedMonth,
                 happenedDay = draft.happenedDay,

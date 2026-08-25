@@ -5,8 +5,10 @@ import com.traces.app.core.data.db.TracesDatabase
 import com.traces.app.core.data.media.MediaStorage
 import com.traces.app.core.data.prefs.UserPreferences
 import com.traces.app.core.data.repository.LocalMemoryRepository
+import com.traces.app.core.data.repository.LocalTraceMapRepository
 import com.traces.app.core.data.seed.SeedLoader
 import com.traces.app.core.domain.repository.MemoryRepository
+import com.traces.app.core.domain.repository.TraceMapRepository
 import com.traces.app.core.location.LocationProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +35,12 @@ class AppContainer(context: Context) {
 
     val memoryRepository: MemoryRepository get() = localRepository
 
+    val localMapRepository: LocalTraceMapRepository by lazy {
+        LocalTraceMapRepository(database.traceMapDao(), database.memoryDao(), userPreferences)
+    }
+
+    val mapRepository: TraceMapRepository get() = localMapRepository
+
     val locationProvider by lazy { LocationProvider(appContext) }
 
     fun mediaFile(relativePath: String) = mediaStorage.resolve(relativePath)
@@ -43,7 +51,8 @@ class AppContainer(context: Context) {
     /** Seeds the world map and fills the search column. Both run once per install. */
     fun warmUp() {
         applicationScope.launch {
-            SeedLoader(appContext, database.memoryDao(), userPreferences).loadIfNeeded()
+            SeedLoader(appContext, database.memoryDao(), database.traceMapDao(), userPreferences)
+                .loadIfNeeded()
             localRepository.ensureSearchIndex()
         }
     }

@@ -36,6 +36,7 @@ interface MemoryDao {
         """
         SELECT * FROM memories
         WHERE authorId = :ownerId
+          AND inPersonalMap = 1
           AND lat BETWEEN :south AND :north
           AND lng BETWEEN :west AND :east
           AND happenedYear BETWEEN :fromYear AND :toYear
@@ -69,6 +70,7 @@ interface MemoryDao {
         """
         SELECT COUNT(*) FROM memories
         WHERE authorId = :ownerId
+          AND inPersonalMap = 1
           AND lat BETWEEN :south AND :north
           AND lng BETWEEN :west AND :east
           AND happenedYear BETWEEN :fromYear AND :toYear
@@ -134,6 +136,19 @@ interface MemoryDao {
 
     @Query("SELECT COUNT(*) FROM memories")
     suspend fun totalCount(): Int
+
+    /** Every point pinned to one themed map, newest experience first. */
+    @Query(
+        """
+        SELECT * FROM memories
+        WHERE mapId = :mapId
+        ORDER BY happenedYear DESC, happenedMonth DESC, happenedDay DESC, createdAt DESC
+        """
+    )
+    fun observeByMap(mapId: String): Flow<List<MemoryEntity>>
+
+    @Query("UPDATE memories SET mapId = NULL WHERE mapId = :mapId")
+    suspend fun detachFromMap(mapId: String)
 
     // --- Maintenance ------------------------------------------------------
 

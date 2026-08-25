@@ -8,11 +8,13 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [MemoryEntity::class], version = 3, exportSchema = true)
+@Database(entities = [MemoryEntity::class, TraceMapEntity::class], version = 4, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class TracesDatabase : RoomDatabase() {
 
     abstract fun memoryDao(): MemoryDao
+
+    abstract fun traceMapDao(): TraceMapDao
 
     companion object {
         private const val NAME = "traces.db"
@@ -85,6 +87,43 @@ abstract class TracesDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v4 turns maps into a first-class thing: a themed collection of points.
+         * A point gains the map it belongs to and whether it also shows on the
+         * author's personal map — three independent facts, not a hierarchy.
+         *
+         * Records written before v4 default to being personal, which is what
+         * they were.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE memories ADD COLUMN mapId TEXT")
+                db.execSQL("ALTER TABLE memories ADD COLUMN inPersonalMap INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_memories_mapId ON memories (mapId)")
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS maps (
+                        id TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        titleLower TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        emoji TEXT NOT NULL,
+                        ownerId TEXT NOT NULL,
+                        ownerName TEXT NOT NULL,
+                        visibility TEXT NOT NULL,
+                        isPinned INTEGER NOT NULL,
+                        isMember INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        isSeed INTEGER NOT NULL,
+                        PRIMARY KEY(id)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_maps_ownerId ON maps (ownerId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_maps_visibility ON maps (visibility)")
+            }
+        }
+
         @Volatile
         private var instance: TracesDatabase? = null
 
@@ -96,7 +135,7 @@ abstract class TracesDatabase : RoomDatabase() {
         fun getInstance(context: Context): TracesDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(context.applicationContext, TracesDatabase::class.java, NAME)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { instance = it }
             }

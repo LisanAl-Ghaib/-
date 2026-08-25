@@ -8,6 +8,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,6 +42,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -175,6 +178,8 @@ fun CreateMemorySheet(
             PhotoStrip(state = state, viewModel = viewModel)
 
             AudioRow(state = state, viewModel = viewModel)
+
+            PlacementRow(state = state, viewModel = viewModel)
 
             VisibilityChips(
                 visibility = state.visibility,
@@ -521,6 +526,58 @@ private fun AudioRow(state: EditorState, viewModel: CreateMemoryViewModel) {
                             modifier = Modifier.size(18.dp),
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Where the point lands besides the world map: on the personal map, and under
+ * one themed map. Two independent choices, so two separate controls.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PlacementRow(state: EditorState, viewModel: CreateMemoryViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.editor_personal_map),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Text(
+                    text = stringResource(R.string.editor_personal_map_hint),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(
+                checked = state.inPersonalMap,
+                onCheckedChange = viewModel::onPersonalMapChange,
+            )
+        }
+
+        if (state.availableMaps.isNotEmpty()) {
+            Text(
+                text = stringResource(R.string.editor_pick_map),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = state.mapId == null,
+                    onClick = { viewModel.onMapChange(null) },
+                    label = { Text(stringResource(R.string.editor_no_map)) },
+                )
+                state.availableMaps.forEach { map ->
+                    FilterChip(
+                        selected = state.mapId == map.id,
+                        onClick = { viewModel.onMapChange(map.id) },
+                        label = { Text("${map.emoji}  ${map.title}") },
+                    )
                 }
             }
         }

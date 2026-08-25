@@ -1,0 +1,37 @@
+[
+  {
+    "id": "seed_map_coffee",
+    "title": "Кофе Парижа",
+    "description": "Любимые кофейни, проверенные годами.",
+    "emoji": "☕",
+    "ownerName": "Антуан"
+  },
+  {
+    "id": "seed_map_courtyards",
+    "title": "Тихие дворы",
+    "description": "Места, где город на минуту замолкает.",
+    "emoji": "🌿",
+    "ownerName": "Ольга"
+  },
+  {
+    "id": "seed_map_young",
+    "title": "Где мы были молоды",
+    "description": "Точки, к которым возвращаются через сорок лет.",
+    "emoji": "🕰",
+    "ownerName": "Пьер"
+  },
+  {
+    "id": "seed_map_books",
+    "title": "Книжные лавки",
+    "description": "Полки, у которых стояли часами.",
+    "emoji": "📚",
+    "ownerName": "Сесиль"
+  },
+  {
+    "id": "seed_map_water",
+    "title": "Мосты и вода",
+    "description": "Сена, каналы и всё, что тянется вдоль них.",
+    "emoji": "🌉",
+    "ownerName": "Жак"
+  }
+]

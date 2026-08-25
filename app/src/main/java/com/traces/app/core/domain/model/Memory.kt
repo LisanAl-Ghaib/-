@@ -27,6 +27,10 @@ data class Memory(
     /** Path relative to filesDir of an attached track, and the name it had. */
     val audioPath: String?,
     val audioTitle: String?,
+    /** The themed map this point was added to, if any. */
+    val mapId: String?,
+    /** Whether it also shows on the author's personal map. */
+    val inPersonalMap: Boolean,
     val happenedYear: Int,
     val happenedMonth: Int?,
     val happenedDay: Int?,
@@ -68,6 +72,8 @@ data class MemoryDraft(
     val photos: List<PhotoRef>,
     /** null means the memory has no track — or that its track was removed. */
     val audio: AudioRef?,
+    val mapId: String?,
+    val inPersonalMap: Boolean,
     val happenedYear: Int,
     val happenedMonth: Int?,
     val happenedDay: Int?,

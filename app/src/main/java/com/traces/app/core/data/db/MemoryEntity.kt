@@ -13,6 +13,7 @@ import com.traces.app.core.domain.model.Visibility
         Index("lng"),
         Index("authorId"),
         Index("happenedYear"),
+        Index("mapId"),
     ],
 )
 data class MemoryEntity(
@@ -35,6 +36,9 @@ data class MemoryEntity(
     /** Relative path of an attached track, plus the name it was picked under. */
     val audioPath: String?,
     val audioTitle: String?,
+    /** Themed map this point belongs to; null means it lives only on the world map. */
+    val mapId: String?,
+    val inPersonalMap: Boolean,
     val happenedYear: Int,
     /** null means only the year is known. */
     val happenedMonth: Int?,
@@ -54,6 +58,8 @@ fun MemoryEntity.toDomain(): Memory = Memory(
     photoPaths = photoPaths,
     audioPath = audioPath,
     audioTitle = audioTitle,
+    mapId = mapId,
+    inPersonalMap = inPersonalMap,
     happenedYear = happenedYear,
     happenedMonth = happenedMonth,
     happenedDay = happenedDay,

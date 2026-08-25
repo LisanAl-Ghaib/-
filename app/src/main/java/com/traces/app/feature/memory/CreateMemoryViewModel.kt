@@ -11,8 +11,10 @@ import com.traces.app.core.domain.model.MAX_TEXT_LENGTH
 import com.traces.app.core.domain.model.MIN_MEMORY_YEAR
 import com.traces.app.core.domain.model.MemoryDraft
 import com.traces.app.core.domain.model.PhotoRef
+import com.traces.app.core.domain.model.TraceMap
 import com.traces.app.core.domain.model.Visibility
 import com.traces.app.core.domain.repository.MemoryRepository
+import com.traces.app.core.domain.repository.TraceMapRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,6 +55,12 @@ data class EditorState(
     val photos: List<PhotoRef> = emptyList(),
     /** null when nothing is attached, or when the user detached the track. */
     val audio: AudioRef? = null,
+    /** Whether the point also lands on the author's personal map. */
+    val inPersonalMap: Boolean = true,
+    /** The themed map it is filed under, if any. */
+    val mapId: String? = null,
+    /** Maps the user owns or takes part in, to choose from. */
+    val availableMaps: List<TraceMap> = emptyList(),
     val dateMode: DateMode = DateMode.NOW,
     val year: Int = LocalDate.now().year,
     val month: Int? = LocalDate.now().monthValue,
@@ -68,12 +76,22 @@ data class EditorState(
 
 class CreateMemoryViewModel(
     private val repository: MemoryRepository,
+    mapRepository: TraceMapRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(EditorState())
     val state: StateFlow<EditorState> = _state.asStateFlow()
 
     private var mode: EditorMode? = null
+
+    init {
+        // The picker offers only maps the user can actually file a point under.
+        viewModelScope.launch {
+            mapRepository.observeCollection().collect { maps ->
+                _state.update { it.copy(availableMaps = maps) }
+            }
+        }
+    }
 
     /**
      * Begins an editor session. Called once per sheet open, keyed on the mode's
@@ -83,7 +101,8 @@ class CreateMemoryViewModel(
     fun start(mode: EditorMode) {
         if (this.mode?.token == mode.token) return
         this.mode = mode
-        _state.value = EditorState()
+        // Keep the loaded map list: it belongs to the ViewModel, not the session.
+        _state.value = EditorState(availableMaps = _state.value.availableMaps)
 
         when (mode) {
             is EditorMode.Create -> _state.update {
@@ -105,6 +124,8 @@ class CreateMemoryViewModel(
                         text = memory.text,
                         photos = memory.photoPaths.map(PhotoRef::Stored),
                         audio = memory.audioPath?.let { AudioRef.Stored(it, memory.audioTitle) },
+                        inPersonalMap = memory.inPersonalMap,
+                        mapId = memory.mapId,
                         dateMode = if (memory.happenedMonth == null) DateMode.YEAR else DateMode.EXACT,
                         year = memory.happenedYear,
                         month = memory.happenedMonth,
@@ -181,6 +202,14 @@ class CreateMemoryViewModel(
         _state.update { it.copy(audio = null) }
     }
 
+    fun onPersonalMapChange(inPersonalMap: Boolean) {
+        _state.update { it.copy(inPersonalMap = inPersonalMap) }
+    }
+
+    fun onMapChange(mapId: String?) {
+        _state.update { it.copy(mapId = mapId) }
+    }
+
     fun onVisibilityChange(visibility: Visibility) {
         _state.update { it.copy(visibility = visibility) }
     }
@@ -197,6 +226,8 @@ class CreateMemoryViewModel(
                 text = current.text.trim(),
                 photos = current.photos,
                 audio = current.audio,
+                mapId = current.mapId,
+                inPersonalMap = current.inPersonalMap,
                 happenedYear = current.year,
                 happenedMonth = current.month,
                 happenedDay = current.day,
@@ -214,7 +245,7 @@ class CreateMemoryViewModel(
         const val MIN_YEAR = MIN_MEMORY_YEAR
 
         fun factory(container: AppContainer) = viewModelFactory {
-            initializer { CreateMemoryViewModel(container.memoryRepository) }
+            initializer { CreateMemoryViewModel(container.memoryRepository, container.mapRepository) }
         }
     }
 }
