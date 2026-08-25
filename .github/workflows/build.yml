@@ -1,0 +1,70 @@
+name: Build debug APK
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Optional: without it the APK still installs, the map just renders grey.
+      # Add the key under Settings -> Secrets and variables -> Actions.
+      - name: Provide Maps API key
+        env:
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+        run: |
+          if [ -n "$MAPS_API_KEY" ]; then
+            echo "MAPS_API_KEY=$MAPS_API_KEY" >> local.properties
+            echo "Maps key: provided"
+          else
+            echo "Maps key: absent, falling back to local.defaults.properties"
+          fi
+
+      - name: Assemble debug APK
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug --no-daemon --console=plain 2>&1 | tee build.log
+
+      # Gradle buries Kotlin's "e:" lines under a 200-line stack trace. Echoing
+      # them again at the very end makes a failure readable from the log tail.
+      - name: Compiler errors
+        if: failure()
+        run: |
+          echo "----- KOTLIN / KSP ERRORS -----"
+          grep -E -A 4 "^e: |Unresolved reference|error:" build.log | head -120 || echo "(no compiler error lines found)"
+          echo "----- END -----"
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: traces-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      # Actions artifacts are zipped and undownloadable from the GitHub mobile
+      # app. A rolling prerelease gives a stable, direct .apk link a phone
+      # browser can install in one tap.
+      - name: Publish APK to a rolling release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk traces-debug.apk
+          gh release delete debug-latest --yes --cleanup-tag || true
+          gh release create debug-latest traces-debug.apk \
+            --title "Traces — debug build" \
+            --notes "Debug APK built from ${GITHUB_SHA}. Android 8.0+, needs Google Play Services. Allow installation from this source when prompted." \
+            --prerelease

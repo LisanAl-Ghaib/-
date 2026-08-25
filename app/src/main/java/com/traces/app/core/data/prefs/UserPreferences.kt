@@ -1,0 +1,75 @@
+package com.traces.app.core.data.prefs
+
+import android.content.Context
+import android.content.SharedPreferences
+import com.traces.app.R
+import com.traces.app.core.domain.model.LOCAL_AUTHOR_ID
+import com.traces.app.core.domain.model.ThemeMode
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.onStart
+
+/**
+ * There is no auth in the prototype, but records still need an author name and
+ * the map still needs to remember that the one-off hint was shown.
+ */
+class UserPreferences(context: Context) {
+
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences("traces_user", Context.MODE_PRIVATE)
+    private val defaultAuthorName: String get() = appContext.getString(R.string.profile_default_name)
+
+    val authorId: String get() = LOCAL_AUTHOR_ID
+
+    var authorName: String
+        get() = prefs.getString(KEY_AUTHOR_NAME, null) ?: defaultAuthorName
+        set(value) = prefs.edit().putString(KEY_AUTHOR_NAME, value).apply()
+
+    var hintShown: Boolean
+        get() = prefs.getBoolean(KEY_HINT_SHOWN, false)
+        set(value) = prefs.edit().putBoolean(KEY_HINT_SHOWN, value).apply()
+
+    var seedLoaded: Boolean
+        get() = prefs.getBoolean(KEY_SEED_LOADED, false)
+        set(value) = prefs.edit().putBoolean(KEY_SEED_LOADED, value).apply()
+
+    /** Cleared until the Cyrillic-aware search column has been filled in once. */
+    var searchIndexReady: Boolean
+        get() = prefs.getBoolean(KEY_SEARCH_INDEX, false)
+        set(value) = prefs.edit().putBoolean(KEY_SEARCH_INDEX, value).apply()
+
+    /** Example memories seeded on first launch; the user may hide or delete them. */
+    var showDemoData: Boolean
+        get() = prefs.getBoolean(KEY_SHOW_DEMO, true)
+        set(value) = prefs.edit().putBoolean(KEY_SHOW_DEMO, value).apply()
+
+    /** Light, dark, or whatever the system is doing. */
+    var themeMode: ThemeMode
+        get() = runCatching { ThemeMode.valueOf(prefs.getString(KEY_THEME, null) ?: "") }
+            .getOrDefault(ThemeMode.SYSTEM)
+        set(value) = prefs.edit().putString(KEY_THEME, value.name).apply()
+
+    fun observeAuthorName(): Flow<String> = observeKey(KEY_AUTHOR_NAME) { authorName }
+
+    fun observeThemeMode(): Flow<ThemeMode> = observeKey(KEY_THEME) { themeMode }
+
+    fun observeShowDemoData(): Flow<Boolean> = observeKey(KEY_SHOW_DEMO) { showDemoData }
+
+    private fun <T> observeKey(key: String, read: () -> T): Flow<T> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changed ->
+            if (changed == key) trySend(read())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.onStart { emit(read()) }
+
+    private companion object {
+        const val KEY_AUTHOR_NAME = "author_name"
+        const val KEY_HINT_SHOWN = "hint_shown"
+        const val KEY_SEED_LOADED = "seed_loaded"
+        const val KEY_SEARCH_INDEX = "search_index_ready"
+        const val KEY_SHOW_DEMO = "show_demo_data"
+        const val KEY_THEME = "theme_mode"
+    }
+}

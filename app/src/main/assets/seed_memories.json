@@ -1,0 +1,402 @@
+[
+  {
+    "authorName": "Мария",
+    "lat": 48.84366,
+    "lng": 2.35937,
+    "text": "Каждое утро я приходила сюда с книгой и садилась на третью скамейку слева от фонтана. Она единственная была в тени до полудня.",
+    "happenedYear": 1978,
+    "happenedMonth": 5,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Мария",
+    "lat": 48.84195,
+    "lng": 2.34964,
+    "text": "Здесь была сырная лавка. Хозяин звал меня «мадемуазель Москва» и каждый раз отрезал попробовать кусочек комте, даже когда я ничего не покупала.",
+    "happenedYear": 1981,
+    "happenedMonth": 9,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Мария",
+    "lat": 48.8462,
+    "lng": 2.34641,
+    "text": "Мы стояли тут в темноте и ждали полуночи. Было холодно, и он отдал мне свой шарф, который я так и не вернула.",
+    "happenedYear": 1979,
+    "happenedMonth": 12,
+    "happenedDay": 24,
+    "map": null
+  },
+  {
+    "authorName": "Мария",
+    "lat": 48.84488,
+    "lng": 2.35226,
+    "text": "Через двадцать пять лет привезла сюда дочь и не смогла найти ту самую булочную. Оказалось, она через дом, просто перекрасили дверь.",
+    "happenedYear": 2003,
+    "happenedMonth": 6,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Антуан",
+    "lat": 48.8464,
+    "lng": 2.33723,
+    "text": "Отец учил меня пускать кораблики в этом бассейне. Мой всегда тонул первым, и он всегда делал вид, что не заметил.",
+    "happenedYear": 1985,
+    "happenedMonth": 4,
+    "happenedDay": null,
+    "map": "seed_map_young"
+  },
+  {
+    "authorName": "Антуан",
+    "lat": 48.85014,
+    "lng": 2.33445,
+    "text": "Сдал здесь последний экзамен и вышел на улицу с ощущением, что город наконец мой.",
+    "happenedYear": 1992,
+    "happenedMonth": 10,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Антуан",
+    "lat": 48.85178,
+    "lng": 2.33898,
+    "text": "Смотрели фейерверк с крыши, куда нас пускал знакомый консьерж. Его не стало в 2011-м, и на крышу больше никто не поднимался.",
+    "happenedYear": 1999,
+    "happenedMonth": 7,
+    "happenedDay": 14,
+    "map": null
+  },
+  {
+    "authorName": "Антуан",
+    "lat": 48.84836,
+    "lng": 2.33261,
+    "text": "Кафе, где я двадцать лет подряд пил кофе перед работой. Закрылось весной, и я до сих пор иногда сворачиваю сюда по привычке.",
+    "happenedYear": 2015,
+    "happenedMonth": 3,
+    "happenedDay": null,
+    "map": "seed_map_coffee"
+  },
+  {
+    "authorName": "Ольга",
+    "lat": 48.828,
+    "lng": 2.34944,
+    "text": "Первая квартира в Париже: шестой этаж без лифта, окно во двор, где всегда сохло чужое бельё.",
+    "happenedYear": 1994,
+    "happenedMonth": 8,
+    "happenedDay": null,
+    "map": "seed_map_courtyards"
+  },
+  {
+    "authorName": "Ольга",
+    "lat": 48.83122,
+    "lng": 2.3556,
+    "text": "Здесь я потерялась в первый же день и полтора часа боялась спросить дорогу.",
+    "happenedYear": 1996,
+    "happenedMonth": 2,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Ольга",
+    "lat": 48.82715,
+    "lng": 2.35213,
+    "text": "Соседи вынесли столы прямо на мостовую. В тот вечер я впервые почувствовала, что живу тут, а не гощу.",
+    "happenedYear": 2001,
+    "happenedMonth": 5,
+    "happenedDay": 1,
+    "map": null
+  },
+  {
+    "authorName": "Ольга",
+    "lat": 48.83294,
+    "lng": 2.37602,
+    "text": "Писала диссертацию у окна на пятом этаже. До сих пор помню запах пыли из вентиляции и то, как гудели лампы.",
+    "happenedYear": 2010,
+    "happenedMonth": null,
+    "happenedDay": null,
+    "map": "seed_map_books"
+  },
+  {
+    "authorName": "Пьер",
+    "lat": 48.8799,
+    "lng": 2.38314,
+    "text": "Мы прыгали с этой скалы в воду, хотя было запрещено. Однажды приехала полиция, и все разбежались через верхние ворота.",
+    "happenedYear": 1975,
+    "happenedMonth": 6,
+    "happenedDay": null,
+    "map": "seed_map_young"
+  },
+  {
+    "authorName": "Пьер",
+    "lat": 48.8816,
+    "lng": 2.3808,
+    "text": "Дед приводил меня сюда кормить уток чёрствым багетом. Багет он всегда ломал ровно пополам.",
+    "happenedYear": 1977,
+    "happenedMonth": null,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Пьер",
+    "lat": 48.889,
+    "lng": 2.372,
+    "text": "Первая работа: разгружал баржи по субботам. Руки болели всю неделю, зато я купил себе часы.",
+    "happenedYear": 1983,
+    "happenedMonth": 9,
+    "happenedDay": null,
+    "map": "seed_map_water"
+  },
+  {
+    "authorName": "Пьер",
+    "lat": 48.8845,
+    "lng": 2.387,
+    "text": "Вернулся спустя сорок лет. Скала на месте, ограда новая, дети те же самые.",
+    "happenedYear": 2019,
+    "happenedMonth": 11,
+    "happenedDay": null,
+    "map": "seed_map_young"
+  },
+  {
+    "authorName": "Ирина",
+    "lat": 48.8407,
+    "lng": 2.3551,
+    "text": "Первый день на языковых курсах. Не поняла ни слова и плакала в туалете на перемене.",
+    "happenedYear": 2007,
+    "happenedMonth": 9,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Ирина",
+    "lat": 48.8387,
+    "lng": 2.3531,
+    "text": "Ровно через год на этом углу я объясняла дорогу туристам по-французски и сама себе не верила.",
+    "happenedYear": 2008,
+    "happenedMonth": 6,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Ирина",
+    "lat": 48.8355,
+    "lng": 2.3588,
+    "text": "Свадьба в мэрии тринадцатого. Дождь начался ровно в ту минуту, когда мы вышли на ступени.",
+    "happenedYear": 2012,
+    "happenedMonth": 4,
+    "happenedDay": 18,
+    "map": null
+  },
+  {
+    "authorName": "Ирина",
+    "lat": 48.834,
+    "lng": 2.362,
+    "text": "Локдаун, разрешённый час прогулки, всегда один и тот же круг. Я знаю тут каждую трещину в асфальте.",
+    "happenedYear": 2020,
+    "happenedMonth": null,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Жак",
+    "lat": 48.8535,
+    "lng": 2.3395,
+    "text": "Играл здесь на аккордеоне за мелочь. Однажды дали купюру в пятьсот франков, и я бежал до дома, не разжимая кулака.",
+    "happenedYear": 1988,
+    "happenedMonth": 7,
+    "happenedDay": null,
+    "map": "seed_map_water"
+  },
+  {
+    "authorName": "Жак",
+    "lat": 48.8566,
+    "lng": 2.3412,
+    "text": "Мы целовались на этом мосту, и я думал, что это навсегда. Так и вышло, только с другой.",
+    "happenedYear": 1990,
+    "happenedMonth": 5,
+    "happenedDay": null,
+    "map": "seed_map_water"
+  },
+  {
+    "authorName": "Жак",
+    "lat": 48.8519,
+    "lng": 2.3378,
+    "text": "После похорон отца мы сидели вот тут, и никто не знал, что говорить. Просидели до темноты.",
+    "happenedYear": 2004,
+    "happenedMonth": 10,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Жак",
+    "lat": 48.8496,
+    "lng": 2.3327,
+    "text": "Внучка впервые попросила показать, «где ты был молодой». Я привёл её сюда и сам удивился, как мало изменилось.",
+    "happenedYear": 2022,
+    "happenedMonth": 8,
+    "happenedDay": null,
+    "map": "seed_map_young"
+  },
+  {
+    "authorName": "Николай",
+    "lat": 48.893,
+    "lng": 2.39,
+    "text": "Смотрели финал чемпионата мира на огромном экране. Когда забили третий, незнакомый человек поднял меня на руки.",
+    "happenedYear": 1998,
+    "happenedMonth": 7,
+    "happenedDay": 12,
+    "map": null
+  },
+  {
+    "authorName": "Николай",
+    "lat": 48.891,
+    "lng": 2.384,
+    "text": "Ночевал в машине неподалёку три недели, пока искал жильё. Умывался вон в том фонтане.",
+    "happenedYear": 2005,
+    "happenedMonth": 8,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Николай",
+    "lat": 48.8876,
+    "lng": 2.3855,
+    "text": "Здесь дочь сделала первые шаги, ровно между теми двумя деревьями.",
+    "happenedYear": 2011,
+    "happenedMonth": 6,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Николай",
+    "lat": 48.8945,
+    "lng": 2.389,
+    "text": "Приходим сюда каждое воскресенье. Дочери восемнадцать, и теперь она идёт впереди.",
+    "happenedYear": 2024,
+    "happenedMonth": 5,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Сесиль",
+    "lat": 48.8472,
+    "lng": 2.3443,
+    "text": "Библиотека, где я пряталась от родителей и читала всё подряд, начиная с нижней полки.",
+    "happenedYear": 1986,
+    "happenedMonth": 11,
+    "happenedDay": null,
+    "map": "seed_map_books"
+  },
+  {
+    "authorName": "Сесиль",
+    "lat": 48.8459,
+    "lng": 2.3508,
+    "text": "Первая съёмная комната: восемь квадратных метров и окно, упирающееся в стену соседнего дома.",
+    "happenedYear": 1991,
+    "happenedMonth": 3,
+    "happenedDay": null,
+    "map": "seed_map_courtyards"
+  },
+  {
+    "authorName": "Сесиль",
+    "lat": 48.843,
+    "lng": 2.357,
+    "text": "Встретили миллениум вчетвером, с одной бутылкой на всех, сидя прямо на бордюре.",
+    "happenedYear": 2000,
+    "happenedMonth": 1,
+    "happenedDay": 1,
+    "map": null
+  },
+  {
+    "authorName": "Сесиль",
+    "lat": 48.8445,
+    "lng": 2.3479,
+    "text": "Сын поступил в тот же лицей. Он не знает, что я списывала у его будущего преподавателя.",
+    "happenedYear": 2023,
+    "happenedMonth": 9,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Дмитрий",
+    "lat": 48.8296,
+    "lng": 2.3587,
+    "text": "Первая ночь в Париже. Спал на полу у знакомого, и всю ночь под окном кто-то очень счастливо смеялся.",
+    "happenedYear": 2013,
+    "happenedMonth": 10,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Дмитрий",
+    "lat": 48.8318,
+    "lng": 2.3634,
+    "text": "Обещал себе, что через год буду говорить свободно. Обещание сдержал примерно наполовину.",
+    "happenedYear": 2014,
+    "happenedMonth": 12,
+    "happenedDay": 31,
+    "map": null
+  },
+  {
+    "authorName": "Дмитрий",
+    "lat": 48.8264,
+    "lng": 2.3566,
+    "text": "Тут была мастерская, где мне за час починили велосипед и наотрез отказались взять деньги.",
+    "happenedYear": 2017,
+    "happenedMonth": 4,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Дмитрий",
+    "lat": 48.835,
+    "lng": 2.369,
+    "text": "Показываю район новичкам и каждый раз начинаю с этого перекрёстка. Не знаю почему.",
+    "happenedYear": 2026,
+    "happenedMonth": 2,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Элен",
+    "lat": 48.8867,
+    "lng": 2.3431,
+    "text": "Мать работала в ателье за углом. Я ждала её на этих ступенях с портфелем на коленях.",
+    "happenedYear": 1976,
+    "happenedMonth": 8,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Элен",
+    "lat": 48.857,
+    "lng": 2.361,
+    "text": "Танцевали на улице всю ночь. Утром выпили кофе и пошли на работу как ни в чём не бывало.",
+    "happenedYear": 1989,
+    "happenedMonth": 5,
+    "happenedDay": null,
+    "map": "seed_map_coffee"
+  },
+  {
+    "authorName": "Элен",
+    "lat": 48.8517,
+    "lng": 2.3568,
+    "text": "Мороженое, за которым стояли сорок минут. Стоило того ровно один раз, но этот раз я помню до сих пор.",
+    "happenedYear": 2009,
+    "happenedMonth": 7,
+    "happenedDay": null,
+    "map": null
+  },
+  {
+    "authorName": "Элен",
+    "lat": 48.862,
+    "lng": 2.352,
+    "text": "Хожу здесь каждый четверг к врачу. Научилась замечать одну и ту же кошку в одном и том же окне.",
+    "happenedYear": 2025,
+    "happenedMonth": 6,
+    "happenedDay": null,
+    "map": null
+  }
+]
