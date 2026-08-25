@@ -24,6 +24,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -78,9 +80,12 @@ fun ProfileScreen() {
     val authorName by viewModel.authorName.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val totalCount by viewModel.totalCount.collectAsStateWithLifecycle()
+    val demoCount by viewModel.demoCount.collectAsStateWithLifecycle()
+    val showDemoData by viewModel.showDemoData.collectAsStateWithLifecycle()
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var renameVisible by remember { mutableStateOf(false) }
+    var confirmDemoDeleteVisible by remember { mutableStateOf(false) }
     var detailMemory by remember { mutableStateOf<Memory?>(null) }
     var editorMode by remember { mutableStateOf<EditorMode?>(null) }
 
@@ -101,6 +106,17 @@ fun ProfileScreen() {
             earliestYear = content?.earliestYear,
             onEditName = { renameVisible = true },
         )
+
+        // Seeded examples are labelled and disposable rather than pretending to
+        // be someone's real memories.
+        if (demoCount > 0) {
+            DemoDataRow(
+                count = demoCount,
+                shown = showDemoData,
+                onToggle = viewModel::setShowDemoData,
+                onDelete = { confirmDemoDeleteVisible = true },
+            )
+        }
 
         TabRow(selectedTabIndex = selectedTab) {
             Tab(
@@ -153,6 +169,27 @@ fun ProfileScreen() {
                 )
             }
         }
+    }
+
+    if (confirmDemoDeleteVisible) {
+        AlertDialog(
+            onDismissRequest = { confirmDemoDeleteVisible = false },
+            title = { Text(stringResource(R.string.demo_delete_title)) },
+            text = { Text(stringResource(R.string.demo_delete_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDemoDeleteVisible = false
+                        viewModel.deleteDemoData()
+                    },
+                ) { Text(stringResource(R.string.detail_delete_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDemoDeleteVisible = false }) {
+                    Text(stringResource(R.string.editor_cancel))
+                }
+            },
+        )
     }
 
     if (renameVisible) {
@@ -409,4 +446,41 @@ private fun RenameDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.editor_cancel)) }
         },
     )
+}
+
+@Composable
+private fun DemoDataRow(
+    count: Int,
+    shown: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onDelete: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 12.dp),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Column(modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 10.dp, bottom = 6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.demo_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.demo_body, count),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = shown, onCheckedChange = onToggle)
+            }
+            TextButton(onClick = onDelete) {
+                Text(stringResource(R.string.demo_delete_action))
+            }
+        }
+    }
 }

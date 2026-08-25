@@ -46,8 +46,14 @@ class MapViewModel(
     private val _mode = MutableStateFlow(MapMode.WORLD)
     val mode: StateFlow<MapMode> = _mode.asStateFlow()
 
+    /** What the filter sheet controls. The demo toggle is folded in separately. */
     private val _filter = MutableStateFlow(MemoryFilter.None)
     val filter: StateFlow<MemoryFilter> = _filter.asStateFlow()
+
+    private val showDemo: Flow<Boolean> = preferences.observeShowDemoData()
+
+    private val effectiveFilter: Flow<MemoryFilter> =
+        combine(_filter, showDemo) { filter, demo -> filter.copy(includeDemo = demo) }
 
     /** Null until the map reports its first laid-out viewport. */
     private val _bounds = MutableStateFlow<GeoBounds?>(null)
@@ -65,15 +71,21 @@ class MapViewModel(
     private val _hintVisible = MutableStateFlow(!preferences.hintShown)
     val hintVisible: StateFlow<Boolean> = _hintVisible.asStateFlow()
 
+    /** The empty-state card is advice, not a modal — it can be waved away. */
+    private val _emptyCardDismissed = MutableStateFlow(false)
+    val emptyCardDismissed: StateFlow<Boolean> = _emptyCardDismissed.asStateFlow()
+
     private val _emptyReason = MutableStateFlow(EmptyReason.NO_OWN_MEMORIES)
     val emptyReason: StateFlow<EmptyReason> = _emptyReason.asStateFlow()
 
-    val authors: StateFlow<List<AuthorRef>> = repository.observeAuthors()
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val authors: StateFlow<List<AuthorRef>> = showDemo
+        .flatMapLatest { demo -> repository.observeAuthors(demo) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<UiState<MapContent>> =
-        combine(_mode, _bounds, _filter) { mode, bounds, filter -> Triple(mode, bounds, filter) }
+        combine(_mode, _bounds, effectiveFilter) { mode, bounds, filter -> Triple(mode, bounds, filter) }
             .flatMapLatest { (mode, bounds, filter) ->
                 if (bounds == null) flowOf<UiState<MapContent>>(UiState.Loading)
                 else contentFlow(mode, bounds, filter)
@@ -109,6 +121,7 @@ class MapViewModel(
 
     fun onModeChange(mode: MapMode) {
         _mode.value = mode
+        _emptyCardDismissed.value = false
         // The author filter only exists on the world map; carrying it into the
         // personal map would silently hide the user's own pins.
         if (mode == MapMode.MINE) _filter.value = _filter.value.copy(authorId = null)
@@ -116,10 +129,16 @@ class MapViewModel(
 
     fun onFilterChange(filter: MemoryFilter) {
         _filter.value = filter
+        _emptyCardDismissed.value = false
     }
 
     fun clearFilter() {
         _filter.value = MemoryFilter.None
+        _emptyCardDismissed.value = false
+    }
+
+    fun dismissEmptyCard() {
+        _emptyCardDismissed.value = true
     }
 
     /** Called from a debounced collector — see MapScreen. */

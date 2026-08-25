@@ -70,6 +70,11 @@ data class MemoryFilter(
     val fromYear: Int = MIN_MEMORY_YEAR,
     val toYear: Int = currentYear(),
     val authorId: String? = null,
+    /**
+     * Seeded example memories. Not part of [activeCount]: it is a preference
+     * from the profile, not something the filter sheet sets.
+     */
+    val includeDemo: Boolean = true,
 ) {
     val isActive: Boolean
         get() = query.isNotBlank() ||

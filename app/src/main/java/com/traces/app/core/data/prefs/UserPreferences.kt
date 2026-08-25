@@ -38,7 +38,14 @@ class UserPreferences(context: Context) {
         get() = prefs.getBoolean(KEY_SEARCH_INDEX, false)
         set(value) = prefs.edit().putBoolean(KEY_SEARCH_INDEX, value).apply()
 
+    /** Example memories seeded on first launch; the user may hide or delete them. */
+    var showDemoData: Boolean
+        get() = prefs.getBoolean(KEY_SHOW_DEMO, true)
+        set(value) = prefs.edit().putBoolean(KEY_SHOW_DEMO, value).apply()
+
     fun observeAuthorName(): Flow<String> = observeKey(KEY_AUTHOR_NAME) { authorName }
+
+    fun observeShowDemoData(): Flow<Boolean> = observeKey(KEY_SHOW_DEMO) { showDemoData }
 
     private fun <T> observeKey(key: String, read: () -> T): Flow<T> = callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changed ->
@@ -53,5 +60,6 @@ class UserPreferences(context: Context) {
         const val KEY_HINT_SHOWN = "hint_shown"
         const val KEY_SEED_LOADED = "seed_loaded"
         const val KEY_SEARCH_INDEX = "search_index_ready"
+        const val KEY_SHOW_DEMO = "show_demo_data"
     }
 }

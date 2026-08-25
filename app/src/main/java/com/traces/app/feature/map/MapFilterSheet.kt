@@ -33,6 +33,7 @@ import com.traces.app.core.domain.model.MIN_MEMORY_YEAR
 import com.traces.app.core.domain.model.MapMode
 import com.traces.app.core.domain.model.MemoryFilter
 import com.traces.app.core.domain.model.currentYear
+import com.traces.app.core.ui.component.TimeLegend
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -106,6 +107,9 @@ fun MapFilterSheet(
                     valueRange = MIN_MEMORY_YEAR.toFloat()..maxYear.toFloat(),
                     steps = maxYear - MIN_MEMORY_YEAR - 1,
                 )
+                // The slider and the pin colours describe the same axis, so the
+                // ramp belongs right underneath it.
+                TimeLegend(modifier = Modifier.padding(top = 4.dp))
             }
 
             // The author filter belongs to the world map only; on the personal

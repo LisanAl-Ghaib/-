@@ -37,6 +37,7 @@ class LocalMemoryRepository(
             MapMode.WORLD -> dao.observePublicInBounds(
                 bounds.south, bounds.north, bounds.west, bounds.east,
                 filter.fromYear, filter.toYear, filter.normalisedQuery(), filter.authorId,
+                filter.includeDemo,
             )
             MapMode.MINE -> dao.observeOwnInBounds(
                 preferences.authorId,
@@ -50,6 +51,7 @@ class LocalMemoryRepository(
             MapMode.WORLD -> dao.countPublicInBounds(
                 bounds.south, bounds.north, bounds.west, bounds.east,
                 filter.fromYear, filter.toYear, filter.normalisedQuery(), filter.authorId,
+                filter.includeDemo,
             )
             MapMode.MINE -> dao.countOwnInBounds(
                 preferences.authorId,
@@ -64,8 +66,15 @@ class LocalMemoryRepository(
 
     override fun observeOwnCount(): Flow<Int> = dao.countOwn(preferences.authorId)
 
-    override fun observeAuthors(): Flow<List<AuthorRef>> =
-        dao.observeAuthors().map { rows -> rows.map { AuthorRef(it.authorId, it.authorName) } }
+    override fun observeAuthors(includeDemo: Boolean): Flow<List<AuthorRef>> =
+        dao.observeAuthors(includeDemo).map { rows -> rows.map { AuthorRef(it.authorId, it.authorName) } }
+
+    override fun observeDemoCount(): Flow<Int> = dao.countDemo()
+
+    override suspend fun deleteAllDemo() {
+        // Seed rows never carry photos, so there are no files to clean up.
+        dao.deleteAllDemo()
+    }
 
     override suspend fun getById(id: String): Memory? = dao.getById(id)?.toDomain()
 

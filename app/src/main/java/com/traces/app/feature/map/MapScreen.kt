@@ -11,13 +11,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.FilterList
-import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -67,7 +68,7 @@ import com.traces.app.core.domain.model.Memory
 import com.traces.app.core.location.LocationProvider
 import com.traces.app.core.ui.LocalAppContainer
 import com.traces.app.core.ui.UiState
-import com.traces.app.core.ui.component.EmptyState
+import com.traces.app.core.ui.component.TimeLegend
 import com.traces.app.feature.memory.CreateMemorySheet
 import com.traces.app.feature.memory.EditorMode
 import com.traces.app.feature.memory.MemoryDetailSheet
@@ -104,6 +105,7 @@ fun MapScreen() {
     val hintVisible by viewModel.hintVisible.collectAsStateWithLifecycle()
     val locationDenied by viewModel.locationDenied.collectAsStateWithLifecycle()
     val emptyReason by viewModel.emptyReason.collectAsStateWithLifecycle()
+    val emptyCardDismissed by viewModel.emptyCardDismissed.collectAsStateWithLifecycle()
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -225,7 +227,7 @@ fun MapScreen() {
                         true
                     },
                     clusterContent = { cluster -> MemoryCluster(cluster) },
-                    clusterItemContent = { MemoryPin() },
+                    clusterItemContent = { item -> MemoryPin(item.memory) },
                 )
             }
         }
@@ -274,14 +276,35 @@ fun MapScreen() {
             }
         }
 
-        if (uiState is UiState.Empty) {
+        // Legend for the temporal ramp — small, out of the way, and the only
+        // thing on screen explaining what the pin colours mean.
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 20.dp, bottom = 28.dp),
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
+            shadowElevation = 2.dp,
+        ) {
+            TimeLegend(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                barWidth = 96.dp,
+            )
+        }
+
+        AnimatedVisibility(
+            visible = uiState is UiState.Empty && !emptyCardDismissed,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 16.dp, bottom = 96.dp),
+        ) {
             MapEmptyCard(
                 mode = mode,
                 reason = emptyReason,
                 onClearFilter = viewModel::clearFilter,
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(horizontal = 32.dp),
+                onDismiss = viewModel::dismissEmptyCard,
             )
         }
 
@@ -459,44 +482,65 @@ private fun MapNotice(text: String, onDismiss: () -> Unit, modifier: Modifier = 
     }
 }
 
+/**
+ * Advice, not a modal: it sits above the FAB rather than over the map, and
+ * always carries a way out.
+ */
 @Composable
 private fun MapEmptyCard(
     mode: MapMode,
     reason: EmptyReason,
     onClearFilter: () -> Unit,
+    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val filtered = reason == EmptyReason.FILTERED_OUT
     Surface(
-        modifier = modifier,
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainer,
-        shadowElevation = 3.dp,
+        shadowElevation = 4.dp,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            when (reason) {
-                EmptyReason.FILTERED_OUT -> {
-                    EmptyState(
-                        title = stringResource(R.string.map_empty_filtered_title),
-                        body = stringResource(R.string.map_empty_filtered_body),
-                        icon = Icons.Outlined.FilterList,
-                    )
+        Row(
+            modifier = Modifier.padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(
+                        when {
+                            filtered -> R.string.map_empty_filtered_title
+                            mode == MapMode.MINE -> R.string.map_empty_mine_title
+                            else -> R.string.map_empty_world_title
+                        }
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = stringResource(
+                        when {
+                            filtered -> R.string.map_empty_filtered_body
+                            mode == MapMode.MINE -> R.string.map_empty_mine_body
+                            else -> R.string.map_empty_world_body
+                        }
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (filtered) {
                     TextButton(
                         onClick = onClearFilter,
-                        modifier = Modifier.padding(bottom = 12.dp),
+                        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
                     ) {
                         Text(stringResource(R.string.filter_reset))
                     }
                 }
-                EmptyReason.NO_OWN_MEMORIES -> EmptyState(
-                    title = stringResource(
-                        if (mode == MapMode.MINE) R.string.map_empty_mine_title
-                        else R.string.map_empty_world_title
-                    ),
-                    body = stringResource(
-                        if (mode == MapMode.MINE) R.string.map_empty_mine_body
-                        else R.string.map_empty_world_body
-                    ),
-                    icon = Icons.Outlined.PushPin,
+            }
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    Icons.Outlined.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

@@ -24,11 +24,12 @@ interface MemoryDao {
           AND happenedYear BETWEEN :fromYear AND :toYear
           AND (:query = '' OR textLower LIKE '%' || :query || '%')
           AND (:authorId IS NULL OR authorId = :authorId)
+          AND (:includeDemo = 1 OR isSeed = 0)
         """
     )
     fun observePublicInBounds(
         south: Double, north: Double, west: Double, east: Double,
-        fromYear: Int, toYear: Int, query: String, authorId: String?,
+        fromYear: Int, toYear: Int, query: String, authorId: String?, includeDemo: Boolean,
     ): Flow<List<MemoryEntity>>
 
     @Query(
@@ -56,11 +57,12 @@ interface MemoryDao {
           AND happenedYear BETWEEN :fromYear AND :toYear
           AND (:query = '' OR textLower LIKE '%' || :query || '%')
           AND (:authorId IS NULL OR authorId = :authorId)
+          AND (:includeDemo = 1 OR isSeed = 0)
         """
     )
     fun countPublicInBounds(
         south: Double, north: Double, west: Double, east: Double,
-        fromYear: Int, toYear: Int, query: String, authorId: String?,
+        fromYear: Int, toYear: Int, query: String, authorId: String?, includeDemo: Boolean,
     ): Flow<Int>
 
     @Query(
@@ -95,8 +97,20 @@ interface MemoryDao {
     @Query("SELECT COUNT(*) FROM memories WHERE authorId = :ownerId")
     fun countOwn(ownerId: String): Flow<Int>
 
-    @Query("SELECT DISTINCT authorId, authorName FROM memories WHERE visibility = 'PUBLIC' ORDER BY authorName")
-    fun observeAuthors(): Flow<List<AuthorRow>>
+    @Query(
+        """
+        SELECT DISTINCT authorId, authorName FROM memories
+        WHERE visibility = 'PUBLIC' AND (:includeDemo = 1 OR isSeed = 0)
+        ORDER BY authorName
+        """
+    )
+    fun observeAuthors(includeDemo: Boolean): Flow<List<AuthorRow>>
+
+    @Query("SELECT COUNT(*) FROM memories WHERE isSeed = 1")
+    fun countDemo(): Flow<Int>
+
+    @Query("DELETE FROM memories WHERE isSeed = 1")
+    suspend fun deleteAllDemo()
 
     @Query("UPDATE memories SET authorName = :name WHERE authorId = :ownerId")
     suspend fun renameAuthor(ownerId: String, name: String)

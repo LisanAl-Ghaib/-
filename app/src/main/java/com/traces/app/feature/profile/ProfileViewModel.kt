@@ -28,7 +28,7 @@ data class ProfileContent(
 
 class ProfileViewModel(
     private val repository: LocalMemoryRepository,
-    preferences: UserPreferences,
+    private val preferences: UserPreferences,
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
@@ -40,6 +40,13 @@ class ProfileViewModel(
     /** Total records the user owns, ignoring the search box. */
     val totalCount: StateFlow<Int> = repository.observeOwnCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /** Seeded examples still present, and whether the world map shows them. */
+    val demoCount: StateFlow<Int> = repository.observeDemoCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    val showDemoData: StateFlow<Boolean> = preferences.observeShowDemoData()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), preferences.showDemoData)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<UiState<ProfileContent>> = _query
@@ -61,6 +68,14 @@ class ProfileViewModel(
 
     fun onQueryChange(value: String) {
         _query.value = value
+    }
+
+    fun setShowDemoData(show: Boolean) {
+        preferences.showDemoData = show
+    }
+
+    fun deleteDemoData() {
+        viewModelScope.launch { repository.deleteAllDemo() }
     }
 
     fun delete(id: String) {

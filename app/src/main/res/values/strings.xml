@@ -64,6 +64,7 @@
     <string name="detail_delete_confirm">Удалить</string>
     <string name="detail_delete_cancel">Отмена</string>
     <string name="detail_private_badge">Только я</string>
+    <string name="detail_demo_badge">Пример</string>
 
     <!-- Профиль -->
     <string name="profile_default_name">Вы</string>
@@ -73,6 +74,11 @@
     <string name="profile_stat_memories">Воспоминаний</string>
     <string name="profile_stat_earliest">Самый ранний год</string>
     <string name="profile_stat_none">—</string>
+    <string name="demo_title">Демо-данные</string>
+    <string name="demo_body">%1$d примеров воспоминаний по Парижу, чтобы мировая карта не была пустой. Это вымышленные люди.</string>
+    <string name="demo_delete_action">Удалить навсегда</string>
+    <string name="demo_delete_title">Удалить демо-данные?</string>
+    <string name="demo_delete_body">Примеры исчезнут окончательно. Ваши собственные записи не тронутся.</string>
     <string name="profile_tab_map">Карта</string>
     <string name="profile_tab_timeline">Хронология</string>
     <string name="profile_empty_title">Ни одной отметки</string>

@@ -89,15 +89,26 @@ fun MemoryDetailSheet(
                     text = memory.authorName,
                     style = MaterialTheme.typography.titleMedium,
                 )
-                if (memory.visibility == Visibility.PRIVATE) {
-                    AssistChip(
-                        onClick = {},
-                        enabled = false,
-                        leadingIcon = {
-                            Icon(Icons.Outlined.Lock, contentDescription = null, modifier = Modifier.height(16.dp))
-                        },
-                        label = { Text(stringResource(R.string.detail_private_badge)) },
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // Seeded examples say so, so nobody mistakes them for a
+                    // real stranger's memory.
+                    if (memory.isSeed) {
+                        AssistChip(
+                            onClick = {},
+                            enabled = false,
+                            label = { Text(stringResource(R.string.detail_demo_badge)) },
+                        )
+                    }
+                    if (memory.visibility == Visibility.PRIVATE) {
+                        AssistChip(
+                            onClick = {},
+                            enabled = false,
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Lock, contentDescription = null, modifier = Modifier.height(16.dp))
+                            },
+                            label = { Text(stringResource(R.string.detail_private_badge)) },
+                        )
+                    }
                 }
             }
 

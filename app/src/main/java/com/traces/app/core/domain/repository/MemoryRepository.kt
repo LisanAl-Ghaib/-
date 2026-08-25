@@ -30,7 +30,13 @@ interface MemoryRepository {
     fun observeOwnCount(): Flow<Int>
 
     /** Distinct authors of public records, for the author filter. */
-    fun observeAuthors(): Flow<List<AuthorRef>>
+    fun observeAuthors(includeDemo: Boolean): Flow<List<AuthorRef>>
+
+    /** How many seeded example memories are still in the database. */
+    fun observeDemoCount(): Flow<Int>
+
+    /** Removes the seeded examples for good. */
+    suspend fun deleteAllDemo()
 
     suspend fun getById(id: String): Memory?
 

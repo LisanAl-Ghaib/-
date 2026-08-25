@@ -3,6 +3,6 @@
     <style name="Theme.Traces" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowBackground">#FAF7F2</item>
+        <item name="android:windowBackground">#F6F1E8</item>
     </style>
 </resources>
