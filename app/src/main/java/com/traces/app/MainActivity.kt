@@ -5,9 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
-import com.traces.app.ui.TracesApp
-import com.traces.app.ui.common.LocalAppContainer
-import com.traces.app.ui.theme.TracesTheme
+import com.traces.app.feature.navigation.TracesApp
+import com.traces.app.core.ui.LocalAppContainer
+import com.traces.app.core.ui.theme.TracesTheme
 
 class MainActivity : ComponentActivity() {
 

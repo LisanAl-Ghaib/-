@@ -80,52 +80,63 @@ di/          AppContainer — ручной граф зависимостей в�
 
 ## Дерево файлов
 
+Раскладка по фичам: `core/` — то, чем пользуются все, `feature/` — по папке на экран
+со своим ViewModel и состоянием.
+
 ```
 Traces/
-├── settings.gradle.kts
-├── build.gradle.kts
-├── gradle.properties
+├── settings.gradle.kts, build.gradle.kts, gradle.properties
 ├── local.defaults.properties          # заглушка ключа, чтобы сборка не падала
 ├── gradlew / gradlew.bat
-├── gradle/
-│   ├── libs.versions.toml
-│   └── wrapper/{gradle-wrapper.jar,gradle-wrapper.properties}
-└── app/
-    ├── build.gradle.kts
-    ├── proguard-rules.pro
-    └── src/main/
-        ├── AndroidManifest.xml
-        ├── assets/seed_memories.json   # 40 записей по Парижу, 1975–2026
-        ├── res/
-        │   ├── values/{strings,colors,themes}.xml
-        │   ├── values-night/themes.xml
-        │   ├── raw/{map_style_light,map_style_dark}.json
-        │   ├── drawable/ic_launcher_foreground.xml
-        │   ├── mipmap-anydpi-v26/{ic_launcher,ic_launcher_round}.xml
-        │   └── xml/{backup_rules,data_extraction_rules}.xml
-        └── java/com/traces/app/
-            ├── TracesApplication.kt
-            ├── MainActivity.kt
-            ├── di/AppContainer.kt
-            ├── domain/
-            │   ├── model/Memory.kt              # Memory, MemoryDraft, PhotoInput, GeoBounds
-            │   ├── repository/MemoryRepository.kt
-            │   └── geo/Geohash.kt
-            ├── data/
-            │   ├── local/{MemoryEntity,MemoryDao,TracesDatabase,UserPreferences}.kt
-            │   ├── photo/PhotoStorage.kt
-            │   ├── seed/{SeedMemoryJson,SeedLoader}.kt
-            │   └── repository/LocalMemoryRepository.kt
-            ├── location/LocationProvider.kt
-            └── ui/
-                ├── TracesApp.kt                 # NavHost + нижняя навигация
-                ├── UiState.kt
-                ├── theme/{Color,Type,Theme}.kt
-                ├── common/{LocalAppContainer,MemoryFormat}.kt
-                ├── map/{MapScreen,MapViewModel}.kt
-                ├── memory/{CreateMemorySheet,CreateMemoryViewModel,MemoryDetailSheet}.kt
-                └── profile/{ProfileScreen,ProfileViewModel}.kt
+├── gradle/{libs.versions.toml, wrapper/}
+├── .github/workflows/build.yml        # CI: собирает APK и кладёт в релиз
+└── app/src/main/
+    ├── AndroidManifest.xml
+    ├── assets/seed_memories.json      # 40 записей по Парижу, 1975–2026
+    ├── res/{values,values-night,raw,drawable,mipmap-anydpi-v26,xml}/
+    └── java/com/traces/app/
+        ├── TracesApplication.kt
+        ├── MainActivity.kt
+        ├── core/
+        │   ├── di/AppContainer.kt
+        │   ├── domain/
+        │   │   ├── model/Memory.kt          # Memory, MemoryDraft, PhotoRef, MemoryFilter
+        │   │   ├── repository/MemoryRepository.kt
+        │   │   └── geo/Geohash.kt
+        │   ├── data/
+        │   │   ├── db/{MemoryEntity,MemoryDao,TracesDatabase,Converters}.kt
+        │   │   ├── prefs/UserPreferences.kt
+        │   │   ├── photo/PhotoStorage.kt
+        │   │   ├── seed/{SeedMemoryJson,SeedLoader}.kt
+        │   │   └── repository/LocalMemoryRepository.kt
+        │   ├── location/LocationProvider.kt
+        │   └── ui/
+        │       ├── UiState.kt, LocalAppContainer.kt
+        │       ├── theme/{Color,Type,Theme}.kt
+        │       ├── format/MemoryFormat.kt
+        │       └── component/{PhotoViewer,EmptyState}.kt
+        └── feature/
+            ├── navigation/TracesApp.kt      # NavHost + нижняя навигация
+            ├── map/{MapScreen,MapViewModel,MapFilterSheet,MapMarkers}.kt
+            ├── memory/{CreateMemorySheet,CreateMemoryViewModel,MemoryDetailSheet}.kt
+            └── profile/{ProfileScreen,ProfileViewModel}.kt
 ```
+
+## Что умеет
+
+- **Две карты.** «Мир» — все публичные записи, включая сид-данные. «Моя карта» —
+  свои, и приватные тоже. Приватные чужим не показываются никогда: их отсекает
+  сам SQL-запрос.
+- **Кластеризация** с собственными маркерами цвета глины; ниже зума 11 блок
+  кластеризации не композится вовсе, вместо него — счётчик по видимой области.
+- **Поиск и фильтры**: по словам, по диапазону лет, по автору. Поиск работает и
+  для кириллицы — текст хранится ещё и в нижнем регистре, потому что LIKE и
+  LOWER() в SQLite приводят регистр только у латиницы.
+- **До 5 фотографий** на воспоминание: лента в редакторе, листалка в карточке,
+  полноэкранный просмотр с пинч-зумом и двойным тапом.
+- **Хронология** в профиле, сгруппированная по годам, с поиском по своим записям.
+- Работает без разрешения на геолокацию: без центрирования и расстояний, но
+  полностью.
 
 ## Что сознательно не реализовано
 
@@ -157,11 +168,12 @@ Traces/
 **Упрощено сознательно (не связано с бэкендом)**
 
 7. **Тестов нет** — по условию прототипа.
-8. **Маркеры отрисовываются стандартным рендерером** maps-compose. Свой цвет
-   пина потребует `ClusterRenderer` с `BitmapDescriptorFactory`.
-9. **Ошибка копирования фото не показывается пользователю** — она пишется в
-   лог, а запись сохраняется без фотографии.
-10. **Нет обработки поворота экрана в редакторе**: черновик живёт в ViewModel,
-    но не в `SavedStateHandle`, так что при смерти процесса он теряется.
-11. **Миграций Room нет** — база пересоздаётся (`fallbackToDestructiveMigration`).
+8. **Ошибка копирования фото не показывается пользователю** — она пишется в
+   лог, а запись сохраняется без этой фотографии.
+9. **Нет обработки смерти процесса в редакторе**: черновик живёт в ViewModel,
+   но не в `SavedStateHandle`.
+10. **Фотографии не сжимаются** при копировании — файл из галереи ложится в
+    `filesDir` как есть.
+11. **Нет экспорта и импорта данных.** Всё живёт только в базе приложения:
+    удалили приложение — потеряли записи.
 12. **Один язык.** Интерфейс только на русском, `strings.xml` без переводов.

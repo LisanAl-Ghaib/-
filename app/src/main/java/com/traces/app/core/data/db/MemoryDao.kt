@@ -1,0 +1,135 @@
+package com.traces.app.core.data.db
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface MemoryDao {
+
+    // --- Viewport queries -------------------------------------------------
+    // v0 filters by plain lat/lng ranges. Geohash prefix ranges would need
+    // neighbour-cell computation and false-positive filtering, which buys
+    // nothing on a database this size.
+
+    @Query(
+        """
+        SELECT * FROM memories
+        WHERE visibility = 'PUBLIC'
+          AND lat BETWEEN :south AND :north
+          AND lng BETWEEN :west AND :east
+          AND happenedYear BETWEEN :fromYear AND :toYear
+          AND (:query = '' OR textLower LIKE '%' || :query || '%')
+          AND (:authorId IS NULL OR authorId = :authorId)
+        """
+    )
+    fun observePublicInBounds(
+        south: Double, north: Double, west: Double, east: Double,
+        fromYear: Int, toYear: Int, query: String, authorId: String?,
+    ): Flow<List<MemoryEntity>>
+
+    @Query(
+        """
+        SELECT * FROM memories
+        WHERE authorId = :ownerId
+          AND lat BETWEEN :south AND :north
+          AND lng BETWEEN :west AND :east
+          AND happenedYear BETWEEN :fromYear AND :toYear
+          AND (:query = '' OR textLower LIKE '%' || :query || '%')
+        """
+    )
+    fun observeOwnInBounds(
+        ownerId: String,
+        south: Double, north: Double, west: Double, east: Double,
+        fromYear: Int, toYear: Int, query: String,
+    ): Flow<List<MemoryEntity>>
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM memories
+        WHERE visibility = 'PUBLIC'
+          AND lat BETWEEN :south AND :north
+          AND lng BETWEEN :west AND :east
+          AND happenedYear BETWEEN :fromYear AND :toYear
+          AND (:query = '' OR textLower LIKE '%' || :query || '%')
+          AND (:authorId IS NULL OR authorId = :authorId)
+        """
+    )
+    fun countPublicInBounds(
+        south: Double, north: Double, west: Double, east: Double,
+        fromYear: Int, toYear: Int, query: String, authorId: String?,
+    ): Flow<Int>
+
+    @Query(
+        """
+        SELECT COUNT(*) FROM memories
+        WHERE authorId = :ownerId
+          AND lat BETWEEN :south AND :north
+          AND lng BETWEEN :west AND :east
+          AND happenedYear BETWEEN :fromYear AND :toYear
+          AND (:query = '' OR textLower LIKE '%' || :query || '%')
+        """
+    )
+    fun countOwnInBounds(
+        ownerId: String,
+        south: Double, north: Double, west: Double, east: Double,
+        fromYear: Int, toYear: Int, query: String,
+    ): Flow<Int>
+
+    // --- Author queries ---------------------------------------------------
+
+    @Query(
+        """
+        SELECT * FROM memories
+        WHERE authorId = :ownerId
+          AND happenedYear BETWEEN :fromYear AND :toYear
+          AND (:query = '' OR textLower LIKE '%' || :query || '%')
+        ORDER BY happenedYear DESC, happenedMonth DESC, happenedDay DESC, createdAt DESC
+        """
+    )
+    fun observeOwn(ownerId: String, fromYear: Int, toYear: Int, query: String): Flow<List<MemoryEntity>>
+
+    @Query("SELECT COUNT(*) FROM memories WHERE authorId = :ownerId")
+    fun countOwn(ownerId: String): Flow<Int>
+
+    @Query("SELECT DISTINCT authorId, authorName FROM memories WHERE visibility = 'PUBLIC' ORDER BY authorName")
+    fun observeAuthors(): Flow<List<AuthorRow>>
+
+    @Query("UPDATE memories SET authorName = :name WHERE authorId = :ownerId")
+    suspend fun renameAuthor(ownerId: String, name: String)
+
+    // --- Single record ----------------------------------------------------
+
+    @Query("SELECT * FROM memories WHERE id = :id")
+    suspend fun getById(id: String): MemoryEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(memory: MemoryEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(memories: List<MemoryEntity>)
+
+    @Update
+    suspend fun update(memory: MemoryEntity)
+
+    @Query("DELETE FROM memories WHERE id = :id")
+    suspend fun deleteById(id: String)
+
+    @Query("SELECT COUNT(*) FROM memories")
+    suspend fun totalCount(): Int
+
+    // --- Maintenance ------------------------------------------------------
+
+    @Query("SELECT id, text FROM memories")
+    suspend fun allTexts(): List<TextRow>
+
+    @Query("UPDATE memories SET textLower = :textLower WHERE id = :id")
+    suspend fun setTextLower(id: String, textLower: String)
+}
+
+data class AuthorRow(val authorId: String, val authorName: String)
+
+data class TextRow(val id: String, val text: String)

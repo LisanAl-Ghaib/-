@@ -42,6 +42,7 @@
     <string name="editor_date_year">Год…</string>
     <string name="editor_date_exact">Точная дата</string>
     <string name="editor_year_picker_title">Выбери год</string>
+    <string name="editor_photos_title">Фотографии</string>
     <string name="editor_photo_add">Добавить фото</string>
     <string name="editor_photo_remove">Убрать фото</string>
     <string name="editor_visibility_private">Только я</string>
@@ -77,9 +78,24 @@
     <string name="profile_empty_title">Ни одной отметки</string>
     <string name="profile_empty_body">Открой карту и задержи палец на месте, которое хочешь запомнить.</string>
 
+    <!-- Фильтры и поиск -->
+    <string name="filter_title">Фильтры</string>
+    <string name="filter_reset">Сбросить</string>
+    <string name="filter_query_label">Поиск</string>
+    <string name="filter_query_placeholder">Слово из воспоминания</string>
+    <string name="filter_years">Годы: %1$d — %2$d</string>
+    <string name="filter_author">Автор</string>
+    <string name="filter_author_any">Любой</string>
+    <string name="map_empty_filtered_title">Ничего не нашлось</string>
+    <string name="map_empty_filtered_body">Под фильтры не подошло ни одно воспоминание в этой области. Попробуй расширить годы или очистить поиск.</string>
+    <string name="profile_search_placeholder">Найти среди своих</string>
+    <string name="profile_nothing_found_title">Ничего не нашлось</string>
+    <string name="profile_nothing_found_body">Ни одно из твоих воспоминаний не содержит этих слов. Попробуй другой запрос.</string>
+
     <!-- Общее -->
     <string name="cd_photo">Фотография воспоминания</string>
     <string name="cd_add_memory">Добавить воспоминание</string>
+    <string name="action_close">Закрыть</string>
 
     <string-array name="months_genitive">
         <item>января</item>
