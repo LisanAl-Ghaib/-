@@ -157,8 +157,41 @@ interface MemoryDao {
 
     @Query("UPDATE memories SET textLower = :textLower WHERE id = :id")
     suspend fun setTextLower(id: String, textLower: String)
+
+    // --- People -----------------------------------------------------------
+
+    /** One row per person who has written anything, with their totals. */
+    @Query(
+        """
+        SELECT authorId, authorName,
+               COUNT(*) AS memoryCount,
+               MIN(happenedYear) AS earliestYear
+        FROM memories
+        WHERE (:includeDemo = 1 OR isSeed = 0)
+        GROUP BY authorId, authorName
+        ORDER BY memoryCount DESC
+        """
+    )
+    fun observeProfiles(includeDemo: Boolean): Flow<List<ProfileRow>>
+
+    /** Public points by one person, for viewing their profile. */
+    @Query(
+        """
+        SELECT * FROM memories
+        WHERE authorId = :authorId AND (visibility = 'PUBLIC' OR :authorId = :ownerId)
+        ORDER BY happenedYear DESC, happenedMonth DESC, happenedDay DESC, createdAt DESC
+        """
+    )
+    fun observeVisibleByAuthor(authorId: String, ownerId: String): Flow<List<MemoryEntity>>
 }
 
 data class AuthorRow(val authorId: String, val authorName: String)
+
+data class ProfileRow(
+    val authorId: String,
+    val authorName: String,
+    val memoryCount: Int,
+    val earliestYear: Int?,
+)
 
 data class TextRow(val id: String, val text: String)

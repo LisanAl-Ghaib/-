@@ -67,4 +67,16 @@ interface TraceMapDao {
 
     @Query("SELECT COUNT(*) FROM maps")
     suspend fun totalCount(): Int
+
+    /** How many maps each person keeps, for their profile header. */
+    @Query(
+        """
+        SELECT ownerId, COUNT(*) AS mapCount FROM maps
+        WHERE (:includeDemo = 1 OR isSeed = 0)
+        GROUP BY ownerId
+        """
+    )
+    fun observeMapCounts(includeDemo: Boolean): Flow<List<OwnerCountRow>>
 }
+
+data class OwnerCountRow(val ownerId: String, val mapCount: Int)

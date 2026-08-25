@@ -40,6 +40,7 @@ import com.traces.app.feature.home.HomeScreen
 import com.traces.app.feature.map.MapScreen
 import com.traces.app.feature.mapdetail.MapDetailScreen
 import com.traces.app.feature.profile.ProfileScreen
+import com.traces.app.feature.settings.SettingsScreen
 import com.traces.app.feature.splash.SplashScreen
 
 /**
@@ -55,6 +56,9 @@ private enum class Tab(val route: String, val labelRes: Int, val icon: ImageVect
 
 private const val MAP_DETAIL_ROUTE = "map/{mapId}"
 private const val MAP_ID_ARG = "mapId"
+private const val PROFILE_ROUTE = "profile/{authorId}"
+private const val AUTHOR_ID_ARG = "authorId"
+private const val SETTINGS_ROUTE = "settings"
 
 @Composable
 fun TracesApp() {
@@ -80,6 +84,7 @@ private fun MainScaffold(navController: NavHostController) {
     val currentDestination = backStackEntry?.destination
 
     fun openMap(mapId: String) = navController.navigate("map/$mapId")
+    fun openProfile(authorId: String) = navController.navigate("profile/$authorId")
 
     Scaffold(
         bottomBar = {
@@ -124,7 +129,27 @@ private fun MainScaffold(navController: NavHostController) {
 
             composable(Tab.Collection.route) { CollectionScreen(onOpenMap = ::openMap) }
 
-            composable(Tab.Profile.route) { ProfileScreen() }
+            composable(Tab.Profile.route) {
+                ProfileScreen(
+                    onOpenSettings = { navController.navigate(SETTINGS_ROUTE) },
+                    onOpenProfile = ::openProfile,
+                )
+            }
+
+            composable(SETTINGS_ROUTE) {
+                SettingsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(
+                route = PROFILE_ROUTE,
+                arguments = listOf(navArgument(AUTHOR_ID_ARG) { type = NavType.StringType }),
+            ) { entry ->
+                ProfileScreen(
+                    authorId = entry.arguments?.getString(AUTHOR_ID_ARG),
+                    onOpenProfile = ::openProfile,
+                    onBack = { navController.popBackStack() },
+                )
+            }
 
             composable(
                 route = MAP_DETAIL_ROUTE,

@@ -5,6 +5,7 @@ import com.traces.app.core.data.db.TracesDatabase
 import com.traces.app.core.data.media.MediaStorage
 import com.traces.app.core.data.prefs.UserPreferences
 import com.traces.app.core.data.repository.LocalMemoryRepository
+import com.traces.app.core.data.repository.LocalProfileRepository
 import com.traces.app.core.data.repository.LocalTraceMapRepository
 import com.traces.app.core.data.seed.SeedLoader
 import com.traces.app.core.domain.repository.MemoryRepository
@@ -40,6 +41,10 @@ class AppContainer(context: Context) {
     }
 
     val mapRepository: TraceMapRepository get() = localMapRepository
+
+    val profileRepository: LocalProfileRepository by lazy {
+        LocalProfileRepository(database.memoryDao(), database.traceMapDao(), userPreferences)
+    }
 
     val locationProvider by lazy { LocationProvider(appContext) }
 

@@ -1,39 +1,41 @@
 package com.traces.app.feature.profile
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.PersonSearch
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -41,7 +43,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -58,41 +63,49 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.traces.app.R
 import com.traces.app.core.domain.model.Memory
-import com.traces.app.core.ui.UiState
-import com.traces.app.core.ui.component.EmptyState
+import com.traces.app.core.domain.model.Profile
 import com.traces.app.core.ui.LocalAppContainer
+import com.traces.app.core.ui.component.EmptyState
+import com.traces.app.core.ui.component.QrCode
 import com.traces.app.core.ui.format.rememberHappenedLabel
 import com.traces.app.feature.memory.CreateMemorySheet
 import com.traces.app.feature.memory.EditorMode
 import com.traces.app.feature.memory.MemoryDetailSheet
 
 private const val SINGLE_PIN_ZOOM = 14f
+private const val BOUNDS_PADDING_PX = 120
 /** Hue of the clay accent, so profile pins read as the same colour as the world map's. */
 private const val CLAY_MARKER_HUE = 12f
-private const val BOUNDS_PADDING_PX = 120
 private val PARIS = LatLng(48.8566, 2.3522)
 
+/**
+ * One screen, two readings: your own profile with settings and search, or
+ * somebody else's with only what they made public.
+ */
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(
+    authorId: String? = null,
+    onOpenSettings: () -> Unit = {},
+    onOpenProfile: (String) -> Unit = {},
+    onBack: (() -> Unit)? = null,
+) {
     val container = LocalAppContainer.current
-    val viewModel: ProfileViewModel = viewModel(factory = ProfileViewModel.factory(container))
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val authorName by viewModel.authorName.collectAsStateWithLifecycle()
+    val viewModel: ProfileViewModel = viewModel(
+        key = "profile-${authorId ?: "me"}",
+        factory = ProfileViewModel.factory(container, authorId),
+    )
+    val profile by viewModel.profile.collectAsStateWithLifecycle()
+    val points by viewModel.points.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
-    val totalCount by viewModel.totalCount.collectAsStateWithLifecycle()
-    val demoCount by viewModel.demoCount.collectAsStateWithLifecycle()
-    val showDemoData by viewModel.showDemoData.collectAsStateWithLifecycle()
 
-    var selectedTab by remember { mutableIntStateOf(0) }
-    var renameVisible by remember { mutableStateOf(false) }
-    var confirmDemoDeleteVisible by remember { mutableStateOf(false) }
+    var qrVisible by remember { mutableStateOf(false) }
+    var lookupVisible by remember { mutableStateOf(false) }
     var detailMemory by remember { mutableStateOf<Memory?>(null) }
     var editorMode by remember { mutableStateOf<EditorMode?>(null) }
+    var renameVisible by remember { mutableStateOf(false) }
 
-    val content = when (val state = uiState) {
-        is UiState.Content -> state.data
-        else -> null
-    }
+    val searching = viewModel.isLocal && query.isNotBlank()
+    val mapPoints = remember(points) { points.filter { it.inPersonalMap } }
 
     Column(
         modifier = Modifier
@@ -100,106 +113,127 @@ fun ProfileScreen() {
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.AutoMirrored.Outlined.ArrowBack,
+                        contentDescription = stringResource(R.string.action_back),
+                    )
+                }
+            }
+            Box(Modifier.weight(1f))
+            if (viewModel.isLocal) {
+                IconButton(onClick = { lookupVisible = true }) {
+                    Icon(
+                        Icons.Outlined.PersonSearch,
+                        contentDescription = stringResource(R.string.profile_find_by_code),
+                    )
+                }
+                IconButton(onClick = { qrVisible = true }) {
+                    Icon(
+                        Icons.Outlined.QrCode2,
+                        contentDescription = stringResource(R.string.profile_my_code),
+                    )
+                }
+                IconButton(onClick = onOpenSettings) {
+                    Icon(
+                        Icons.Outlined.Settings,
+                        contentDescription = stringResource(R.string.settings_title),
+                    )
+                }
+            }
+        }
+
         ProfileHeader(
-            name = authorName,
-            memoryCount = totalCount,
-            earliestYear = content?.earliestYear,
-            onEditName = { renameVisible = true },
+            profile = profile,
+            memoryCount = points.size,
+            onEditName = if (viewModel.isLocal) ({ renameVisible = true }) else null,
         )
 
-        // Seeded examples are labelled and disposable rather than pretending to
-        // be someone's real memories.
-        if (demoCount > 0) {
-            DemoDataRow(
-                count = demoCount,
-                shown = showDemoData,
-                onToggle = viewModel::setShowDemoData,
-                onDelete = { confirmDemoDeleteVisible = true },
-            )
-        }
-
-        TabRow(selectedTabIndex = selectedTab) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text(stringResource(R.string.profile_tab_map)) },
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = { Text(stringResource(R.string.profile_tab_timeline)) },
-            )
-        }
-
-        // weight(1f), not fillMaxSize(): inside a Column the latter would claim
-        // the whole height and push itself under the header and tabs.
-        val bodyModifier = Modifier
-            .fillMaxWidth()
-            .weight(1f)
-
-        if (totalCount > 0) {
+        if (viewModel.isLocal) {
             OutlinedTextField(
                 value = query,
                 onValueChange = viewModel::onQueryChange,
                 placeholder = { Text(stringResource(R.string.profile_search_placeholder)) },
                 leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                 singleLine = true,
+                shape = MaterialTheme.shapes.extraLarge,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 12.dp),
             )
         }
 
-        when (val state = uiState) {
-            UiState.Loading -> Box(bodyModifier)
-            UiState.Empty -> ProfileEmptyState(
-                searching = query.isNotBlank(),
-                modifier = bodyModifier,
-            )
-            is UiState.Content -> when (selectedTab) {
-                0 -> ProfileMap(
-                    memories = state.data.memories,
-                    onMarkerClick = { detailMemory = it },
-                    modifier = bodyModifier,
-                )
-                else -> ProfileTimeline(
-                    memories = state.data.memories,
-                    onMemoryClick = { detailMemory = it },
-                    modifier = bodyModifier,
-                )
-            }
-        }
-    }
+        val body = Modifier
+            .fillMaxWidth()
+            .weight(1f)
 
-    if (confirmDemoDeleteVisible) {
-        AlertDialog(
-            onDismissRequest = { confirmDemoDeleteVisible = false },
-            title = { Text(stringResource(R.string.demo_delete_title)) },
-            text = { Text(stringResource(R.string.demo_delete_body)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        confirmDemoDeleteVisible = false
-                        viewModel.deleteDemoData()
-                    },
-                ) { Text(stringResource(R.string.detail_delete_confirm)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDemoDeleteVisible = false }) {
-                    Text(stringResource(R.string.editor_cancel))
-                }
-            },
-        )
+        when {
+            searching && points.isEmpty() -> EmptyState(
+                title = stringResource(R.string.profile_nothing_found_title),
+                body = stringResource(R.string.profile_nothing_found_body),
+                icon = Icons.Outlined.Search,
+                modifier = body,
+            )
+
+            searching -> PointList(points, body) { detailMemory = it }
+
+            !viewModel.isLocal && points.isEmpty() -> EmptyState(
+                title = stringResource(R.string.profile_other_empty_title),
+                body = stringResource(R.string.profile_other_empty_body),
+                modifier = body,
+            )
+
+            !viewModel.isLocal -> PointList(points, body) { detailMemory = it }
+
+            mapPoints.isEmpty() -> EmptyState(
+                title = stringResource(R.string.profile_empty_title),
+                body = stringResource(R.string.profile_empty_body),
+                icon = Icons.Outlined.PushPin,
+                modifier = body,
+            )
+
+            else -> PersonalMap(
+                memories = mapPoints,
+                onMarkerClick = { detailMemory = it },
+                modifier = body,
+            )
+        }
     }
 
     if (renameVisible) {
         RenameDialog(
-            initialName = authorName,
-            onConfirm = {
-                viewModel.rename(it)
+            initialName = profile?.name.orEmpty(),
+            onConfirm = { newName ->
+                viewModel.rename(newName)
                 renameVisible = false
             },
             onDismiss = { renameVisible = false },
+        )
+    }
+
+    if (qrVisible) {
+        MyCodeDialog(code = viewModel.myCode, onDismiss = { qrVisible = false })
+    }
+
+    if (lookupVisible) {
+        FindByCodeDialog(
+            viewModel = viewModel,
+            onOpenProfile = { id ->
+                lookupVisible = false
+                viewModel.clearLookup()
+                onOpenProfile(id)
+            },
+            onDismiss = {
+                lookupVisible = false
+                viewModel.clearLookup()
+            },
         )
     }
 
@@ -226,47 +260,73 @@ fun ProfileScreen() {
 
 @Composable
 private fun ProfileHeader(
-    name: String,
+    profile: Profile?,
     memoryCount: Int,
-    earliestYear: Int?,
-    onEditName: () -> Unit,
+    onEditName: (() -> Unit)?,
 ) {
+    val name = profile?.name.orEmpty()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.clickable(onClick = onEditName),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(text = name, style = MaterialTheme.typography.titleLarge)
-            Icon(
-                imageVector = Icons.Outlined.Edit,
-                contentDescription = stringResource(R.string.profile_edit_name),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .padding(start = 8.dp)
-                    .size(18.dp),
-            )
+            Surface(
+                modifier = Modifier.size(72.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = name.take(1).uppercase(),
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = if (onEditName != null) {
+                        Modifier.clickable(onClick = onEditName)
+                    } else {
+                        Modifier
+                    },
+                )
+                Text(
+                    text = profile?.code.orEmpty(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
-            ProfileStat(
-                value = memoryCount.toString(),
-                label = stringResource(R.string.profile_stat_memories),
+        Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+            Stat(memoryCount.toString(), stringResource(R.string.profile_stat_memories))
+            Stat(
+                (profile?.mapCount ?: 0).toString(),
+                stringResource(R.string.profile_stat_maps),
             )
-            ProfileStat(
-                value = earliestYear?.toString() ?: stringResource(R.string.profile_stat_none),
-                label = stringResource(R.string.profile_stat_earliest),
+            Stat(
+                profile?.earliestYear?.toString() ?: stringResource(R.string.profile_stat_none),
+                stringResource(R.string.profile_stat_earliest),
             )
         }
     }
+
 }
 
 @Composable
-private fun ProfileStat(value: String, label: String) {
+private fun Stat(value: String, label: String) {
     Column {
         Text(text = value, style = MaterialTheme.typography.titleLarge)
         Text(
@@ -277,14 +337,41 @@ private fun ProfileStat(value: String, label: String) {
     }
 }
 
+@Composable
+private fun PointList(points: List<Memory>, modifier: Modifier, onClick: (Memory) -> Unit) {
+    LazyColumn(modifier = modifier, contentPadding = PaddingValues(bottom = 24.dp)) {
+        items(points, key = { it.id }) { memory ->
+            val happened = rememberHappenedLabel(memory)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onClick(memory) }
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = memory.text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = happened,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
 /**
  * LatLngBounds has two traps: an empty builder throws, and newLatLngBounds
- * throws IllegalStateException until the map has been laid out. So zero pins
- * never reach this composable, one pin gets a fixed zoom, and the bounds fit
- * waits for onMapLoaded.
+ * throws until the map has been laid out. Zero pins never reach here, one pin
+ * gets a fixed zoom, and the bounds fit waits for onMapLoaded.
  */
 @Composable
-private fun ProfileMap(
+private fun PersonalMap(
     memories: List<Memory>,
     onMarkerClick: (Memory) -> Unit,
     modifier: Modifier = Modifier,
@@ -349,73 +436,103 @@ private fun ProfileMap(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ProfileTimeline(
-    memories: List<Memory>,
-    onMemoryClick: (Memory) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    // observeOwn() already sorts by happenedYear DESC, so grouping keeps that order.
-    val grouped = remember(memories) { memories.groupBy { it.happenedYear } }
-
-    LazyColumn(
-        modifier = modifier,
-        contentPadding = PaddingValues(bottom = 24.dp),
-    ) {
-        grouped.forEach { (year, yearMemories) ->
-            stickyHeader(key = "year-$year") {
+private fun MyCodeDialog(code: String, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.profile_my_code)) },
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                QrCode(
+                    content = "traces://p/$code",
+                    modifier = Modifier.size(200.dp),
+                    foreground = MaterialTheme.colorScheme.onSurface,
+                    background = MaterialTheme.colorScheme.surfaceContainer,
+                )
                 Text(
-                    text = year.toString(),
-                    style = MaterialTheme.typography.titleMedium,
+                    text = code,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 22.sp,
+                )
+                Text(
+                    text = stringResource(R.string.profile_code_hint),
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(horizontal = 20.dp, vertical = 10.dp),
                 )
             }
-            items(yearMemories, key = { it.id }) { memory ->
-                TimelineRow(memory = memory, onClick = { onMemoryClick(memory) })
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val share = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, code)
+                    }
+                    context.startActivity(Intent.createChooser(share, null))
+                },
+            ) { Text(stringResource(R.string.profile_share_code)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.map_hint_dismiss)) }
+        },
+    )
+}
+
+@Composable
+private fun FindByCodeDialog(
+    viewModel: ProfileViewModel,
+    onOpenProfile: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var entered by remember { mutableStateOf("") }
+    val found by viewModel.foundProfile.collectAsStateWithLifecycle()
+    val miss by viewModel.lookupMiss.collectAsStateWithLifecycle()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.profile_find_by_code)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = entered,
+                    onValueChange = { entered = it.take(12) },
+                    label = { Text(stringResource(R.string.profile_code_field)) },
+                    singleLine = true,
+                )
+                found?.let { profile ->
+                    OutlinedButton(
+                        onClick = { onOpenProfile(profile.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(profile.name) }
+                }
+                if (miss) {
+                    Text(
+                        text = stringResource(R.string.profile_code_not_found),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.profile_code_local_note),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-        }
-    }
-}
-
-@Composable
-private fun TimelineRow(memory: Memory, onClick: () -> Unit) {
-    val happened = rememberHappenedLabel(memory)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            text = memory.text,
-            style = MaterialTheme.typography.bodyLarge,
-            maxLines = 3,
-        )
-        Text(
-            text = happened,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun ProfileEmptyState(searching: Boolean, modifier: Modifier = Modifier) {
-    EmptyState(
-        title = stringResource(
-            if (searching) R.string.profile_nothing_found_title else R.string.profile_empty_title
-        ),
-        body = stringResource(
-            if (searching) R.string.profile_nothing_found_body else R.string.profile_empty_body
-        ),
-        icon = if (searching) Icons.Outlined.Search else Icons.Outlined.PushPin,
-        modifier = modifier,
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { viewModel.lookUp(entered) },
+                enabled = entered.isNotBlank(),
+            ) { Text(stringResource(R.string.profile_find_action)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.editor_cancel)) }
+        },
     )
 }
 
@@ -446,41 +563,4 @@ private fun RenameDialog(
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.editor_cancel)) }
         },
     )
-}
-
-@Composable
-private fun DemoDataRow(
-    count: Int,
-    shown: Boolean,
-    onToggle: (Boolean) -> Unit,
-    onDelete: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 12.dp),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainer,
-    ) {
-        Column(modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 10.dp, bottom = 6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.demo_title),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        text = stringResource(R.string.demo_body, count),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(checked = shown, onCheckedChange = onToggle)
-            }
-            TextButton(onClick = onDelete) {
-                Text(stringResource(R.string.demo_delete_action))
-            }
-        }
-    }
 }

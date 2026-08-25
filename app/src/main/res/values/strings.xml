@@ -121,19 +121,35 @@
 
     <!-- Профиль -->
     <string name="profile_default_name">Вы</string>
-    <string name="profile_edit_name">Изменить имя</string>
     <string name="profile_name_dialog_title">Как тебя подписывать?</string>
     <string name="profile_name_save">Сохранить</string>
     <string name="profile_stat_memories">Воспоминаний</string>
-    <string name="profile_stat_earliest">Самый ранний год</string>
+    <string name="profile_stat_earliest">Ранний год</string>
+    <string name="profile_stat_maps">Карт</string>
+    <string name="profile_my_code">Мой код</string>
+    <string name="profile_code_hint">Покажите QR или продиктуйте код — по нему вас найдут.</string>
+    <string name="profile_share_code">Поделиться</string>
+    <string name="profile_find_by_code">Найти по коду</string>
+    <string name="profile_find_action">Найти</string>
+    <string name="profile_code_field">Код профиля</string>
+    <string name="profile_code_not_found">Никого с таким кодом нет.</string>
+    <string name="profile_code_local_note">Пока без сервера поиск идёт только по тем, кто уже есть на устройстве.</string>
+    <string name="profile_other_empty_title">Пока ничего не опубликовано</string>
+    <string name="profile_other_empty_body">У этого человека нет открытых воспоминаний.</string>
+
+    <string name="settings_title">Настройки</string>
+    <string name="settings_name">Имя</string>
+    <string name="settings_theme">Оформление</string>
+    <string name="settings_theme_system">Как в системе</string>
+    <string name="settings_theme_light">Светлое</string>
+    <string name="settings_theme_dark">Тёмное</string>
+    <string name="settings_demo_counts">%1$d воспоминаний и %2$d карт-примеров</string>
+    <string name="settings_version">Версия</string>
     <string name="profile_stat_none">—</string>
     <string name="demo_title">Демо-данные</string>
-    <string name="demo_body">%1$d примеров воспоминаний по Парижу, чтобы мировая карта не была пустой. Это вымышленные люди.</string>
     <string name="demo_delete_action">Удалить навсегда</string>
     <string name="demo_delete_title">Удалить демо-данные?</string>
     <string name="demo_delete_body">Примеры исчезнут окончательно. Ваши собственные записи не тронутся.</string>
-    <string name="profile_tab_map">Карта</string>
-    <string name="profile_tab_timeline">Хронология</string>
     <string name="profile_empty_title">Ни одной отметки</string>
     <string name="profile_empty_body">Открой карту и задержи палец на месте, которое хочешь запомнить.</string>
 
