@@ -298,7 +298,7 @@ fun MapScreen() {
             exit = fadeOut(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 16.dp, bottom = 96.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 96.dp),
         ) {
             MapEmptyCard(
                 mode = mode,

@@ -45,7 +45,7 @@ jobs:
         if: failure()
         run: |
           echo "----- KOTLIN / KSP ERRORS -----"
-          grep -E "^(e|w): |Unresolved reference|error:" build.log | head -60 || echo "(no compiler error lines found)"
+          grep -E -A 4 "^e: |Unresolved reference|error:" build.log | head -120 || echo "(no compiler error lines found)"
           echo "----- END -----"
 
       - uses: actions/upload-artifact@v4
