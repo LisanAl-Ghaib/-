@@ -304,7 +304,19 @@ function drawApartment(
     drawFloor(g, room.x0, fy, w, reno ? '#8a8580' : pal.floor, apt.vacant || reno ? 'concrete' : room.def.flooring ?? def?.flooring ?? 'boards');
     if (reno) {
       const dust = Rng.fromSeed(`dust:${apt.id}:${room.index}`);
-      for (let i = 0; i < w / 3; i++) rect(g, room.x0 + dust.int(0, w - 1), fy - dust.int(0, 1), 1, 1, '#d8d2c6');
+      for (let i = 0; i < w / 2; i++) rect(g, room.x0 + dust.int(0, w - 1), fy - dust.int(0, 1), 1, 1, dust.pick(['#d8d2c6', '#b8b0a2', '#c8a890']));
+      // кучи строительного мусора
+      const piles = dust.int(1, 2);
+      for (let p = 0; p < piles; p++) {
+        const px = room.x0 + dust.int(4, Math.max(5, w - 18));
+        const pw = dust.int(8, 14);
+        for (let i = 0; i < pw; i++) {
+          const hh = Math.max(1, Math.round(4 - Math.abs(i - pw / 2) * (8 / pw)));
+          rect(g, px + i, fy - hh, 1, hh, dust.pick(['#a89a88', '#c8baa6', '#8a7a6a', '#b8584a']));
+        }
+      }
+      // кабель змейкой по полу
+      for (let x = room.x0 + 2; x < room.x1 - 2; x++) if ((x + room.index) % 9 < 6) rect(g, x, fy - 1 - (Math.floor(x / 5) % 2), 1, 1, '#2a2a30');
     }
     const wr = windowRect(room, lt);
     const style = apt.vacant || reno ? 'vacant' : def?.style ?? 'plain';
@@ -317,12 +329,23 @@ function drawApartment(
           rect(g, wr[0] + i, wr[1] + wr[3] - 1 - Math.round((i * wr[3]) / wr[2]), 1, 1, 'rgba(230,210,150,0.8)');
         }
       }
-      // батарея под окном
+      // батарея под окном (на ремонте — снята, торчат обрезки труб)
       const rx = wr[0] + 2;
       const rw2 = wr[2] - 4;
-      rect(g, rx, fy - 15, rw2, 9, reno ? '#c8c4bc' : '#e6e2d8');
-      for (let x = rx + 1; x < rx + rw2 - 1; x += 3) rect(g, x, fy - 15, 1, 9, reno ? '#aaa69c' : '#c8c2b4');
-      rect(g, rx + rw2 - 1, fy - 6, 1, 4, '#9a968c');
+      if (reno) {
+        rect(g, rx, fy - 14, 1, 12, '#7a6a5a');
+        rect(g, rx + rw2 - 1, fy - 14, 1, 12, '#7a6a5a');
+        rect(g, rx - 1, fy - 14, 3, 1, '#5a4a3a');
+        rect(g, rx + rw2 - 2, fy - 14, 3, 1, '#5a4a3a');
+        // плёнка на окне
+        g.fillStyle = 'rgba(235,240,244,0.45)';
+        g.fillRect(wr[0] - 2, wr[1] - 2, wr[2] + 4, wr[3] + 4);
+        rect(g, wr[0] - 2, wr[1] - 2, wr[2] + 4, 1, 'rgba(200,190,150,0.9)');
+      } else {
+        rect(g, rx, fy - 15, rw2, 9, '#e6e2d8');
+        for (let x = rx + 1; x < rx + rw2 - 1; x += 3) rect(g, x, fy - 15, 1, 9, '#c8c2b4');
+        rect(g, rx + rw2 - 1, fy - 6, 1, 4, '#9a968c');
+      }
     }
     if (!apt.vacant && !reno) {
       rect(g, room.x0 + 4, fy - 9, 2, 2, '#f4f2ec'); // розетка
@@ -359,8 +382,22 @@ function drawApartment(
     }
   }
   // межкомнатные стены с проёмами
-  for (const wx of L.innerWalls(apt)) {
+  for (const [i, wx] of L.innerWalls(apt).entries()) {
     const x = Math.round(wx);
+    if (def?.renovation) {
+      // перегородку разбирают: кирпичная кладка с рваным краем
+      const rng = Rng.fromSeed(`wall:${apt.id}:${i}`);
+      const keep = i % 2 === 0 ? h - 26 : rng.int(8, 20);
+      for (let y = lt; y < lt + keep; y++) {
+        const row = Math.floor((y - lt) / 3);
+        rect(g, x - 1, y, 4, 1, (y - lt) % 3 === 2 ? '#c8b8a0' : row % 2 ? '#a85a4a' : '#9a4e40');
+      }
+      for (let k = 0; k < 4; k++) rect(g, x - 2 + rng.int(0, 4), lt + keep + k, 1, 1, '#9a4e40'); // рваный край
+      rect(g, x - 5, fy - 3, 12, 3, '#a89a88'); // кирпичи внизу
+      rect(g, x - 3, fy - 5, 4, 2, '#a85a4a');
+      rect(g, x + 2, fy - 4, 3, 1, '#9a4e40');
+      continue;
+    }
     rect(g, x, lt, INNER_WALL, h - 26, '#d9d3c7');
     rect(g, x, lt, 1, h - 26, '#c4bdb0');
     rect(g, x - 1, fy - 27, INNER_WALL + 2, 1, apt.vacant ? '#bbb' : shade(pal.wood, 0.1)); // наличник
@@ -409,6 +446,24 @@ function drawRenovationWalls(g: CanvasRenderingContext2D, x0: number, y0: number
     for (let x = bx; x < bx + bw; x += 5) rect(g, x, y0 + h - ph, 1, ph, shade(paint, -0.04));
     for (let x = bx; x < bx + bw; x++) if (rng.chance(0.4)) rect(g, x, y0 + h - ph - 1, 1, 1, paint);
   }
+  // участок, сбитый до кирпича
+  if (rng.chance(0.8)) {
+    const bw = rng.int(12, 24);
+    const bh = rng.int(10, 22);
+    const bx = x0 + rng.int(2, Math.max(3, w - bw - 2));
+    const by = y0 + rng.int(6, Math.max(7, h - bh - 4));
+    for (let yy = 0; yy < bh; yy++) {
+      const off = Math.floor(yy / 3) % 2 ? 3 : 0;
+      for (let xx = 0; xx < bw; xx++) {
+        const edge = (xx === 0 || xx === bw - 1 || yy === 0 || yy === bh - 1) && rng.chance(0.5);
+        if (edge) continue;
+        const mortar = yy % 3 === 2 || (xx + off) % 6 === 5;
+        rect(g, bx + xx, by + yy, 1, 1, mortar ? '#c8b8a0' : (xx + yy) % 7 === 0 ? '#9a4e40' : '#a85a4a');
+      }
+    }
+  }
+  // пятна и потёки под потолком
+  for (let i = 0; i < 3; i++) rect(g, x0 + rng.int(0, Math.max(1, w - 8)), y0 + 2, rng.int(3, 8), rng.int(1, 3), '#b8b0a0');
   // карандашные пометки разметки
   rect(g, x0 + rng.int(4, Math.max(5, w - 12)), y0 + rng.int(14, 30), 7, 1, '#7a7a80');
 }
@@ -555,6 +610,16 @@ function drawGroundFloor(g: CanvasRenderingContext2D, defs: WorldDefs, lt: numbe
   rect(g, mx + 30, fy - 12, 1, 12, '#6a4a3a');
   rect(g, mx + 8, fy - 16, 8, 2, '#f3f1ea');
   rect(g, mx + 18, fy - 15, 6, 1, '#e8b040');
+  // стенд «Жильцы дома» — список квартир под стеклом
+  const rb = residentsBoardRect(defs);
+  rect(g, rb.x - 1, rb.y - 1, rb.w + 2, rb.h + 2, '#6a4a2a');
+  rect(g, rb.x, rb.y, rb.w, rb.h, '#efe8d4');
+  rect(g, rb.x + 2, rb.y + 1, rb.w - 4, 2, '#7a2a2a'); // заголовок
+  for (let yy = rb.y + 5; yy < rb.y + rb.h - 2; yy += 3) {
+    rect(g, rb.x + 2, yy, 3, 1, '#3a3530');
+    rect(g, rb.x + 7, yy, rb.w - 10 - ((yy * 7) % 5), 1, '#8a8478');
+  }
+  rect(g, rb.x + 1, rb.y + 1, 1, rb.h - 4, 'rgba(255,255,255,0.6)'); // блик стекла
   // доска объявлений
   const nb = rx0 + 58;
   rect(g, nb, fy - 50, 30, 20, '#b08a5a');
@@ -612,6 +677,13 @@ function drawGroundFloor(g: CanvasRenderingContext2D, defs: WorldDefs, lt: numbe
   rect(g, rx1 - 42, fy - 29, 1, 29, '#7a6a5a'); // распахнутая створка
   // проём наружной двери
   rect(g, L.buildingX1 - OUTER_WALL, fy - 30, OUTER_WALL, 30, '#3a2f2a');
+}
+
+/** Где на стене висит стенд «Жильцы дома» (рядом с почтовыми ящиками) */
+export function residentsBoardRect(defs: WorldDefs): { x: number; y: number; w: number; h: number } {
+  const L = defs.layout;
+  const fy = L.floorY(0);
+  return { x: L.coreX + CORE_W + 96, y: fy - 54, w: 22, h: 26 };
 }
 
 /** Наружная дверь подъезда и козырёк (поверх, со стороны двора) */

@@ -6,7 +6,7 @@ import { daylight } from '../sim/env/sun';
 import type { ResidentState } from '../sim/state';
 import type { Simulation } from '../sim/simulation';
 import type { ApartmentModel } from '../world/layout';
-import { drawApartmentDoor, drawEntrance, renderBuilding, type BuildingLayers } from './building';
+import { drawApartmentDoor, drawEntrance, renderBuilding, residentsBoardRect, type BuildingLayers } from './building';
 import { Camera } from './camera';
 import { DEFAULT_LOOK, drawGround, drawTrees, drawYardProps, makeTrees, type OutdoorLook, type TreeShape } from './outdoor';
 import { busPhase } from '../world/transport';
@@ -17,6 +17,11 @@ import { screenRect } from './sprites/furniture';
 import { generateIcon } from './sprites/icons';
 import { hashString } from '../core/rng';
 import { LifeDetails } from './lifeDetails';
+import { animatePose, type Pose } from './animation';
+import { drawProp } from './props';
+import { drawScreen, type ScreenKind } from './screens';
+
+const PROP_FRONT = new Set<number>([FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch, FRAME.standHandUp]);
 import { ctx2d, makeCanvas, SpriteRegistry } from './sprites/registry';
 
 export interface Environment {
@@ -34,6 +39,7 @@ export interface RenderOptions {
   selectedResident: string | null;
   hoverApartment: string | null;
   focusApartment: string | null;
+  hoverBoard?: boolean;
 }
 
 interface Cloud {
@@ -128,10 +134,13 @@ export class Renderer {
     const cam = this.camera;
     // дом по ширине целиком (можно чуть обрезать по краям), но не меньше ×1
     const bw = L.buildingX1 - L.buildingX0;
-    const z = Math.max(1, Math.floor(Math.min(cam.viewW / (bw * 0.97), cam.visH / (L.worldH - L.roofY + 30))));
+    const fitW = Math.max(1, Math.floor(cam.viewW / (bw * 0.97)));
+    const fitH = Math.max(1, Math.floor(cam.visH / (L.worldH - L.roofY + 30)));
+    // если по высоте место есть — можно на ступень крупнее, обрезав края дома
+    const z = Math.max(fitW, Math.min(fitH, fitW + 1));
     const visW = cam.viewW / z;
-    // дом целиком слева, остальное место — двору
-    const x = visW >= this.W ? this.W / 2 : L.buildingX0 - 16 + visW / 2;
+    // дом целиком слева, остальное — двору; если дом не влезает — по центру дома
+    const x = visW >= this.W ? this.W / 2 : visW >= bw + 32 ? L.buildingX0 - 16 + visW / 2 : (L.buildingX0 + L.buildingX1) / 2;
     const y = (L.roofY - 20 + L.worldH) / 2;
     if (animate) cam.animateTo(x, y, z, now);
     else this.camera.jumpTo(x, y, z);
@@ -200,7 +209,6 @@ export class Renderer {
 
     // на экран
     this.blit();
-    this.drawLabels(opts);
   }
 
   private drawClouds(t: number, day: number) {
@@ -372,16 +380,15 @@ export class Renderer {
       const apt = L.apartmentAt(r.level, r.x);
       if (!apt) continue;
       const room = L.roomAt(apt, r.x);
-      if (a.id === 'watch_tv' || a.id === 'work' || a.id === 'gaming') {
+      if (a.id === 'watch_tv' || a.id === 'work' || a.id === 'gaming' || a.id === 'computer') {
         const wants = a.id === 'watch_tv' ? ['tv_stand', 'tv_old', 'small_tv'] : ['computer_desk', 'concierge_desk'];
         for (const f of room.furniture) {
           if (!wants.includes(f.def.draw)) continue;
           const sr = screenRect(f.def.draw, f.w, f.h);
           if (!sr) continue;
           const x = f.flip ? f.x + f.w - sr[0] - sr[2] : f.x + sr[0];
-          const flick = Math.floor(nowMs / 400) % 3;
-          rect(this.wg, x, f.y - f.h + sr[1], sr[2], sr[3], ['#9fd4f5', '#b8e2ff', '#8ec6ee'][flick]);
-          rect(this.wg, x + 1, f.y - f.h + sr[1] + 1, Math.max(1, sr[2] - 3), 1, '#e8f6ff');
+          const kind: ScreenKind = a.id === 'watch_tv' ? 'tv' : f.def.draw === 'concierge_desk' ? 'cctv' : a.id === 'gaming' ? 'game' : a.id === 'computer' ? 'browser' : (Math.floor(this.sim.time / 1500) + f.x) % 3 === 0 ? 'browser' : 'code';
+          drawScreen(this.wg, kind, x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, f.uid);
         }
       }
       if (a.id === 'cook') {
@@ -429,22 +436,21 @@ export class Renderer {
       const ix = Math.round(x);
       const iy = Math.round(y);
       const moving = r.path.length > 0 && r.path[0].k === 'walk' && (p ? Math.abs(p.x - r.x) + Math.abs(p.y - r.y) > 0.01 : true);
+      const def = this.defs.residentById.get(r.id)!;
       let frame: number = FRAME.stand;
       let top = iy - CELL_H;
+      let pose: Pose | null = null;
       if (moving) frame = FRAME.walk0 + (Math.floor(r.walkDist / 3) % 4);
-      else if (r.pose === 'lie') {
-        frame = FRAME.lie;
-        top = iy - CELL_H + 1;
-      } else if (r.pose === 'sit') {
-        frame = r.front ? FRAME.frontSit : FRAME.sit;
-        top = iy - 21;
-      } else if (r.action?.data.talking === true) {
-        frame = Math.floor(nowMs / 600 + r.x) % 3 === 0 ? FRAME.frontTalk : FRAME.frontStand;
-      } else if (r.action?.phase === 'perform' && ['cook', 'wash', 'plants', 'crafts'].includes(r.action.id)) {
-        frame = Math.floor(nowMs / 500) % 2 ? FRAME.work : FRAME.stand;
-      } else if (r.front) frame = FRAME.frontStand;
+      else {
+        pose = animatePose(r, def, this.sim.time, nowMs);
+        frame = pose.frame;
+        if (r.pose === 'lie') top = iy - CELL_H + 1;
+        else if (r.pose === 'sit') top = iy - 21;
+        top -= pose.bob ?? 0;
+      }
       const sheet = this.sheet(r);
-      const flip = r.facing < 0 && !(r.front && frame !== FRAME.lie);
+      let flip = r.facing < 0 && !(r.front && frame !== FRAME.lie);
+      if (pose?.turn) flip = !flip;
       g.save();
       if (flip) {
         g.translate(ix + CELL_W / 2, top);
@@ -452,10 +458,11 @@ export class Renderer {
         g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, 0, 0, CELL_W, CELL_H);
       } else g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, ix - CELL_W / 2, top, CELL_W, CELL_H);
       g.restore();
+      // реквизит в руках
+      if (pose?.prop) drawProp(g, def.appearance, frame, pose.prop.kind, pose.prop.at, ix, top, flip && !PROP_FRONT.has(frame), nowMs, hashString(r.id));
       // одеяло / вода в ванне
       if (r.pose === 'lie' && r.action?.phase === 'perform') {
         const apt = L.apartmentAt(r.level, r.x);
-        const def = this.defs.residentById.get(r.id)!;
         const H = def.appearance.height === 'short' ? 18 : def.appearance.height === 'tall' ? 22 : 20;
         const color = r.action.id === 'wash' ? '#9fd3ef' : apt?.def?.palette.textile ?? '#9a948a';
         const bx = flip ? ix - Math.floor(H / 2) + 6 : ix - Math.floor(H / 2);
@@ -530,6 +537,13 @@ export class Renderer {
       rect(g, apt.x0, lt, 1, fy - lt + SLAB, color);
       rect(g, apt.x1 - 1, lt, 1, fy - lt + SLAB, color);
     };
+    if (opts.hoverBoard) {
+      const b = residentsBoardRect(this.defs);
+      rect(g, b.x - 2, b.y - 2, b.w + 4, 1, '#ffe066');
+      rect(g, b.x - 2, b.y + b.h + 1, b.w + 4, 1, '#ffe066');
+      rect(g, b.x - 2, b.y - 2, 1, b.h + 4, '#ffe066');
+      rect(g, b.x + b.w + 1, b.y - 2, 1, b.h + 4, '#ffe066');
+    }
     if (opts.hoverApartment && opts.hoverApartment !== opts.focusApartment) {
       const apt = L.aptById.get(opts.hoverApartment);
       if (apt) outline(apt, 'rgba(255,240,180,0.7)');
@@ -651,40 +665,6 @@ export class Renderer {
     g.drawImage(this.world, sx0, sy0, sx1 - sx0, sy1 - sy0, ox + sx0 * z, oy + sy0 * z, (sx1 - sx0) * z, (sy1 - sy0) * z);
   }
 
-  private drawLabels(opts: RenderOptions) {
-    const { g, camera } = this;
-    const ids = new Set<string>();
-    if (opts.hoverResident) ids.add(opts.hoverResident);
-    if (opts.selectedResident) ids.add(opts.selectedResident);
-    if (camera.zoom >= 5) for (const r of Object.values(this.sim.state.residents)) if (!r.away) ids.add(r.id);
-    const dpr = window.devicePixelRatio || 1;
-    g.font = `${Math.round(11 * dpr)}px ui-monospace, Menlo, Consolas, monospace`;
-    g.textAlign = 'center';
-    g.textBaseline = 'bottom';
-    const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
-    for (const id of ids) {
-      const r = this.sim.state.residents[id];
-      if (!r || r.away) continue;
-      const def = this.defs.residentById.get(id)!;
-      const yTop = r.pose === 'lie' ? r.y - 10 : r.pose === 'sit' ? r.y - 24 : r.y - 26;
-      const p = camera.worldToScreen(r.x, yTop - (r.bubble ? 10 : 2));
-      const text = def.name.short ?? def.name.first;
-      const w = g.measureText(text).width + 8 * dpr;
-      // не налезать на уже поставленные подписи
-      const h = 15 * dpr;
-      for (let guard = 0; guard < 6; guard++) {
-        const hit = placed.find((b) => p.x - w / 2 < b.x1 && p.x + w / 2 > b.x0 && p.y - h < b.y1 && p.y > b.y0);
-        if (!hit) break;
-        p.y = hit.y0 - 1;
-      }
-      placed.push({ x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y - h, y1: p.y });
-      g.fillStyle = id === opts.selectedResident ? 'rgba(60,45,10,0.85)' : 'rgba(15,15,30,0.75)';
-      g.fillRect(Math.round(p.x - w / 2), Math.round(p.y - 15 * dpr), Math.round(w), Math.round(14 * dpr));
-      g.fillStyle = id === opts.selectedResident ? '#ffe066' : '#f4f1ea';
-      g.fillText(text, Math.round(p.x), Math.round(p.y - 2 * dpr));
-    }
-  }
-
   // ───────────────────────────── наведение ─────────────────────────────
 
   pickResident(sx: number, sy: number): string | null {
@@ -694,6 +674,13 @@ export class Renderer {
       if (w.x >= b.x - 1 && w.x <= b.x + b.w + 1 && w.y >= b.y - 1 && w.y <= b.y + b.h + 1) return b.id;
     }
     return null;
+  }
+
+  /** Клик по стенду «Жильцы дома» у почтовых ящиков */
+  pickBoard(sx: number, sy: number): boolean {
+    const w = this.camera.screenToWorld(sx, sy);
+    const b = residentsBoardRect(this.defs);
+    return w.x >= b.x - 2 && w.x <= b.x + b.w + 2 && w.y >= b.y - 2 && w.y <= b.y + b.h + 2;
   }
 
   pickApartment(sx: number, sy: number): ApartmentModel | null {

@@ -37,11 +37,11 @@ export interface SaveRecord {
   state: WorldState;
 }
 
-export async function loadWorld(): Promise<WorldState | null> {
+export async function loadWorld(): Promise<SaveRecord | null> {
   try {
     const rec = await tx<SaveRecord | undefined>('readonly', (s) => s.get(KEY));
     if (!rec || rec.version !== SAVE_VERSION || rec.state?.version !== SAVE_VERSION) return null;
-    return rec.state;
+    return rec;
   } catch (e) {
     console.warn('[save] не удалось загрузить', e);
     return null;

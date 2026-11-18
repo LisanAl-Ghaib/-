@@ -154,3 +154,15 @@ export const idle: ActionDef = {
     gain(ctx.r, 'energy', 1.5, dt);
   },
 };
+
+/** Чай или кофе — короткая передышка с чашкой */
+export const tea = leisure({
+  id: 'tea', icon: 'dots', use: 'eat', rooms: ['kitchen', 'living', 'studio', 'study'],
+  base: 1.3,
+  label: (ctx) => (ctx.home.rooms.some((r) => r.furniture.some((f) => f.def.draw === 'coffee_machine')) ? 'пьёт кофе' : 'пьёт чай'),
+  rates: { mood: 5, energy: 4 }, minutes: [8, 20], cooldown: 3 * 3600,
+  bonus: (ctx) => {
+    const h = ctx.cal.hourOfDay;
+    return (h >= 7 && h < 10) || (h >= 15.5 && h < 17.5) ? 1.8 : 0;
+  },
+});

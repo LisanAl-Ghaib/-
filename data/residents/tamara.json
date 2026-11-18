@@ -1,34 +1,95 @@
 {
   "id": "tamara",
   "name": {
-    "first": "Тамара", "last": "Белова", "patronymic": "Ивановна", "short": "Тамара Ивановна",
-    "cases": { "gen": "Тамары Ивановны", "dat": "Тамаре Ивановне", "acc": "Тамару Ивановну", "ins": "Тамарой Ивановной", "pre": "Тамаре Ивановне" }
+    "first": "Тамара",
+    "last": "Белова",
+    "patronymic": "Ивановна",
+    "short": "Тамара Ивановна",
+    "cases": {
+      "gen": "Тамары Ивановны",
+      "dat": "Тамаре Ивановне",
+      "acc": "Тамару Ивановну",
+      "ins": "Тамарой Ивановной",
+      "pre": "Тамаре Ивановне"
+    }
   },
   "gender": "f",
   "birthday": "1960-02-11",
   "apartment": "apt-1-left",
   "occupation": {
-    "kind": "onsite", "title": "консьержка", "workplace": "подъезд дома на Тополиной, 7",
-    "schedule": { "days": [1, 2, 3, 4, 5, 6, 7], "start": "08:00", "end": "20:00" },
-    "commuteMinutes": 0, "commute": "walk"
+    "kind": "onsite",
+    "title": "консьержка",
+    "workplace": "подъезд дома на Тополиной, 7",
+    "schedule": {
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "start": "08:00",
+      "end": "20:00"
+    },
+    "commuteMinutes": 0,
+    "commute": "walk"
   },
   "traits": {
-    "chronotype": "lark", "sociability": "balanced", "temper": "even", "outlook": "cheerful", "activity": "normal",
-    "tags": ["любит порядок", "узнаёт жильцов по шагам", "решает кроссворды"]
+    "chronotype": "lark",
+    "sociability": "balanced",
+    "temper": "even",
+    "outlook": "cheerful",
+    "activity": "normal",
+    "tags": [
+      "любит порядок",
+      "узнаёт жильцов по шагам",
+      "решает кроссворды"
+    ]
   },
   "habits": [
-    { "kind": "crafts", "strength": 0.7, "note": "вяжет носки всем знакомым" },
-    { "kind": "tv", "strength": 0.6, "note": "вечерние сериалы по маленькому телевизору" },
-    { "kind": "reading", "strength": 0.4, "note": "кроссворды и газета «Вечерний город»" },
-    { "kind": "plants", "strength": 0.5, "note": "фикус в дежурке — её гордость" }
+    {
+      "kind": "crafts",
+      "strength": 0.7,
+      "note": "вяжет носки всем знакомым"
+    },
+    {
+      "kind": "tv",
+      "strength": 0.6,
+      "note": "вечерние сериалы по маленькому телевизору"
+    },
+    {
+      "kind": "reading",
+      "strength": 0.4,
+      "note": "кроссворды и газета «Вечерний город»"
+    },
+    {
+      "kind": "plants",
+      "strength": 0.5,
+      "note": "фикус в дежурке — её гордость"
+    }
   ],
-  "backstory": "Тридцать лет проработала кассиром в сберкассе. После выхода на пенсию сдала свою квартиру внучке и устроилась консьержкой, вместе с работой получив комнатку при дежурке. Говорит, что дом без присмотра — что каша без соли.",
+  "backstory": "",
   "appearance": {
     "skin": "#eccbb2",
-    "hair": { "style": "bun", "color": "#8a3a2a" },
-    "height": "short", "build": "heavy",
-    "outfit": { "top": "#6a7f5a", "bottom": "#3f3a4a", "shoes": "#4a3a30", "style": "dress", "coat": "#5a4a52" },
-    "accessories": ["glasses", "scarf"]
+    "hair": {
+      "style": "bun",
+      "color": "#8a3a2a"
+    },
+    "height": "short",
+    "build": "heavy",
+    "outfit": {
+      "top": "#6a7f5a",
+      "bottom": "#3f3a4a",
+      "shoes": "#4a3a30",
+      "style": "dress",
+      "coat": "#5a4a52"
+    },
+    "accessories": [
+      "glasses",
+      "scarf"
+    ]
   },
   "relationships": []
 }

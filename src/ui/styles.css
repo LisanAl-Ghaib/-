@@ -116,3 +116,22 @@ main { flex: 1; display: flex; min-height: 0; }
   #zoom { right: 8px; bottom: 10px; }
   button { padding: 6px 9px; }
 }
+
+.panel-title { padding: 8px 10px 6px; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; font-size: 12px; border-bottom: 1px solid var(--line); }
+
+/* стенд «Жильцы» у почтовых ящиков */
+#board { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(10,8,16,.55); z-index: 10; padding: 16px; }
+#board[hidden], #away[hidden] { display: none; }
+.sheet { background: #efe8d4; color: #2a2420; width: min(420px, 100%); max-height: 100%; overflow-y: auto; padding: 16px 18px; box-shadow: 0 6px 0 #b8ab88, 0 10px 30px rgba(0,0,0,.5); border: 2px solid #8a7a5a; font-family: var(--font); }
+.sheet h2 { margin: 0 0 2px; font-size: 15px; text-align: center; letter-spacing: 2px; }
+.sheet .addr { text-align: center; font-size: 12px; color: #6a5e50; margin-bottom: 10px; }
+.sheet .floor { margin: 10px 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6a5e50; border-bottom: 1px dashed #b8ab88; }
+.sheet .apt { display: grid; grid-template-columns: 74px 1fr; gap: 6px; padding: 3px 0; align-items: start; }
+.sheet .apt .no { font-weight: 700; }
+.sheet .who { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+.sheet .who canvas { image-rendering: pixelated; background: #e2d8bc; }
+.sheet .muted { color: #8a7e6a; font-style: italic; }
+.sheet .close { display: block; margin: 12px auto 0; background: #d8ccaa; color: #2a2420; border-color: #8a7a5a; }
+
+/* «пока вас не было» */
+#away { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); background: rgba(20,18,28,.92); border: 1px solid var(--line); padding: 12px 18px; z-index: 11; text-align: center; }

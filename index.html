@@ -15,11 +15,9 @@
           <span id="clock-date"></span>
         </div>
         <div id="env"></div>
-        <div id="speed" role="group" aria-label="Скорость времени"></div>
         <div class="menu">
-          <button id="btn-overview" title="Обзор дома (Esc)">⌂ Дом</button>
-          <button id="btn-panel" title="Показать/скрыть панель" aria-label="Панель">☰</button>
-          <button id="btn-new" title="Начать мир заново">Новый мир</button>
+          <button id="btn-overview" title="Весь дом (Esc)">⌂ Дом</button>
+          <button id="btn-panel" title="Показать или спрятать хронику" aria-label="Хроника">☰</button>
         </div>
       </header>
       <main>
@@ -30,17 +28,13 @@
             <button id="zoom-in" title="Приблизить (+)" aria-label="Приблизить">+</button>
             <button id="zoom-out" title="Отдалить (−)" aria-label="Отдалить">−</button>
           </div>
-          <div id="help">Колёсико — масштаб · перетаскивание — панорама · клик по квартире — заглянуть внутрь · клик по жильцу — карточка · Пробел — пауза, 1–4 — скорость</div>
+          <div id="help">Колёсико или щипок — ближе/дальше · перетаскивание — оглядеться · клик по квартире — заглянуть · клик по человеку — проследить · кто где живёт — на стенде у почтовых ящиков</div>
+          <div id="board" hidden></div>
+          <div id="away" hidden></div>
         </div>
         <aside id="panel">
-          <nav class="tabs">
-            <button data-tab="chronicle" class="active">Хроника</button>
-            <button data-tab="residents">Жильцы</button>
-            <button data-tab="details">Подробно</button>
-          </nav>
+          <div class="panel-title">Хроника дома</div>
           <section id="tab-chronicle" class="tab active"></section>
-          <section id="tab-residents" class="tab"></section>
-          <section id="tab-details" class="tab"></section>
         </aside>
       </main>
     </div>

@@ -23,8 +23,31 @@ export const FRAME = {
   frontTalk: 9,
   work: 10,
   frontWave: 11,
+  /** сидит боком, рука вперёд (печатает, ест, пишет) */
+  sitArm: 12,
+  /** сидит боком, рука у лица (пьёт, говорит по телефону) */
+  sitArmUp: 13,
+  /** сидит боком, откинувшись назад */
+  sitLean: 14,
+  /** сидит лицом, обе руки перед собой (книга, телефон, вязание) */
+  frontSitHands: 15,
+  /** сидит лицом, рука у уха/рта */
+  frontSitHandUp: 16,
+  /** сидит лицом, ссутулившись */
+  frontSitSlouch: 17,
+  /** стоит лицом, рука у уха (телефон) */
+  standHandUp: 18,
+  /** стоит боком, рука поднята вперёд-вверх (мешает, трёт, красит) */
+  workUp: 19,
 } as const;
-export const FRAME_COUNT = 12;
+export const FRAME_COUNT = 20;
+
+/** Пропорции фигуры (для реквизита в руках) */
+export function figureOf(app: ResidentDef['appearance']): { H: number; legLen: number; torsoLen: number } {
+  const H = app.height === 'short' ? 18 : app.height === 'tall' ? 22 : 20;
+  const legLen = H === 18 ? 7 : H === 22 ? 9 : 8;
+  return { H, legLen, torsoLen: H - legLen - 6 };
+}
 
 type Appearance = ResidentDef['appearance'];
 
@@ -67,9 +90,21 @@ export function generateCharacterSheet(app: Appearance, opts: { coat?: boolean }
   for (let f = 0; f < FRAME_COUNT; f++) {
     g.save();
     g.translate(f * CELL_W, 0);
-    drawFrame(g, f, app, pal, H, legLen, torsoLen, !!opts.coat);
+    // «откинулся» и «ссутулился» — производные кадры, сдвигаем верх фигуры
+    const base = f === FRAME.sitLean ? FRAME.sit : f === FRAME.frontSitSlouch ? FRAME.frontSit : f;
+    drawFrame(g, base, app, pal, H, legLen, torsoLen, !!opts.coat);
     g.restore();
   }
+  const hipRow = CELL_H - 4;
+  const shift = (frame: number, dx: number, dyy: number) => {
+    const x0 = frame * CELL_W;
+    const tmp = makeCanvas(CELL_W, hipRow);
+    tmp.getContext('2d')!.drawImage(canvas, x0, 0, CELL_W, hipRow, 0, 0, CELL_W, hipRow);
+    g.clearRect(x0, 0, CELL_W, hipRow - 1);
+    g.drawImage(tmp, 0, 0, CELL_W, hipRow - 1, x0 + dx, dyy, CELL_W, hipRow - 1);
+  };
+  shift(FRAME.sitLean, -1, 0);
+  shift(FRAME.frontSitSlouch, 0, 1);
   return canvas;
 }
 
@@ -101,8 +136,10 @@ function drawFrame(
     return;
   }
 
-  const front = f === FRAME.frontStand || f === FRAME.frontSit || f === FRAME.frontTalk || f === FRAME.frontWave;
-  const sitting = f === FRAME.sit || f === FRAME.frontSit;
+  const FRONT: number[] = [FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.standHandUp];
+  const SITTING: number[] = [FRAME.sit, FRAME.frontSit, FRAME.sitArm, FRAME.sitArmUp, FRAME.frontSitHands, FRAME.frontSitHandUp];
+  const front = FRONT.includes(f);
+  const sitting = SITTING.includes(f);
   const dy = sitting ? Math.max(0, legLen - 4) : 0; // садится — верх опускается
 
   if (!front) {
@@ -147,10 +184,19 @@ function drawFrame(
     if (acc.has('scarf') || coat) px(g, C - 2, ty, 5, 1, coat ? shade(p.top, 0.25) : '#b8423a');
     if (acc.has('bag')) px(g, tw0 - 1, ty + 2, 2, 3, '#6b4a2a');
     // рука
-    if (f === FRAME.work) {
+    if (f === FRAME.work || f === FRAME.sitArm) {
       px(g, C, ty + 1, 1, 2, p.topS);
       px(g, C + 1, ty + 2, 2, 1, p.topS);
       px(g, C + 3, ty + 2, 1, 1, p.skin);
+    } else if (f === FRAME.workUp) {
+      px(g, C, ty + 1, 1, 1, p.topS);
+      px(g, C + 1, ty, 1, 1, p.topS);
+      px(g, C + 2, ty - 1, 1, 1, p.topS);
+      px(g, C + 3, ty - 2, 1, 1, p.skin);
+    } else if (f === FRAME.sitArmUp) {
+      px(g, C, ty + 1, 1, 2, p.topS);
+      px(g, C + 1, ty, 1, 1, p.topS);
+      px(g, C + 2, ty - 1, 1, 1, p.skin); // кисть у рта
     } else if (sitting) {
       px(g, C, ty + 1, 1, torsoLen - 2, p.topS);
       px(g, C + 1, ty + torsoLen - 1, 2, 1, p.skin);
@@ -225,9 +271,24 @@ function drawFrame(
   // руки
   const armL = tw0 - 1;
   const armR = tw1 + 1;
-  px(g, armL, ty + 1, 1, torsoLen - 1, p.topS);
-  px(g, armL, ty + torsoLen, 1, 1, p.skin);
-  if (f === FRAME.frontTalk) {
+  if (f === FRAME.frontSitHands) {
+    // обе руки сведены перед собой
+    px(g, armL, ty + 1, 1, torsoLen - 3, p.topS);
+    px(g, armL + 1, ty + torsoLen - 2, 2, 1, p.topS);
+    px(g, C - 2, ty + torsoLen - 3, 1, 1, p.skin);
+    px(g, armR, ty + 1, 1, torsoLen - 3, p.topS);
+    px(g, armR - 2, ty + torsoLen - 2, 2, 1, p.topS);
+    px(g, C + 1, ty + torsoLen - 3, 1, 1, p.skin);
+  } else {
+    px(g, armL, ty + 1, 1, torsoLen - 1, p.topS);
+    px(g, armL, ty + torsoLen, 1, 1, p.skin);
+  }
+  if (f === FRAME.frontSitHands) {
+    /* уже нарисовано */
+  } else if (f === FRAME.frontSitHandUp || f === FRAME.standHandUp) {
+    px(g, armR, ty, 1, 2, p.topS);
+    px(g, armR, ty - 2, 1, 2, p.skin); // ладонь у уха
+  } else if (f === FRAME.frontTalk) {
     px(g, armR, ty + 1, 1, 2, p.topS);
     px(g, armR + 1, ty, 1, 1, p.skin);
   } else if (f === FRAME.frontWave) {

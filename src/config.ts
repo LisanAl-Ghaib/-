@@ -24,7 +24,6 @@ export const GROUND_H = 24;
 export const DT = 10;
 /** игровых секунд за реальную секунду на скорости ×1 (1 мин реальная = 1 час игровой) */
 export const BASE_TIME_SCALE = 60;
-export const SPEEDS = [0, 1, 10, 60] as const;
 
 /** скорость ходьбы, мировых пикселей за игровую минуту */
 export const WALK_SPEED = 30;

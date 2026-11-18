@@ -36,12 +36,8 @@ export class TemplateNarrator implements Narrator {
     const s = (x: unknown) => String(x ?? '');
 
     switch (e.kind) {
-      case 'world.start': {
-        const names = ctx.defs.residents.map((r) => r.name.short ?? r.name.first);
-        return names.length
-          ? `Начинается хроника дома на ${ctx.defs.config.address}. Здесь живут: ${joinNames(names)}.`
-          : `Начинается хроника дома на ${ctx.defs.config.address}. Дом пока пуст.`;
-      }
+      case 'world.start':
+        return `Начинается хроника дома на ${ctx.defs.config.address}.`;
       case 'moved-in':
         return `${v(A, 'В дом въехал', 'В дом въехала')} ${n(a)} — квартира ${s(d.apt)}, ${onFloor(ctx.floorOf(a))}.`;
       case 'moved-out':

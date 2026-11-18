@@ -121,26 +121,87 @@ export class LifeDetails {
     for (const apt of this.defs.layout.apartments) {
       if (!this.workersOn(apt)) continue;
       const fy = this.defs.layout.floorY(apt.level);
+      const lt = this.defs.layout.levelTop(apt.level);
       const furn = apt.rooms.flatMap((r) => r.furniture);
       const ladder = furn.find((f) => f.def.draw === 'ladder');
-      const bench = furn.find((f) => f.def.draw === 'sawhorse') ?? furn.find((f) => f.def.draw === 'paint_cans');
+      const saw = furn.find((f) => f.def.draw === 'sawhorse');
+      const bucket = furn.find((f) => f.def.draw === 'bucket' || f.def.draw === 'cement_bags');
+      // места работы: стремянка, козлы, стена (штукатурка), ведро (раствор), «несёт доску»
+      type Spot = { kind: 'ladder' | 'saw' | 'wall' | 'mix' | 'carry'; x: number };
+      const spots: Spot[] = [];
+      if (ladder) spots.push({ kind: 'ladder', x: ladder.x + 3 });
+      if (saw) spots.push({ kind: 'saw', x: saw.x + saw.w + 5 });
+      if (bucket) spots.push({ kind: 'mix', x: bucket.x + bucket.w + 4 });
+      for (const r of apt.rooms) spots.push({ kind: 'wall', x: Math.round(r.x0 + (r.x1 - r.x0) * 0.3) });
+      spots.push({ kind: 'carry', x: Math.round((apt.x0 + apt.x1) / 2) });
       const seed = hashString(apt.id);
-      const t = nowMs / 1000;
-      // мастер на стремянке красит стену валиком
-      if (ladder) {
-        const x = ladder.x + 3;
-        const y = fy - 12;
-        this.drawWorker(g, 'npc:worker1', WORKER_A, x, y, Math.floor(t * 2 + seed) % 2 ? FRAME.work : FRAME.frontWave, -1);
-        const ry = y - 22 - (Math.floor(t * 2) % 2) * 3;
-        rect(g, x - 7, ry, 1, 6, '#888');
-        rect(g, x - 9, ry - 2, 4, 2, mix(apt.def!.palette.accent, '#ffffff', 0.5));
-      }
-      // второй — у козел: пилит, меряет, шпаклюет
-      if (bench) {
-        const x = bench.x + bench.w + 6;
-        const frame = Math.floor(t * 1.5 + seed) % 3 === 0 ? FRAME.stand : FRAME.work;
-        this.drawWorker(g, 'npc:worker2', WORKER_B, x, fy, frame, -1);
-        if (Math.floor(t * 4) % 3 === 0) rect(g, x - 6, fy - 12 - (Math.floor(t * 8) % 3), 1, 1, '#e8e2d4'); // пыль
+      const tMin = this.sim.time / 60;
+      const SEG = 9;
+      const seg = Math.floor(tMin / SEG);
+      const inSeg = tMin - seg * SEG;
+      const taken = new Set<string>();
+      [WORKER_A, WORKER_B].forEach((app, wi) => {
+        const choose = (sg: number) => {
+          let k = (Math.imul(sg + 17 * wi, 2654435761) ^ seed) >>> 0;
+          let sp = spots[k % spots.length];
+          for (let tries = 0; taken.has(sp.kind + sp.x) && tries < spots.length; tries++) sp = spots[++k % spots.length];
+          return sp;
+        };
+        const cur = choose(seg);
+        taken.add(cur.kind + cur.x);
+        const prevSp = choose(seg - 1);
+        const key = `npc:worker${wi}`;
+        const t = nowMs / 1000;
+        // первые полторы минуты отрезка — переходит на новое место
+        if (inSeg < 1.5 && prevSp.x !== cur.x) {
+          const k = inSeg / 1.5;
+          const x = Math.round(prevSp.x + (cur.x - prevSp.x) * k);
+          const frame = FRAME.walk0 + (Math.floor(x / 3) % 4);
+          this.drawWorker(g, key, app, x, fy, frame, cur.x >= prevSp.x ? 1 : -1);
+          if (cur.kind === 'carry' || prevSp.kind === 'saw') rect(g, x - 9, fy - 22, 18, 2, '#c49a62'); // доска на плече
+          return;
+        }
+        const alt = Math.floor(t * (cur.kind === 'saw' ? 4 : 2) + wi) % 2;
+        switch (cur.kind) {
+          case 'ladder': {
+            const y = fy - 12;
+            this.drawWorker(g, key, app, cur.x, y, alt ? FRAME.work : FRAME.workUp, -1);
+            const ry = y - 20 - alt * 3;
+            rect(g, cur.x - 6, ry, 1, 5, '#888'); // валик
+            rect(g, cur.x - 8, ry - 2, 4, 2, mix(apt.def!.palette.accent, '#ffffff', 0.5));
+            break;
+          }
+          case 'saw':
+            this.drawWorker(g, key, app, cur.x, fy, alt ? FRAME.work : FRAME.workUp, -1);
+            if (alt) rect(g, cur.x - 6 - (Math.floor(t * 8) % 3), fy - 12 + (Math.floor(t * 8) % 4), 1, 1, '#e8d8b0'); // опилки
+            break;
+          case 'mix':
+            this.drawWorker(g, key, app, cur.x, fy, alt ? FRAME.work : FRAME.stand, -1);
+            if (Math.floor(t * 6) % 4 === 0) rect(g, cur.x - 8, fy - 9, 1, 1, '#d8d2c6');
+            break;
+          case 'wall': {
+            this.drawWorker(g, key, app, cur.x, fy, alt ? FRAME.workUp : FRAME.work, 1);
+            rect(g, cur.x + 5, fy - 17 - alt * 3, 3, 1, '#9aa0a8'); // шпатель
+            // свежая шпаклёвка на стене — растёт за отрезок
+            const done = Math.min(1, inSeg / SEG);
+            rect(g, cur.x + 6, fy - 30, 8, Math.round(18 * done), 'rgba(236,232,222,0.9)');
+            break;
+          }
+          case 'carry':
+            this.drawWorker(g, key, app, cur.x, fy, FRAME.frontStand, 1);
+            rect(g, cur.x - 3, fy - 13, 6, 1, '#e8c040'); // меряет рулеткой
+            break;
+        }
+        // стук: иногда из стены вылетает пыль
+        if (Math.floor(t * 3 + wi * 7) % 11 === 0) rect(g, cur.x + (wi ? -10 : 10), fy - 26, 1, 1, '#ffffff');
+      });
+      // строительная пыль в воздухе
+      const dustSeed = Math.floor(nowMs / 120);
+      for (let i = 0; i < 10; i++) {
+        const k = (Math.imul(i + 1, 2246822519) ^ seed) >>> 0;
+        const x = apt.x0 + (k % (apt.x1 - apt.x0));
+        const y = lt + 6 + ((k >>> 8) % (fy - lt - 10)) - ((dustSeed + i * 5) % 20);
+        if (y > lt + 2) rect(g, x, y, 1, 1, 'rgba(230,224,210,0.6)');
       }
     }
   }

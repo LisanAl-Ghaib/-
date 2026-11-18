@@ -3,7 +3,7 @@ import type { ChronicleEntry } from '../sim/state';
 import { el } from './dom';
 import type { PanelView, UiHost } from './ui';
 
-type Filter = 'important' | 'all' | 'selected';
+type Filter = 'important' | 'all';
 
 /** Лента «Хроника дома» */
 export function chronicleView(host: UiHost): PanelView {
@@ -13,7 +13,6 @@ export function chronicleView(host: UiHost): PanelView {
 
   const passes = (e: ChronicleEntry) => {
     if (filter === 'important') return e.importance >= 2;
-    if (filter === 'selected') return !!host.selected && e.actors.includes(host.selected);
     return true;
   };
 
@@ -23,7 +22,7 @@ export function chronicleView(host: UiHost): PanelView {
     listBox.innerHTML = '';
     if (!entries.length) {
       listBox.append(
-        el('div', { class: 'empty' }, filter === 'selected' ? (host.selected ? 'С этим жильцом пока ничего не случилось.' : 'Сначала выберите жильца.') : 'Пока тихо. Жизнь только начинается…'),
+        el('div', { class: 'empty' }, 'Пока тихо. Жизнь только начинается…'),
       );
       return;
     }
@@ -34,20 +33,17 @@ export function chronicleView(host: UiHost): PanelView {
         day = c.dayIndex;
         listBox.append(el('div', { class: 'chron-day' }, formatDateLong(c)));
       }
-      const row = el('div', { class: `chron-entry imp${e.importance}`, title: 'Показать участника' }, el('span', { class: 't' }, hhmm(c.minuteOfDay)), e.text);
+      const row = el('div', { class: `chron-entry imp${e.importance}`, title: e.actors.length ? 'Найти взглядом' : '' }, el('span', { class: 't' }, hhmm(c.minuteOfDay)), e.text);
       if (e.actors.length) {
         row.style.cursor = 'pointer';
-        row.addEventListener('click', () => {
-          const target = e.actors[0] === host.selected && e.actors[1] ? e.actors[1] : e.actors[0];
-          host.select(target, { focus: true });
-        });
+        let k = 0;
+        row.addEventListener('click', () => host.follow?.(e.actors[k++ % e.actors.length]));
       }
       listBox.append(row);
     }
   };
 
   return {
-    tab: 'chronicle',
     render(box) {
       box.innerHTML = '';
       const btn = (f: Filter, label: string) =>
@@ -59,13 +55,13 @@ export function chronicleView(host: UiHost): PanelView {
           },
         }, label);
       listBox = el('div', {});
-      box.append(el('div', { class: 'chron-filters' }, btn('important', 'Главное'), btn('all', 'Всё подряд'), btn('selected', 'Выбранный жилец')), listBox);
+      box.append(el('div', { class: 'chron-filters' }, btn('important', 'Главное'), btn('all', 'Всё подряд')), listBox);
       lastKey = '';
       renderList();
     },
     update() {
       const ch = host.sim.state.chronicle;
-      const key = `${ch.length}:${ch[ch.length - 1]?.id ?? 0}:${host.selected}`;
+      const key = `${ch.length}:${ch[ch.length - 1]?.id ?? 0}`;
       if (key === lastKey) return;
       lastKey = key;
       renderList();
