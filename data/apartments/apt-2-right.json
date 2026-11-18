@@ -4,32 +4,103 @@
   "side": "right",
   "style": "soviet",
   "description": "Квартира Веры Павловны почти не менялась с восьмидесятых: ковёр на стене, сервант, фиалки и часы с боем.",
-  "palette": { "wall": "#c9b98f", "floor": "#7a4f2f", "wood": "#6b3f26", "textile": "#9c3b35", "accent": "#7a8f4a", "metal": "#c7c3b8" },
+  "palette": {
+    "wall": "#c9b98f",
+    "floor": "#7a4f2f",
+    "wood": "#6b3f26",
+    "textile": "#9c3b35",
+    "accent": "#7a8f4a",
+    "metal": "#c7c3b8"
+  },
   "wallpaper": "damask",
   "flooring": "herringbone",
   "rooms": [
-    { "type": "hall", "width": 2, "furniture": [
-      { "item": "shoe_rack", "x": 2 },
-      { "item": "mirror", "x": 4 },
-      { "item": "coat_rack", "x": 21 }
-    ] },
-    { "type": "kitchen", "width": 3, "wallpaper": "tiles", "furniture": [
-      { "item": "fridge_old", "x": 1 },
-      { "item": "stove", "x": 14 },
-      { "item": "kitchen_table", "x": 28 },
-      { "item": "radio", "x": 33, "elevation": 10 }
-    ] },
-    { "type": "living", "width": 4, "furniture": [
-      { "item": "tv_old", "x": 2 },
-      { "item": "wall_carpet", "x": 26 },
-      { "item": "sofa", "x": 22 },
-      { "item": "plant", "x": 55 },
-      { "item": "window_plants", "x": 24 }
-    ] },
-    { "type": "bedroom", "width": 3, "furniture": [
-      { "item": "rocking_chair", "x": 2 },
-      { "item": "wall_clock", "x": 10 },
-      { "item": "bed_single", "x": 22, "flip": true }
-    ] }
+    {
+      "type": "hall",
+      "width": 2,
+      "furniture": [
+        {
+          "item": "shoe_rack",
+          "x": 2
+        },
+        {
+          "item": "mirror",
+          "x": 4
+        },
+        {
+          "item": "coat_rack",
+          "x": 21
+        }
+      ]
+    },
+    {
+      "type": "kitchen",
+      "width": 3,
+      "wallpaper": "tiles",
+      "furniture": [
+        {
+          "item": "fridge_old",
+          "x": 1
+        },
+        {
+          "item": "stove",
+          "x": 14
+        },
+        {
+          "item": "kitchen_table",
+          "x": 28
+        },
+        {
+          "item": "radio",
+          "x": 33,
+          "elevation": 10
+        }
+      ]
+    },
+    {
+      "type": "living",
+      "width": 4,
+      "furniture": [
+        {
+          "item": "tv_old",
+          "x": 1
+        },
+        {
+          "item": "wall_carpet",
+          "x": 21
+        },
+        {
+          "item": "sofa",
+          "x": 18
+        },
+        {
+          "item": "window_plants",
+          "x": 24
+        },
+        {
+          "item": "sideboard",
+          "x": 50
+        }
+      ]
+    },
+    {
+      "type": "bedroom",
+      "width": 3,
+      "furniture": [
+        {
+          "item": "rocking_chair",
+          "x": 2
+        },
+        {
+          "item": "wall_clock",
+          "x": 10
+        },
+        {
+          "item": "bed_single",
+          "x": 22,
+          "flip": true
+        }
+      ]
+    }
   ]
 }

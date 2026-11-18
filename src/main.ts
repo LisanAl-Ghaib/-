@@ -78,6 +78,7 @@ async function boot() {
     },
     focusApartment(id) {
       host.focusedApartment = id;
+      host.selected = null;
       following = false;
       const apt = id ? defs.layout.aptById.get(id) : null;
       if (apt) renderer.focusApartment(apt, performance.now());
@@ -230,7 +231,7 @@ async function boot() {
   requestAnimationFrame(frame);
 
   // для отладки из консоли
-  Object.assign(window, { dom: { sim, defs, renderer, save } });
+  Object.assign(window, { dom: { sim, defs, renderer, save, host } });
 }
 
 boot();

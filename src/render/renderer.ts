@@ -183,6 +183,7 @@ export class Renderer {
     // осадки перед всем, кроме дома
     this.drawPrecip(nowMs, false);
     if (env.fog > 0) this.drawFog(day);
+    this.drawFocus(opts);
     this.drawBubbles(nowMs);
     this.drawMarkers(opts, nowMs);
 
@@ -470,6 +471,21 @@ export class Renderer {
     }
   }
 
+  /** Приближенная квартира — остальное чуть притушено */
+  private drawFocus(opts: RenderOptions) {
+    const apt = opts.focusApartment ? this.defs.layout.aptById.get(opts.focusApartment) : null;
+    if (!apt) return;
+    const L = this.defs.layout;
+    const y0 = L.levelTop(apt.level);
+    const y1 = L.floorY(apt.level) + SLAB;
+    const g = this.wg;
+    g.fillStyle = 'rgba(8,8,20,0.6)';
+    g.fillRect(0, 0, this.W, y0);
+    g.fillRect(0, y1, this.W, this.H - y1);
+    g.fillRect(0, y0, apt.x0, y1 - y0);
+    g.fillRect(apt.x1, y0, this.W - apt.x1, y1 - y0);
+  }
+
   private drawMarkers(opts: RenderOptions, nowMs: number) {
     const L = this.defs.layout;
     const g = this.wg;
@@ -603,6 +619,7 @@ export class Renderer {
     g.font = `${Math.round(11 * dpr)}px ui-monospace, Menlo, Consolas, monospace`;
     g.textAlign = 'center';
     g.textBaseline = 'bottom';
+    const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
     for (const id of ids) {
       const r = this.sim.state.residents[id];
       if (!r || r.away) continue;
@@ -611,6 +628,14 @@ export class Renderer {
       const p = camera.worldToScreen(r.x, yTop - (r.bubble ? 10 : 2));
       const text = def.name.short ?? def.name.first;
       const w = g.measureText(text).width + 8 * dpr;
+      // не налезать на уже поставленные подписи
+      const h = 15 * dpr;
+      for (let guard = 0; guard < 6; guard++) {
+        const hit = placed.find((b) => p.x - w / 2 < b.x1 && p.x + w / 2 > b.x0 && p.y - h < b.y1 && p.y > b.y0);
+        if (!hit) break;
+        p.y = hit.y0 - 1;
+      }
+      placed.push({ x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y - h, y1: p.y });
       g.fillStyle = id === opts.selectedResident ? 'rgba(60,45,10,0.85)' : 'rgba(15,15,30,0.75)';
       g.fillRect(Math.round(p.x - w / 2), Math.round(p.y - 15 * dpr), Math.round(w), Math.round(14 * dpr));
       g.fillStyle = id === opts.selectedResident ? '#ffe066' : '#f4f1ea';

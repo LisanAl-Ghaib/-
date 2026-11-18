@@ -552,6 +552,40 @@ const drawers: Record<string, Drawer> = {
     for (let x = 2; x < w - 1; x += 2) R(c, x, 1, 1, h - 6, shade(main, 0.15));
     R(c, 1, h - 7, w - 2, 2, pal.textile);
   },
+  sideboard(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, h, main);
+    R(c, 0, 0, w, 1, shade(main, 0.2));
+    R(c, 1, 2, w - 2, 15, '#bcd8e4'); // стекло
+    R(c, 1, 9, w - 2, 1, main); // полка
+    for (let x = 2; x < w - 2; x += 3) {
+      R(c, x, 6, 2, 3, '#f4f1ea'); // чашки
+      R(c, x, 14, 2, 3, x % 2 ? '#e8d8a0' : '#f4f1ea');
+    }
+    R(c, 3, 3, 1, 3, '#ffffff');
+    R(c, 1, 19, w - 2, 4, shade(main, -0.12));
+    R(c, 1, 24, w - 2, 4, shade(main, -0.12));
+    R(c, w / 2 - 1, 20, 2, 1, '#d6c38a');
+    R(c, w / 2 - 1, 25, 2, 1, '#d6c38a');
+    R(c, 1, h - 1, 1, 1, OUT);
+    R(c, w - 2, h - 1, 1, 1, OUT);
+  },
+  macrame(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, 1, '#8a6a3a');
+    for (let x = 1; x < w - 1; x += 2) {
+      const len = h - 2 - Math.abs(x - w / 2);
+      R(c, x, 1, 1, len, x % 4 === 1 ? main : '#efe6d0');
+    }
+  },
+  bean_bag(c) {
+    const { w, h, main } = c;
+    R(c, 2, 0, w - 4, 2, shade(main, 0.15));
+    R(c, 1, 2, w - 2, h - 3, main);
+    R(c, 0, 4, w, h - 5, main);
+    R(c, 3, 3, w - 7, 2, shade(main, -0.15));
+    R(c, 1, h - 1, w - 2, 1, shade(main, -0.3));
+  },
 };
 
 export const FURNITURE_DRAWERS = drawers;

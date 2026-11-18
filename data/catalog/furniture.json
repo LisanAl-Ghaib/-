@@ -1,79 +1,900 @@
 {
   "items": [
-    { "id": "bed_single", "name": "Односпальная кровать", "draw": "bed", "w": 24, "h": 11, "paletteKey": "textile",
-      "slots": [ { "use": ["sleep", "read"], "dx": 13, "pose": "lie", "dy": 6 } ], "rooms": ["bedroom", "studio", "kids", "living"] },
-    { "id": "bed_double", "name": "Двуспальная кровать", "draw": "bed_double", "w": 32, "h": 12, "paletteKey": "textile",
-      "slots": [ { "use": ["sleep", "read"], "dx": 17, "pose": "lie", "dy": 7 }, { "use": ["sleep", "read"], "dx": 16, "pose": "lie", "dy": 5 } ],
-      "rooms": ["bedroom", "studio"] },
-    { "id": "sofa", "name": "Диван", "draw": "sofa", "w": 32, "h": 14, "paletteKey": "textile",
-      "slots": [ { "use": ["sit", "tv", "read", "eat", "music", "nap"], "dx": 8, "pose": "sit", "dy": 5 }, { "use": ["sit", "tv", "read", "eat"], "dx": 16, "pose": "sit", "dy": 5 }, { "use": ["sit", "tv", "read", "eat"], "dx": 24, "pose": "sit", "dy": 5 } ],
-      "rooms": ["living", "studio"] },
-    { "id": "armchair", "name": "Кресло", "draw": "armchair", "w": 14, "h": 15, "paletteKey": "textile",
-      "slots": [ { "use": ["sit", "tv", "read", "crafts"], "dx": 7, "pose": "sit", "dy": 5 } ], "rooms": ["living", "bedroom", "study", "studio"] },
-    { "id": "rocking_chair", "name": "Кресло-качалка", "draw": "rocking_chair", "w": 16, "h": 16, "paletteKey": "wood",
-      "slots": [ { "use": ["sit", "read", "crafts", "tv"], "dx": 8, "pose": "sit", "dy": 6 } ], "rooms": ["living", "bedroom"] },
-    { "id": "tv_stand", "name": "Телевизор на тумбе", "draw": "tv_stand", "w": 18, "h": 19, "paletteKey": "wood", "rooms": ["living", "studio", "kitchen", "bedroom"] },
-    { "id": "tv_old", "name": "Старый телевизор", "draw": "tv_old", "w": 16, "h": 20, "paletteKey": "wood", "rooms": ["living", "studio", "kitchen"] },
-    { "id": "bookshelf", "name": "Книжный стеллаж", "draw": "bookshelf", "w": 16, "h": 30, "paletteKey": "wood", "rooms": ["living", "study", "bedroom", "studio"] },
-    { "id": "desk", "name": "Письменный стол", "draw": "desk", "w": 22, "h": 12, "paletteKey": "wood",
-      "slots": [ { "use": ["work", "crafts", "read"], "dx": 5, "pose": "sit", "dy": 4, "face": 1 } ], "rooms": ["study", "bedroom", "living", "studio", "kids"] },
-    { "id": "computer_desk", "name": "Стол с компьютером", "draw": "computer_desk", "w": 24, "h": 20, "paletteKey": "wood",
-      "slots": [ { "use": ["work", "gaming"], "dx": 5, "pose": "sit", "dy": 4, "face": 1 } ], "rooms": ["study", "bedroom", "living", "studio", "kids"] },
-    { "id": "dining_table", "name": "Обеденный стол", "draw": "dining_table", "w": 28, "h": 11, "paletteKey": "wood", "layer": "front",
-      "slots": [ { "use": ["eat", "sit", "crafts"], "dx": 3, "pose": "sit", "dy": 4, "face": 1 }, { "use": ["eat", "sit"], "dx": 25, "pose": "sit", "dy": 4, "face": -1 }, { "use": ["eat", "sit"], "dx": 14, "pose": "sit", "dy": 4 } ],
-      "rooms": ["kitchen", "living", "studio"] },
-    { "id": "kitchen_table", "name": "Кухонный столик", "draw": "kitchen_table", "w": 20, "h": 10, "paletteKey": "wood", "layer": "front",
-      "slots": [ { "use": ["eat", "sit"], "dx": 2, "pose": "sit", "dy": 4, "face": 1 }, { "use": ["eat", "sit"], "dx": 18, "pose": "sit", "dy": 4, "face": -1 } ],
-      "rooms": ["kitchen", "studio"] },
-    { "id": "stove", "name": "Плита", "draw": "stove", "w": 14, "h": 14, "paletteKey": "metal",
-      "slots": [ { "use": ["cook"], "dx": 7, "pose": "stand", "face": 1 } ], "rooms": ["kitchen", "studio"] },
-    { "id": "kitchen_counter", "name": "Кухонный гарнитур с мойкой", "draw": "kitchen_counter", "w": 20, "h": 30, "paletteKey": "accent",
-      "slots": [ { "use": ["wash", "cook"], "dx": 10, "pose": "stand", "face": 1 } ], "rooms": ["kitchen", "studio"] },
-    { "id": "fridge", "name": "Холодильник", "draw": "fridge", "w": 12, "h": 27, "paletteKey": "metal", "color": "#e8ecef",
-      "slots": [ { "use": ["fridge"], "dx": 6, "pose": "stand", "face": 1 } ], "rooms": ["kitchen", "studio", "hall"] },
-    { "id": "fridge_old", "name": "Холодильник «ЗиЛ»", "draw": "fridge_old", "w": 13, "h": 26, "paletteKey": "metal", "color": "#f1efe6",
-      "slots": [ { "use": ["fridge"], "dx": 6, "pose": "stand", "face": 1 } ], "rooms": ["kitchen", "studio", "hall"] },
-    { "id": "wardrobe", "name": "Шкаф", "draw": "wardrobe", "w": 18, "h": 32, "paletteKey": "wood", "rooms": ["bedroom", "hall", "studio", "kids"] },
-    { "id": "chest", "name": "Комод", "draw": "chest", "w": 16, "h": 13, "paletteKey": "wood", "rooms": ["bedroom", "living", "hall", "studio", "kids"] },
-    { "id": "nightstand", "name": "Тумбочка", "draw": "nightstand", "w": 8, "h": 9, "paletteKey": "wood", "rooms": ["bedroom", "studio", "kids"] },
-    { "id": "plant", "name": "Цветок в горшке", "draw": "plant", "w": 8, "h": 13, "paletteKey": "accent",
-      "slots": [ { "use": ["plants"], "dx": 4, "pose": "stand", "face": 1 } ] },
-    { "id": "plant_big", "name": "Фикус", "draw": "plant_big", "w": 12, "h": 24, "paletteKey": "accent",
-      "slots": [ { "use": ["plants"], "dx": 6, "pose": "stand", "face": 1 } ] },
-    { "id": "window_plants", "name": "Цветы на подоконнике", "draw": "window_plants", "w": 16, "h": 6, "elevation": 14, "paletteKey": "accent",
-      "slots": [ { "use": ["plants", "look"], "dx": 8, "pose": "stand", "face": 0 } ] },
-    { "id": "floor_lamp", "name": "Торшер", "draw": "floor_lamp", "w": 7, "h": 27, "paletteKey": "accent" },
-    { "id": "rug", "name": "Ковёр", "draw": "rug", "w": 28, "h": 2, "paletteKey": "textile" },
-    { "id": "wall_carpet", "name": "Ковёр на стене", "draw": "wall_carpet", "w": 26, "h": 18, "elevation": 12, "paletteKey": "textile" },
-    { "id": "picture", "name": "Картина", "draw": "picture", "w": 12, "h": 9, "elevation": 20, "paletteKey": "accent" },
-    { "id": "poster", "name": "Постер", "draw": "poster", "w": 10, "h": 13, "elevation": 18, "paletteKey": "accent" },
-    { "id": "wall_clock", "name": "Часы на стене", "draw": "wall_clock", "w": 7, "h": 7, "elevation": 28, "paletteKey": "wood" },
-    { "id": "wall_shelf", "name": "Полка с мелочами", "draw": "wall_shelf", "w": 16, "h": 6, "elevation": 26, "paletteKey": "wood" },
-    { "id": "piano", "name": "Пианино", "draw": "piano", "w": 24, "h": 19, "paletteKey": "wood", "color": "#3b2418",
-      "slots": [ { "use": ["music"], "dx": 12, "pose": "sit", "dy": 4 } ], "rooms": ["living", "study", "studio"] },
-    { "id": "guitar", "name": "Гитара на стойке", "draw": "guitar", "w": 7, "h": 16, "paletteKey": "wood", "color": "#b8742e",
-      "slots": [ { "use": ["music"], "dx": 9, "pose": "stand", "face": -1 } ] },
-    { "id": "bathtub", "name": "Ванна", "draw": "bathtub", "w": 24, "h": 10, "paletteKey": "metal", "color": "#f4f6f7",
-      "slots": [ { "use": ["wash"], "dx": 12, "pose": "lie", "dy": 3 } ], "rooms": ["bathroom"] },
-    { "id": "washbasin", "name": "Раковина с зеркалом", "draw": "washbasin", "w": 10, "h": 26, "paletteKey": "metal", "color": "#f4f6f7",
-      "slots": [ { "use": ["wash"], "dx": 5, "pose": "stand", "face": 1 } ], "rooms": ["bathroom", "hall"] },
-    { "id": "washing_machine", "name": "Стиральная машина", "draw": "washing_machine", "w": 12, "h": 13, "paletteKey": "metal", "color": "#eef0f2", "rooms": ["bathroom", "kitchen"] },
-    { "id": "coat_rack", "name": "Вешалка", "draw": "coat_rack", "w": 8, "h": 28, "paletteKey": "wood", "rooms": ["hall"] },
-    { "id": "shoe_rack", "name": "Обувница", "draw": "shoe_rack", "w": 12, "h": 7, "paletteKey": "wood", "rooms": ["hall"] },
-    { "id": "mirror", "name": "Зеркало", "draw": "mirror", "w": 8, "h": 16, "elevation": 10, "paletteKey": "wood", "rooms": ["hall", "bedroom", "bathroom"] },
-    { "id": "exercise_mat", "name": "Коврик для йоги", "draw": "exercise_mat", "w": 20, "h": 2, "paletteKey": "accent",
-      "slots": [ { "use": ["exercise"], "dx": 10, "pose": "stand" } ] },
-    { "id": "exercise_bike", "name": "Велотренажёр", "draw": "exercise_bike", "w": 14, "h": 16, "paletteKey": "metal",
-      "slots": [ { "use": ["exercise"], "dx": 7, "pose": "sit", "dy": 9, "face": 1 } ] },
-    { "id": "easel", "name": "Мольберт", "draw": "easel", "w": 12, "h": 24, "paletteKey": "wood",
-      "slots": [ { "use": ["crafts"], "dx": -3, "pose": "stand", "face": 1 } ] },
-    { "id": "sewing_table", "name": "Швейная машинка", "draw": "sewing_table", "w": 16, "h": 14, "paletteKey": "wood",
-      "slots": [ { "use": ["crafts"], "dx": 4, "pose": "sit", "dy": 4, "face": 1 } ] },
-    { "id": "aquarium", "name": "Аквариум", "draw": "aquarium", "w": 16, "h": 21, "paletteKey": "wood",
-      "slots": [ { "use": ["look"], "dx": 8, "pose": "stand" } ] },
-    { "id": "game_console", "name": "Приставка", "draw": "game_console", "w": 8, "h": 3, "paletteKey": "metal", "color": "#2a2d33" },
-    { "id": "radio", "name": "Радиоприёмник", "draw": "radio", "w": 10, "h": 7, "elevation": 0, "paletteKey": "wood" },
-    { "id": "crib", "name": "Детская кроватка", "draw": "crib", "w": 18, "h": 14, "paletteKey": "wood",
-      "slots": [ { "use": ["sleep"], "dx": 9, "pose": "lie", "dy": 6 } ], "rooms": ["kids", "bedroom"] }
+    {
+      "id": "bed_single",
+      "name": "Односпальная кровать",
+      "draw": "bed",
+      "w": 24,
+      "h": 11,
+      "paletteKey": "textile",
+      "slots": [
+        {
+          "use": [
+            "sleep",
+            "read"
+          ],
+          "dx": 13,
+          "pose": "lie",
+          "dy": 6
+        }
+      ],
+      "rooms": [
+        "bedroom",
+        "studio",
+        "kids",
+        "living"
+      ]
+    },
+    {
+      "id": "bed_double",
+      "name": "Двуспальная кровать",
+      "draw": "bed_double",
+      "w": 32,
+      "h": 12,
+      "paletteKey": "textile",
+      "slots": [
+        {
+          "use": [
+            "sleep",
+            "read"
+          ],
+          "dx": 17,
+          "pose": "lie",
+          "dy": 7
+        },
+        {
+          "use": [
+            "sleep",
+            "read"
+          ],
+          "dx": 16,
+          "pose": "lie",
+          "dy": 5
+        }
+      ],
+      "rooms": [
+        "bedroom",
+        "studio"
+      ]
+    },
+    {
+      "id": "sofa",
+      "name": "Диван",
+      "draw": "sofa",
+      "w": 32,
+      "h": 14,
+      "paletteKey": "textile",
+      "slots": [
+        {
+          "use": [
+            "sit",
+            "tv",
+            "read",
+            "eat",
+            "music",
+            "nap"
+          ],
+          "dx": 8,
+          "pose": "sit",
+          "dy": 5
+        },
+        {
+          "use": [
+            "sit",
+            "tv",
+            "read",
+            "eat"
+          ],
+          "dx": 16,
+          "pose": "sit",
+          "dy": 5
+        },
+        {
+          "use": [
+            "sit",
+            "tv",
+            "read",
+            "eat"
+          ],
+          "dx": 24,
+          "pose": "sit",
+          "dy": 5
+        }
+      ],
+      "rooms": [
+        "living",
+        "studio"
+      ]
+    },
+    {
+      "id": "armchair",
+      "name": "Кресло",
+      "draw": "armchair",
+      "w": 14,
+      "h": 15,
+      "paletteKey": "textile",
+      "slots": [
+        {
+          "use": [
+            "sit",
+            "tv",
+            "read",
+            "crafts"
+          ],
+          "dx": 7,
+          "pose": "sit",
+          "dy": 5
+        }
+      ],
+      "rooms": [
+        "living",
+        "bedroom",
+        "study",
+        "studio"
+      ]
+    },
+    {
+      "id": "rocking_chair",
+      "name": "Кресло-качалка",
+      "draw": "rocking_chair",
+      "w": 16,
+      "h": 16,
+      "paletteKey": "wood",
+      "slots": [
+        {
+          "use": [
+            "sit",
+            "read",
+            "crafts",
+            "tv"
+          ],
+          "dx": 8,
+          "pose": "sit",
+          "dy": 6
+        }
+      ],
+      "rooms": [
+        "living",
+        "bedroom"
+      ]
+    },
+    {
+      "id": "tv_stand",
+      "name": "Телевизор на тумбе",
+      "draw": "tv_stand",
+      "w": 18,
+      "h": 19,
+      "paletteKey": "wood",
+      "rooms": [
+        "living",
+        "studio",
+        "kitchen",
+        "bedroom"
+      ]
+    },
+    {
+      "id": "tv_old",
+      "name": "Старый телевизор",
+      "draw": "tv_old",
+      "w": 16,
+      "h": 20,
+      "paletteKey": "wood",
+      "rooms": [
+        "living",
+        "studio",
+        "kitchen"
+      ]
+    },
+    {
+      "id": "bookshelf",
+      "name": "Книжный стеллаж",
+      "draw": "bookshelf",
+      "w": 16,
+      "h": 30,
+      "paletteKey": "wood",
+      "rooms": [
+        "living",
+        "study",
+        "bedroom",
+        "studio"
+      ]
+    },
+    {
+      "id": "desk",
+      "name": "Письменный стол",
+      "draw": "desk",
+      "w": 22,
+      "h": 12,
+      "paletteKey": "wood",
+      "slots": [
+        {
+          "use": [
+            "work",
+            "crafts",
+            "read"
+          ],
+          "dx": 5,
+          "pose": "sit",
+          "dy": 4,
+          "face": 1
+        }
+      ],
+      "rooms": [
+        "study",
+        "bedroom",
+        "living",
+        "studio",
+        "kids"
+      ]
+    },
+    {
+      "id": "computer_desk",
+      "name": "Стол с компьютером",
+      "draw": "computer_desk",
+      "w": 24,
+      "h": 20,
+      "paletteKey": "wood",
+      "slots": [
+        {
+          "use": [
+            "work",
+            "gaming"
+          ],
+          "dx": 5,
+          "pose": "sit",
+          "dy": 4,
+          "face": 1
+        }
+      ],
+      "rooms": [
+        "study",
+        "bedroom",
+        "living",
+        "studio",
+        "kids"
+      ]
+    },
+    {
+      "id": "dining_table",
+      "name": "Обеденный стол",
+      "draw": "dining_table",
+      "w": 28,
+      "h": 11,
+      "paletteKey": "wood",
+      "layer": "front",
+      "slots": [
+        {
+          "use": [
+            "eat",
+            "sit",
+            "crafts"
+          ],
+          "dx": 3,
+          "pose": "sit",
+          "dy": 4,
+          "face": 1
+        },
+        {
+          "use": [
+            "eat",
+            "sit"
+          ],
+          "dx": 25,
+          "pose": "sit",
+          "dy": 4,
+          "face": -1
+        },
+        {
+          "use": [
+            "eat",
+            "sit"
+          ],
+          "dx": 14,
+          "pose": "sit",
+          "dy": 4
+        }
+      ],
+      "rooms": [
+        "kitchen",
+        "living",
+        "studio"
+      ]
+    },
+    {
+      "id": "kitchen_table",
+      "name": "Кухонный столик",
+      "draw": "kitchen_table",
+      "w": 20,
+      "h": 10,
+      "paletteKey": "wood",
+      "layer": "front",
+      "slots": [
+        {
+          "use": [
+            "eat",
+            "sit"
+          ],
+          "dx": 2,
+          "pose": "sit",
+          "dy": 4,
+          "face": 1
+        },
+        {
+          "use": [
+            "eat",
+            "sit"
+          ],
+          "dx": 18,
+          "pose": "sit",
+          "dy": 4,
+          "face": -1
+        }
+      ],
+      "rooms": [
+        "kitchen",
+        "studio"
+      ]
+    },
+    {
+      "id": "stove",
+      "name": "Плита",
+      "draw": "stove",
+      "w": 14,
+      "h": 14,
+      "paletteKey": "metal",
+      "slots": [
+        {
+          "use": [
+            "cook"
+          ],
+          "dx": 7,
+          "pose": "stand",
+          "face": 1
+        }
+      ],
+      "rooms": [
+        "kitchen",
+        "studio"
+      ]
+    },
+    {
+      "id": "kitchen_counter",
+      "name": "Кухонный гарнитур с мойкой",
+      "draw": "kitchen_counter",
+      "w": 20,
+      "h": 30,
+      "paletteKey": "accent",
+      "slots": [
+        {
+          "use": [
+            "wash",
+            "cook"
+          ],
+          "dx": 10,
+          "pose": "stand",
+          "face": 1
+        }
+      ],
+      "rooms": [
+        "kitchen",
+        "studio"
+      ]
+    },
+    {
+      "id": "fridge",
+      "name": "Холодильник",
+      "draw": "fridge",
+      "w": 12,
+      "h": 27,
+      "paletteKey": "metal",
+      "color": "#e8ecef",
+      "slots": [
+        {
+          "use": [
+            "fridge"
+          ],
+          "dx": 6,
+          "pose": "stand",
+          "face": 1
+        }
+      ],
+      "rooms": [
+        "kitchen",
+        "studio",
+        "hall"
+      ]
+    },
+    {
+      "id": "fridge_old",
+      "name": "Холодильник «ЗиЛ»",
+      "draw": "fridge_old",
+      "w": 13,
+      "h": 26,
+      "paletteKey": "metal",
+      "color": "#f1efe6",
+      "slots": [
+        {
+          "use": [
+            "fridge"
+          ],
+          "dx": 6,
+          "pose": "stand",
+          "face": 1
+        }
+      ],
+      "rooms": [
+        "kitchen",
+        "studio",
+        "hall"
+      ]
+    },
+    {
+      "id": "wardrobe",
+      "name": "Шкаф",
+      "draw": "wardrobe",
+      "w": 18,
+      "h": 32,
+      "paletteKey": "wood",
+      "rooms": [
+        "bedroom",
+        "hall",
+        "studio",
+        "kids"
+      ]
+    },
+    {
+      "id": "chest",
+      "name": "Комод",
+      "draw": "chest",
+      "w": 16,
+      "h": 13,
+      "paletteKey": "wood",
+      "rooms": [
+        "bedroom",
+        "living",
+        "hall",
+        "studio",
+        "kids"
+      ]
+    },
+    {
+      "id": "nightstand",
+      "name": "Тумбочка",
+      "draw": "nightstand",
+      "w": 8,
+      "h": 9,
+      "paletteKey": "wood",
+      "rooms": [
+        "bedroom",
+        "studio",
+        "kids"
+      ]
+    },
+    {
+      "id": "plant",
+      "name": "Цветок в горшке",
+      "draw": "plant",
+      "w": 8,
+      "h": 13,
+      "paletteKey": "accent",
+      "slots": [
+        {
+          "use": [
+            "plants"
+          ],
+          "dx": 4,
+          "pose": "stand",
+          "face": 1
+        }
+      ]
+    },
+    {
+      "id": "plant_big",
+      "name": "Фикус",
+      "draw": "plant_big",
+      "w": 12,
+      "h": 24,
+      "paletteKey": "accent",
+      "slots": [
+        {
+          "use": [
+            "plants"
+          ],
+          "dx": 6,
+          "pose": "stand",
+          "face": 1
+        }
+      ]
+    },
+    {
+      "id": "window_plants",
+      "name": "Цветы на подоконнике",
+      "draw": "window_plants",
+      "w": 16,
+      "h": 6,
+      "elevation": 14,
+      "paletteKey": "accent",
+      "slots": [
+        {
+          "use": [
+            "plants",
+            "look"
+          ],
+          "dx": 8,
+          "pose": "stand",
+          "face": 0
+        }
+      ]
+    },
+    {
+      "id": "floor_lamp",
+      "name": "Торшер",
+      "draw": "floor_lamp",
+      "w": 7,
+      "h": 27,
+      "paletteKey": "accent"
+    },
+    {
+      "id": "rug",
+      "name": "Ковёр",
+      "draw": "rug",
+      "w": 28,
+      "h": 2,
+      "paletteKey": "textile"
+    },
+    {
+      "id": "wall_carpet",
+      "name": "Ковёр на стене",
+      "draw": "wall_carpet",
+      "w": 26,
+      "h": 18,
+      "elevation": 12,
+      "paletteKey": "textile"
+    },
+    {
+      "id": "picture",
+      "name": "Картина",
+      "draw": "picture",
+      "w": 12,
+      "h": 9,
+      "elevation": 20,
+      "paletteKey": "accent"
+    },
+    {
+      "id": "poster",
+      "name": "Постер",
+      "draw": "poster",
+      "w": 10,
+      "h": 13,
+      "elevation": 18,
+      "paletteKey": "accent"
+    },
+    {
+      "id": "wall_clock",
+      "name": "Часы на стене",
+      "draw": "wall_clock",
+      "w": 7,
+      "h": 7,
+      "elevation": 28,
+      "paletteKey": "wood"
+    },
+    {
+      "id": "wall_shelf",
+      "name": "Полка с мелочами",
+      "draw": "wall_shelf",
+      "w": 16,
+      "h": 6,
+      "elevation": 26,
+      "paletteKey": "wood"
+    },
+    {
+      "id": "piano",
+      "name": "Пианино",
+      "draw": "piano",
+      "w": 24,
+      "h": 19,
+      "paletteKey": "wood",
+      "color": "#3b2418",
+      "slots": [
+        {
+          "use": [
+            "music"
+          ],
+          "dx": 12,
+          "pose": "sit",
+          "dy": 4
+        }
+      ],
+      "rooms": [
+        "living",
+        "study",
+        "studio"
+      ]
+    },
+    {
+      "id": "guitar",
+      "name": "Гитара на стойке",
+      "draw": "guitar",
+      "w": 7,
+      "h": 16,
+      "paletteKey": "wood",
+      "color": "#b8742e",
+      "slots": [
+        {
+          "use": [
+            "music"
+          ],
+          "dx": 9,
+          "pose": "stand",
+          "face": -1
+        }
+      ]
+    },
+    {
+      "id": "bathtub",
+      "name": "Ванна",
+      "draw": "bathtub",
+      "w": 24,
+      "h": 10,
+      "paletteKey": "metal",
+      "color": "#f4f6f7",
+      "slots": [
+        {
+          "use": [
+            "wash"
+          ],
+          "dx": 12,
+          "pose": "lie",
+          "dy": 3
+        }
+      ],
+      "rooms": [
+        "bathroom"
+      ]
+    },
+    {
+      "id": "washbasin",
+      "name": "Раковина с зеркалом",
+      "draw": "washbasin",
+      "w": 10,
+      "h": 26,
+      "paletteKey": "metal",
+      "color": "#f4f6f7",
+      "slots": [
+        {
+          "use": [
+            "wash"
+          ],
+          "dx": 5,
+          "pose": "stand",
+          "face": 1
+        }
+      ],
+      "rooms": [
+        "bathroom",
+        "hall"
+      ]
+    },
+    {
+      "id": "washing_machine",
+      "name": "Стиральная машина",
+      "draw": "washing_machine",
+      "w": 12,
+      "h": 13,
+      "paletteKey": "metal",
+      "color": "#eef0f2",
+      "rooms": [
+        "bathroom",
+        "kitchen"
+      ]
+    },
+    {
+      "id": "coat_rack",
+      "name": "Вешалка",
+      "draw": "coat_rack",
+      "w": 8,
+      "h": 28,
+      "paletteKey": "wood",
+      "rooms": [
+        "hall"
+      ]
+    },
+    {
+      "id": "shoe_rack",
+      "name": "Обувница",
+      "draw": "shoe_rack",
+      "w": 12,
+      "h": 7,
+      "paletteKey": "wood",
+      "rooms": [
+        "hall"
+      ]
+    },
+    {
+      "id": "mirror",
+      "name": "Зеркало",
+      "draw": "mirror",
+      "w": 8,
+      "h": 16,
+      "elevation": 10,
+      "paletteKey": "wood",
+      "rooms": [
+        "hall",
+        "bedroom",
+        "bathroom"
+      ]
+    },
+    {
+      "id": "exercise_mat",
+      "name": "Коврик для йоги",
+      "draw": "exercise_mat",
+      "w": 20,
+      "h": 2,
+      "paletteKey": "accent",
+      "slots": [
+        {
+          "use": [
+            "exercise"
+          ],
+          "dx": 10,
+          "pose": "stand"
+        }
+      ]
+    },
+    {
+      "id": "exercise_bike",
+      "name": "Велотренажёр",
+      "draw": "exercise_bike",
+      "w": 14,
+      "h": 16,
+      "paletteKey": "metal",
+      "slots": [
+        {
+          "use": [
+            "exercise"
+          ],
+          "dx": 7,
+          "pose": "sit",
+          "dy": 9,
+          "face": 1
+        }
+      ]
+    },
+    {
+      "id": "easel",
+      "name": "Мольберт",
+      "draw": "easel",
+      "w": 12,
+      "h": 24,
+      "paletteKey": "wood",
+      "slots": [
+        {
+          "use": [
+            "crafts"
+          ],
+          "dx": -3,
+          "pose": "stand",
+          "face": 1
+        }
+      ]
+    },
+    {
+      "id": "sewing_table",
+      "name": "Швейная машинка",
+      "draw": "sewing_table",
+      "w": 16,
+      "h": 14,
+      "paletteKey": "wood",
+      "slots": [
+        {
+          "use": [
+            "crafts"
+          ],
+          "dx": 4,
+          "pose": "sit",
+          "dy": 4,
+          "face": 1
+        }
+      ]
+    },
+    {
+      "id": "aquarium",
+      "name": "Аквариум",
+      "draw": "aquarium",
+      "w": 16,
+      "h": 21,
+      "paletteKey": "wood",
+      "slots": [
+        {
+          "use": [
+            "look"
+          ],
+          "dx": 8,
+          "pose": "stand"
+        }
+      ]
+    },
+    {
+      "id": "game_console",
+      "name": "Приставка",
+      "draw": "game_console",
+      "w": 8,
+      "h": 3,
+      "paletteKey": "metal",
+      "color": "#2a2d33"
+    },
+    {
+      "id": "radio",
+      "name": "Радиоприёмник",
+      "draw": "radio",
+      "w": 10,
+      "h": 7,
+      "elevation": 0,
+      "paletteKey": "wood"
+    },
+    {
+      "id": "crib",
+      "name": "Детская кроватка",
+      "draw": "crib",
+      "w": 18,
+      "h": 14,
+      "paletteKey": "wood",
+      "slots": [
+        {
+          "use": [
+            "sleep"
+          ],
+          "dx": 9,
+          "pose": "lie",
+          "dy": 6
+        }
+      ],
+      "rooms": [
+        "kids",
+        "bedroom"
+      ]
+    },
+    {
+      "id": "sideboard",
+      "name": "Сервант с посудой",
+      "draw": "sideboard",
+      "w": 14,
+      "h": 30,
+      "paletteKey": "wood",
+      "rooms": [
+        "living",
+        "kitchen"
+      ]
+    },
+    {
+      "id": "macrame",
+      "name": "Макраме на стене",
+      "draw": "macrame",
+      "w": 10,
+      "h": 14,
+      "elevation": 16,
+      "paletteKey": "textile"
+    },
+    {
+      "id": "bean_bag",
+      "name": "Кресло-мешок",
+      "draw": "bean_bag",
+      "w": 14,
+      "h": 9,
+      "paletteKey": "accent",
+      "slots": [
+        {
+          "use": [
+            "sit",
+            "read",
+            "gaming",
+            "tv"
+          ],
+          "dx": 7,
+          "pose": "sit",
+          "dy": 3
+        }
+      ]
+    }
   ]
 }

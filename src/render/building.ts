@@ -175,7 +175,28 @@ function drawFloor(g: CanvasRenderingContext2D, x0: number, fy: number, w: numbe
   rect(g, x0, fy, w, 1, l);
 }
 
-function drawWindow(g: CanvasRenderingContext2D, wr: [number, number, number, number], frame: string, curtain: string | null) {
+type Curtains = 'none' | 'drapes' | 'lace' | 'blinds' | 'valance';
+
+function curtainsFor(style: string): Curtains {
+  switch (style) {
+    case 'soviet':
+      return 'lace';
+    case 'scandi':
+    case 'minimal':
+      return 'blinds';
+    case 'loft':
+    case 'vacant':
+      return 'none';
+    case 'classic':
+      return 'valance';
+    case 'student':
+      return 'blinds';
+    default:
+      return 'drapes';
+  }
+}
+
+function drawWindow(g: CanvasRenderingContext2D, wr: [number, number, number, number], frame: string, curtains: Curtains, pal: Palette) {
   const [x, y, w, h] = wr;
   rect(g, x - 1, y - 1, w + 2, h + 2, frame);
   g.clearRect(x, y, w, h); // стекло — прозрачное: сквозь него видно небо
@@ -183,12 +204,78 @@ function drawWindow(g: CanvasRenderingContext2D, wr: [number, number, number, nu
   rect(g, x, y + 6, w, 1, frame);
   rect(g, x - 2, y + h + 1, w + 4, 2, shade(frame, -0.05)); // подоконник
   rect(g, x - 2, y + h + 2, w + 4, 1, shade(frame, -0.25));
-  if (curtain) {
+  const c = pal.textile;
+  const drapes = (color: string) => {
     rect(g, x - 4, y - 3, w + 8, 1, '#7a7a7a'); // карниз
-    rect(g, x - 4, y - 2, 3, h + 4, curtain);
-    rect(g, x + w + 1, y - 2, 3, h + 4, curtain);
-    rect(g, x - 3, y - 2, 1, h + 4, shade(curtain, -0.2));
-    rect(g, x + w + 2, y - 2, 1, h + 4, shade(curtain, -0.2));
+    rect(g, x - 4, y - 2, 3, h + 4, color);
+    rect(g, x + w + 1, y - 2, 3, h + 4, color);
+    rect(g, x - 3, y - 2, 1, h + 4, shade(color, -0.2));
+    rect(g, x + w + 2, y - 2, 1, h + 4, shade(color, -0.2));
+  };
+  switch (curtains) {
+    case 'drapes':
+      drapes(c);
+      break;
+    case 'valance':
+      drapes(c);
+      rect(g, x - 4, y - 2, w + 8, 3, shade(c, 0.1));
+      for (let i = x - 3; i < x + w + 4; i += 3) rect(g, i, y + 1, 2, 1, shade(c, 0.1));
+      break;
+    case 'lace':
+      // тюль: полупрозрачная сетка + плотные шторы по бокам
+      g.globalAlpha = 0.35;
+      rect(g, x, y, w, h, '#f6f3ea');
+      g.globalAlpha = 1;
+      for (let yy = y + 1; yy < y + h; yy += 3) for (let xx = x + ((yy - y) % 2); xx < x + w; xx += 3) rect(g, xx, yy, 1, 1, '#f6f3ea');
+      drapes(c);
+      break;
+    case 'blinds':
+      rect(g, x - 1, y - 2, w + 2, 2, '#d8d4cc');
+      for (let yy = y; yy < y + 6; yy += 2) rect(g, x, yy, w, 1, '#e8e4dc');
+      break;
+    case 'none':
+      break;
+  }
+}
+
+function drawLamp(g: CanvasRenderingContext2D, lx: number, lt: number, style: string, pal: Palette) {
+  switch (style) {
+    case 'vacant':
+      rect(g, lx, lt + 2, 1, 3, '#555');
+      rect(g, lx - 1, lt + 5, 3, 2, '#e8e2c8');
+      break;
+    case 'loft':
+    case 'student':
+      rect(g, lx, lt + 2, 1, 6, '#222');
+      rect(g, lx - 1, lt + 8, 3, 3, '#ffe6a0');
+      break;
+    case 'soviet':
+    case 'classic': {
+      // люстра с рожками
+      rect(g, lx, lt + 2, 1, 3, '#8a7a50');
+      rect(g, lx - 5, lt + 5, 11, 1, '#b8a060');
+      for (const dx of [-5, 0, 5]) {
+        rect(g, lx + dx, lt + 6, 1, 1, '#b8a060');
+        rect(g, lx + dx - 1, lt + 7, 3, 2, '#f4ecd0');
+      }
+      if (style === 'soviet') for (const dx of [-3, 2]) rect(g, lx + dx, lt + 9, 1, 2, '#cfe4f0'); // хрусталь
+      break;
+    }
+    case 'scandi':
+    case 'minimal':
+      rect(g, lx, lt + 2, 1, 5, '#444');
+      rect(g, lx - 3, lt + 7, 7, 2, style === 'scandi' ? '#f4f1ea' : '#2a2a2a');
+      rect(g, lx - 4, lt + 9, 9, 1, style === 'scandi' ? '#d8d4cc' : '#2a2a2a');
+      break;
+    case 'boho':
+      rect(g, lx, lt + 2, 1, 3, '#7a5a3a');
+      rect(g, lx - 4, lt + 5, 9, 3, '#c49a5a');
+      for (let i = lx - 4; i <= lx + 4; i += 2) rect(g, i, lt + 6, 1, 1, '#8a6a3a');
+      break;
+    default:
+      rect(g, lx, lt + 2, 1, 3, '#555');
+      rect(g, lx - 3, lt + 5, 7, 2, pal.accent);
+      rect(g, lx - 2, lt + 7, 5, 1, shade(pal.accent, -0.2));
   }
 }
 
@@ -214,15 +301,19 @@ function drawApartment(
     rect(g, room.x0, fy - 2, w, 2, apt.vacant ? '#8a8580' : shade(pal.wood, -0.1)); // плинтус
     drawFloor(g, room.x0, fy, w, pal.floor, apt.vacant ? 'concrete' : room.def.flooring ?? def?.flooring ?? 'boards');
     const wr = windowRect(room, lt);
-    if (wr) drawWindow(g, wr, apt.vacant ? '#d0ccc4' : '#efece4', apt.vacant ? null : pal.textile);
-    // люстра/лампа
-    const lx = Math.round((room.x0 + room.x1) / 2);
-    rect(g, lx, lt + 2, 1, 3, '#555');
-    if (apt.vacant) rect(g, lx - 1, lt + 5, 3, 2, '#e8e2c8');
-    else {
-      rect(g, lx - 3, lt + 5, 7, 2, pal.accent);
-      rect(g, lx - 2, lt + 7, 5, 1, shade(pal.accent, -0.2));
+    const style = apt.vacant ? 'vacant' : def?.style ?? 'plain';
+    if (wr) drawWindow(g, wr, apt.vacant ? '#d0ccc4' : style === 'loft' ? '#3a3a40' : '#efece4', curtainsFor(style), pal);
+    // лепнина под потолком
+    if (style === 'classic' || style === 'soviet') {
+      rect(g, room.x0, lt + 2, w, 1, shade(wallColor, 0.25));
+      rect(g, room.x0, lt + 3, w, 1, shade(wallColor, -0.12));
     }
+    // гирлянда
+    if (style === 'cozy' || style === 'boho') {
+      const colors = ['#ffd27a', '#ff8a6a', '#8fd0ff', '#b8f08a'];
+      for (let x = room.x0 + 3, i = 0; x < room.x1 - 3; x += 4, i++) rect(g, x, lt + 4 + (i % 2), 1, 1, colors[i % colors.length]);
+    }
+    drawLamp(g, Math.round((room.x0 + room.x1) / 2), lt, style, pal);
   }
   // мебель
   for (const room of apt.rooms) {
