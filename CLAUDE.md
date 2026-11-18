@@ -15,7 +15,11 @@ npm run validate     # zod-валидация всех JSON + перекрёст
 npm run sim -- --days 3 --seed 42   # безголовая симуляция, печатает хронику
 npm test             # vitest: RNG, детерминизм, схемы, поведение
 npm run build        # typecheck + production-сборка
+npx tsx scripts/weather-check.ts   # статистика прогулок по погоде за 120 дней
 ```
+
+В браузере в консоли доступен `dom` (`dom.sim`, `dom.defs`, `dom.renderer`, `dom.host`):
+например, `dom.sim.run(8640)` — прокрутить сутки.
 
 ## Стек и структура
 
@@ -40,6 +44,17 @@ scripts/     validate.ts, sim.ts
 tests/       vitest
 public/sprites/manifest.json   подмена процедурных спрайтов на PNG
 ```
+
+## Где что лежит (для расширения)
+
+| Хочу добавить… | Куда |
+|---|---|
+| действие жильца (utility AI) | `src/sim/ai/actions/*.ts` → `ACTIONS` в `actions/index.ts`. `plan()` возвращает оценку, цель (слот мебели или точку), длительность и подпись |
+| событие мира | `src/sim/events/defs/*.ts` → `EVENTS` в `events/index.ts`; триггеры: daily, hourly, encounter, conversation, household |
+| текст хроники | `src/sim/chronicle/narrator.ts` (по `kind` записи; падежи — `russian.ts`) |
+| предмет мебели | `data/catalog/furniture.json` + рисовалка в `src/render/sprites/furniture.ts` (ключ `draw`) |
+| погоду/сезоны | `src/sim/env/weather.ts`, вид улицы — `src/render/season.ts` |
+| свой PNG вместо процедурного спрайта | `public/sprites/manifest.json`, см. `docs/SPRITES.md` |
 
 ## Железные правила кода
 
