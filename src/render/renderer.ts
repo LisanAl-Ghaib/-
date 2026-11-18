@@ -13,12 +13,12 @@ import { busPhase } from '../world/transport';
 import { digits, disc, rect } from './pixel';
 import { drawSkyGradient, drawStars, drawSunMoon, makeCity, makeCloud, makeStars, skyColors, type Star } from './sky';
 import { CELL_H, CELL_W, FRAME, generateCharacterSheet } from './sprites/character';
-import { screenRect } from './sprites/furniture';
+import { screenRect, screenRects } from './sprites/furniture';
 import { generateIcon } from './sprites/icons';
 import { hashString } from '../core/rng';
 import { LifeDetails } from './lifeDetails';
 import { generatePetSheet, PET_FRAME, PET_H, PET_W } from './sprites/pet';
-import { visitorAppearance } from './visitorLook';
+import { outfitOfDay, visitorAppearance, withOutfitVariant } from './visitorLook';
 import { animatePose, type AnimEnv, type Pose } from './animation';
 import { drawProp, eyesOf } from './props';
 import type { FurnitureInstance } from '../world/layout';
@@ -493,16 +493,21 @@ export class Renderer {
       const apt = L.apartmentAt(r.level, r.x);
       if (!apt) continue;
       const room = L.roomAt(apt, r.x);
-      if (a.id === 'watch_tv' || a.id === 'work' || a.id === 'gaming' || a.id === 'computer') {
-        const wants = a.id === 'watch_tv' ? ['tv_stand', 'tv_old', 'small_tv'] : ['computer_desk', 'concierge_desk'];
+      if (a.id === 'watch_tv' || a.id === 'work' || a.id === 'side_work' || a.id === 'gaming' || a.id === 'computer') {
+        const wants = a.id === 'watch_tv' ? ['tv_stand', 'tv_old', 'small_tv'] : ['computer_desk', 'concierge_desk', 'gaming_desk', 'laptop_desk'];
+        // компьютер — тот, за которым сидит (у каждого свой стол)
+        const own = a.target.slot ? this.sim.slotIndex.get(a.target.slot)?.furnitureUid : undefined;
         for (const f of room.furniture) {
           if (!wants.includes(f.def.draw)) continue;
-          const sr = screenRect(f.def.draw, f.w, f.h);
-          if (!sr) continue;
-          const x = f.flip ? f.x + f.w - sr[0] - sr[2] : f.x + sr[0];
-          const kind: ScreenKind = a.id === 'watch_tv' ? 'tv' : f.def.draw === 'concierge_desk' ? 'cctv' : a.id === 'gaming' ? 'game' : a.id === 'computer' ? 'browser' : (Math.floor(this.sim.time / 1500) + f.x) % 3 === 0 ? 'browser' : 'code';
-          drawScreen(this.wg, kind, x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, f.uid);
-          if (kind === 'tv') this.screensOn.push([x + sr[2] / 2, f.y - f.h + sr[1], apt.id, room.index]);
+          if (a.id !== 'watch_tv' && own && f.uid !== own) continue;
+          screenRects(f.def.draw, f.w, f.h).forEach((sr, si) => {
+            const x = f.flip ? f.x + f.w - sr[0] - sr[2] : f.x + sr[0];
+            let kind: ScreenKind = a.id === 'watch_tv' ? 'tv' : f.def.draw === 'concierge_desk' ? 'cctv' : a.id === 'gaming' ? 'game' : a.id === 'computer' ? 'browser' : (Math.floor(this.sim.time / 1500) + f.x) % 3 === 0 ? 'browser' : 'code';
+            // второй монитор: во время игры — чат/браузер, за работой — документ
+            if (si === 1) kind = a.id === 'gaming' ? 'browser' : kind === 'code' ? 'browser' : 'code';
+            drawScreen(this.wg, kind, x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, `${f.uid}:${si}`);
+            if (kind === 'tv' || (a.id === 'gaming' && si === 0)) this.screensOn.push([x + sr[2] / 2, f.y - f.h + sr[1], apt.id, room.index]);
+          });
         }
       }
       if (a.id === 'tea' || a.id === 'snack') {
@@ -631,6 +636,47 @@ export class Renderer {
             }
             case 'plant':
             case 'plant_big':
+            case 'eguitar_amp': {
+              // гитара стоит на стойке, пока на ней не играют
+              const playing = Object.values(this.sim.state.residents).some((r) => r.action?.id === 'music' && r.action.phase === 'perform' && r.action.target.slot?.startsWith(f.uid));
+              if (!playing) drawGuitarOnStand(g, f.x + 9, f.y);
+              if (awake && Math.floor((nowMs + f.x * 31) / 900) % 2) rect(g, f.x + 6, top + f.h - 8, 1, 1, '#ff5a3a'); // лампочка комбика
+              break;
+            }
+            case 'couple_photo': {
+              // на фото — те, кто тут живёт
+              const people = this.defs.residents.filter((d) => d.apartment === apt.id).slice(0, 2);
+              people.forEach((d, i) => {
+                const px0 = f.x + 3 + i * 4;
+                const a = d.appearance;
+                rect(g, px0, top + 2, 3, 1, a.hair.color);
+                rect(g, px0, top + 3, 3, 2, a.skin);
+                if (a.hair.style !== 'short' && a.hair.style !== 'buzz') rect(g, px0 + (i ? 2 : 0), top + 3, 1, 3, a.hair.color);
+                rect(g, px0, top + 5, 3, 3, a.outfit.top);
+              });
+              break;
+            }
+            case 'chessboard': {
+              // во время партии фигуры переставляют
+              const busy = Object.values(this.sim.state.residents).some((r) => (r.action?.id === 'chess' || (r.action?.id === 'together' && r.action.data.kind === 'chess')) && r.action.phase === 'perform' && r.level === apt.level && Math.abs(r.x - f.x) < 24);
+              if (busy) {
+                const t = Math.floor(nowMs / 2600 + f.x);
+                for (let i = 0; i < 4; i++) {
+                  const k = (Math.imul(t + i * 7, 2654435761) >>> 0) % f.w;
+                  rect(g, f.x + k, f.y - 2 - (i % 2), 1, 1 + (i % 2), i % 2 ? '#f3f1ea' : '#1e1e22');
+                }
+              }
+              break;
+            }
+            case 'gaming_desk': {
+              // подсветка системника переливается, пока хозяин дома
+              if (!awake) break;
+              const cols = ['#ff4a8a', '#7a5aff', '#3ad0ff', '#4aff9a', '#ffd04a'];
+              const ci = Math.floor(nowMs / 700) % cols.length;
+              rect(g, f.x + f.w - 7, f.y - 9, 3, 1, cols[ci]);
+              rect(g, f.x + f.w - 7, f.y - 4, 3, 1, cols[(ci + 2) % cols.length]);
+              break;
+            }
             case 'hanging_plant': {
               // листья чуть колышутся от сквозняка
               if (Math.floor((nowMs + f.x * 131) / 900) % 5 === 0) rect(g, f.x + 1 + (Math.floor(nowMs / 450) % 2), top + 1, 1, 1, shade('#4f8a3a', 0.15));
@@ -734,19 +780,25 @@ export class Renderer {
     if (f && r.pose === 'sit' && /table/.test(f.def.draw) && (a?.id === 'eat' || a?.id === 'tea' || a?.id === 'idle' || a?.id === 'host' || a?.id === 'guest'))
       env.tableBack = hashString(slot!.key) % 2 === 0;
     if (f && /stove|sink|window/.test(f.def.draw)) env.wallWork = true;
+    if (f && (f.def.draw === 'piano' || f.def.draw === 'digital_piano')) env.instrument = 'piano';
+    if (f?.def.draw === 'eguitar_amp') env.instrument = 'guitar';
+    if (f?.def.draw === 'pullup_bar') env.pullup = true;
     return env;
   }
 
   private sheet(r: ResidentState): HTMLCanvasElement | HTMLImageElement {
     const def = this.defs.residentById.get(r.id)!;
     const coat = this.env.coats && r.level === 0 && !r.away && (r.x > this.defs.layout.buildingX1 - 6 || r.path.length > 0 || r.action?.data.out === true);
-    const key = `resident:${r.id}${coat && def.appearance.outfit.coat ? ':coat' : ''}`;
+    // иногда надевает другое (рубашку с галстуком вместо толстовки) — на весь день
+    const vi = outfitOfDay(def, r.today.day);
+    const app = vi < 0 ? def.appearance : withOutfitVariant(def.appearance, vi);
+    const key = `resident:${r.id}${vi >= 0 ? `:v${vi}` : ''}${coat && def.appearance.outfit.coat ? ':coat' : ''}`;
     if (def.sprite) {
       // путь из JSON жильца: public/sprites/<sprite>
       const k = `resident:${r.id}`;
       if (this.sprites.hasOverride(k)) return this.sprites.get(k, () => makeCanvas(1, 1)) as HTMLImageElement;
     }
-    return this.sprites.get(key, () => generateCharacterSheet(def.appearance, { coat: key.endsWith(':coat') })) as HTMLCanvasElement;
+    return this.sprites.get(key, () => generateCharacterSheet(app, { coat: key.endsWith(':coat') })) as HTMLCanvasElement;
   }
 
   private drawActors(alpha: number, prev: Map<string, { x: number; y: number }>, opts: RenderOptions, nowMs: number) {
@@ -784,7 +836,9 @@ export class Renderer {
         else if (r.pose === 'sit') top = iy - 21;
         top -= pose.bob ?? 0;
       }
-      const dx = pose?.dx ?? 0;
+      let dx = pose?.dx ?? 0;
+      // идут вдвоём — рядом, а не друг в друге
+      if (moving && r.action?.id === 'together' && r.action.data.kind === 'walk' && !r.action.data.lead) dx -= 6 * r.facing;
       const sx = ix + dx;
       const sheet = this.sheet(r);
       const facing = pose?.facing ?? r.facing;
@@ -848,6 +902,14 @@ export class Renderer {
   private drawBubbles(nowMs: number) {
     for (const r of Object.values(this.sim.state.residents)) {
       if (r.away) continue;
+      const ta = r.action;
+      if (ta?.id === 'together' && ta.phase === 'perform' && ta.data.lead && (ta.data.kind === 'intimacy' || ta.data.kind === 'gift') && this.sim.time - ta.performStart < 240) {
+        // сердечко — и всё, дальше их дело
+        const icon = this.sprites.get('icon:heart', () => generateIcon('heart'));
+        const rise = Math.floor((this.sim.time - ta.performStart) / 40);
+        this.wg.drawImage(icon, Math.round(r.x) + (ta.data.kind === 'gift' ? -3 : 2), Math.round(r.y) - 16 - rise);
+        continue;
+      }
       const name = r.bubble?.icon ?? this.moodIcon(r, nowMs);
       if (!name) continue;
       const icon = this.sprites.get(`icon:${name}`, () => generateIcon(name));
@@ -915,6 +977,10 @@ export class Renderer {
     for (const r of Object.values(this.sim.state.residents)) {
       if (r.away || r.level !== apt.level || r.x < room.x0 || r.x >= room.x1) continue;
       if (r.action?.id === 'sleep' && r.action.phase === 'perform') continue;
+      // уединились — свет погашен
+      if (r.action?.id === 'together' && r.action.data.kind === 'intimacy') continue;
+      // играет ночью, рядом кто-то спит — сидит без света, только монитор
+      if (r.action?.id === 'gaming' && r.action.phase === 'perform' && Object.values(this.sim.state.residents).some((o) => o !== r && o.level === r.level && o.x >= room.x0 && o.x < room.x1 && o.action?.id === 'sleep')) continue;
       return true;
     }
     return false;
@@ -1047,4 +1113,13 @@ function makeUmbrella(): HTMLCanvasElement {
   rect(g, 1, 3, 13, 1, '#2f5f9e');
   rect(g, 7, 4, 1, 8, '#333');
   return c;
+}
+
+/** Электрогитара на стойке: корпус, гриф */
+function drawGuitarOnStand(g: CanvasRenderingContext2D, x: number, floorY: number) {
+  rect(g, x, floorY - 9, 3, 5, '#7a1f2b');
+  rect(g, x - 1, floorY - 7, 1, 2, '#7a1f2b');
+  rect(g, x + 1, floorY - 8, 1, 1, '#f3f1ea');
+  rect(g, x + 1, floorY - 17, 1, 8, '#3a2a1a');
+  rect(g, x, floorY - 18, 3, 1, '#2a2a30');
 }

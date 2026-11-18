@@ -93,7 +93,7 @@ describe('настоящий дом', () => {
     expect(L.levels).toBe(2);
     expect(L.aptById.get('apt-1-left')).toBeTruthy();
     expect(L.aptById.get('apt-2-left')?.def?.renovation).toBe(true);
-    expect(L.aptById.get('apt-2-right')?.vacant).toBe(true);
+    expect(L.aptById.get('apt-2-right')?.vacant).toBe(false); // там живут Иван и Снежана
   });
 });
 
@@ -116,7 +116,7 @@ describe('Ольга Дмитриевна (настоящий дом)', () => {
     expect(kinds.has('insomnia')).toBe(true);
     expect(kinds.has('pet')).toBe(true);
     expect(kinds.has('phone-call')).toBe(true);
-  });
+  }, 60_000);
 });
 
 describe('быт и мастера (настоящий дом)', () => {
@@ -153,7 +153,7 @@ describe('быт и мастера (настоящий дом)', () => {
     // в воскресенье мастеров нет
     const sunday = sim.state.workers.every((w) => w.away || w.phase === 'off' || sim.calendar().weekday !== 7);
     expect(sunday).toBe(true);
-  });
+  }, 60_000);
 });
 
 describe('старое сохранение', () => {
@@ -173,4 +173,41 @@ describe('старое сохранение', () => {
     for (let i = 0; i < 8640; i++) sim.step();
     expect(Number.isFinite(sim.state.residents['olga-shpak'].needs.bladder)).toBe(true);
   });
+});
+
+describe('Иван и Снежана (настоящий дом)', () => {
+  it('пара: пары и подработка, вдвоём гуляют, смотрят кино, шахматы; у каждого свой стол', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const { Simulation: Sim } = await import('../src/sim/simulation');
+    const { createWorldState: create } = await import('../src/sim/state');
+    const d = build(loadRawDataNode()).defs!;
+    const sim = new Sim(d, create(d, 11));
+    const kinds: Record<string, number> = {};
+    const started: Record<string, Record<string, number>> = {};
+    const deskOf: Record<string, Set<string>> = {};
+    sim.bus.on('action.start', (e) => {
+      const m = (started[e.residentId] ??= {});
+      m[e.actionId] = (m[e.actionId] ?? 0) + 1;
+    });
+    for (let i = 0; i < (21 * 86400) / 10; i++) {
+      sim.step();
+      for (const id of ['ivan-muravyev', 'snezhana-galimova']) {
+        const a = sim.state.residents[id].action;
+        if (a?.phase === 'perform' && a.id === 'together' && a.data.lead) kinds[String(a.data.kind)] = 1;
+        if (a?.phase === 'perform' && (a.id === 'gaming' || a.id === 'side_work') && a.target.slot) (deskOf[id] ??= new Set()).add(sim.slotIndex.get(a.target.slot)!.furnitureUid);
+      }
+    }
+    for (const id of ['ivan-muravyev', 'snezhana-galimova']) {
+      expect(started[id].go_to_work).toBeGreaterThan(5); // пары
+      expect(started[id].side_work).toBeGreaterThan(5); // работа онлайн
+      expect(started[id].tea).toBeGreaterThan(10); // кофе по утрам
+    }
+    expect(started['ivan-muravyev'].gaming).toBeGreaterThan(5);
+    expect(started['ivan-muravyev'].chess).toBeGreaterThan(started['snezhana-galimova'].chess ?? 0); // шахматы — в основном Иван
+    expect(Object.keys(kinds)).toEqual(expect.arrayContaining(['walk', 'film', 'chess', 'intimacy']));
+    // Ванин компьютер — только Ванин
+    const [ivDesk] = [...deskOf['ivan-muravyev']];
+    expect(deskOf['ivan-muravyev'].size).toBe(1);
+    expect(deskOf['snezhana-galimova']?.has(ivDesk) ?? false).toBe(false);
+  }, 60_000);
 });

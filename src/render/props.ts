@@ -144,6 +144,16 @@ export function drawProp(
       rect(g, x + 1, y - 1, 1, 1, '#3f8a4a');
       rect(g, x + 2 + (tick % 2), y - 3, 1, 2, '#c8c8c8'); // игла с ниткой
       break;
+    case 'laptop': {
+      // ноутбук на коленях: крышка с мерцающим фильмом
+      rect(g, x - 3, y - 4, 7, 4, '#b8bcc4');
+      rect(g, x - 2, y - 3, 5, 2, ['#3a6a9a', '#6a8a5a', '#9a6a4a', '#2a3a5a'][Math.floor(nowMs / 1800) % 4]);
+      rect(g, x - 4, y, 9, 1, '#9aa0a8');
+      break;
+    }
+    case 'headset':
+      rect(g, x - 1, y, 1, 2, '#2b2b2b');
+      break;
     case 'guitar':
       rect(g, x - 2, y - 1, 5, 4, '#b8742e');
       rect(g, x - 1, y, 1, 1, '#3a2010');

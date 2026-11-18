@@ -18,7 +18,25 @@ export function visitorAppearance(owner: ResidentDef, c: ContactDef, key: string
     hair: { style: f ? pick(['bob', 'long', 'ponytail', 'short', 'bun'] as const, 7) : pick(['short', 'buzz', 'balding'] as const, 7), color: hair },
     height: f ? pick(['short', 'average', 'average'] as const, 9) : pick(['average', 'tall'] as const, 9),
     build: pick(['slim', 'average', 'average', 'heavy'] as const, 11),
-    outfit: { top: pick(tops, 13), bottom: pick(['#2d2f3d', '#3a3540', '#4a4a52', '#5a4a3a'], 15), shoes: '#3a2a20', style: f ? pick(['casual', 'dress'] as const, 17) : 'casual', coat: pick(['#4a4246', '#3b3f46', '#6d6152', '#7a2f3a'], 19) },
+    outfit: { top: pick(tops, 13), bottom: pick(['#2d2f3d', '#3a3540', '#4a4a52', '#5a4a3a'], 15), shoes: '#3a2a20', style: f ? pick(['casual', 'dress'] as const, 17) : 'casual', coat: pick(['#4a4246', '#3b3f46', '#6d6152', '#7a2f3a'], 19), pattern: 'plain', variants: [], variantChance: 0 },
     accessories: f ? (h % 3 === 0 ? ['earrings'] : h % 3 === 1 ? ['glasses'] : []) : h % 2 ? ['stubble'] : [],
+  };
+}
+
+/** Какой вариант одежды сегодня (−1 — основной). Косметика: от id и дня, без RNG симуляции */
+export function outfitOfDay(def: ResidentDef, day: number): number {
+  const v = def.appearance.outfit.variants;
+  if (!v.length || day < 0) return -1;
+  const h = hashString(`${def.id}:${day}`);
+  if ((h % 1000) / 1000 >= def.appearance.outfit.variantChance) return -1;
+  return (h >>> 10) % v.length;
+}
+
+export function withOutfitVariant(app: ResidentDef['appearance'], i: number): ResidentDef['appearance'] {
+  const v = app.outfit.variants[i];
+  return {
+    ...app,
+    outfit: { ...app.outfit, top: v.top, style: v.style ?? app.outfit.style, tie: v.tie ?? app.outfit.tie, pattern: 'plain' },
+    accessories: [...app.accessories, ...v.accessories],
   };
 }

@@ -15,6 +15,8 @@ export interface SlotInstance {
   furnitureUid: string;
   aptId: string;
   roomIndex: number;
+  /** чья вещь (остальные не садятся) */
+  owner?: string;
 }
 
 export interface FurnitureInstance {
@@ -33,6 +35,7 @@ export interface FurnitureInstance {
   /** экран включён, пока хозяин дома и не спит */
   alwaysOn?: boolean;
   channel?: string;
+  owner?: string;
 }
 
 export interface RoomModel {
@@ -249,6 +252,7 @@ export class BuildingLayout {
           roomIndex: index,
           alwaysOn: fp.alwaysOn,
           channel: fp.channel,
+          owner: fp.owner,
         };
         fd.slots.forEach((s, si) => {
           const sx = fp.flip ? fx + fd.w - s.dx : fx + s.dx;
@@ -263,6 +267,7 @@ export class BuildingLayout {
             furnitureUid: uid,
             aptId: id,
             roomIndex: index,
+            owner: fp.owner,
           };
           inst.slots.push(slot);
           apt.slots.push(slot);

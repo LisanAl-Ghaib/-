@@ -1,0 +1,52 @@
+{
+  "id": "snezhana-galimova",
+  "name": {
+    "first": "Снежана", "last": "Галимова", "patronymic": "Тимуровна", "short": "Снежана",
+    "cases": { "gen": "Снежаны", "dat": "Снежане", "acc": "Снежану", "ins": "Снежаной", "pre": "Снежане" }
+  },
+  "gender": "f",
+  "birthday": "2004-06-08",
+  "apartment": "apt-2-right",
+  "occupation": {
+    "kind": "student", "title": "студентка", "workplace": "университет",
+    "schedule": { "days": [1, 2, 4, 5], "start": "10:00", "end": "16:20" },
+    "commuteMinutes": 25, "commute": "walk",
+    "sideJob": { "title": "работает онлайн в компании", "workplace": "удалённо", "days": [1, 2, 3, 4, 5], "hours": 3 }
+  },
+  "traits": {
+    "chronotype": "neutral", "sociability": "outgoing", "temper": "even", "outlook": "cheerful", "activity": "active",
+    "tags": [
+      "очень общительная", "приветливая", "гиперактивная", "редко ссорятся, но бывает",
+      "старается быть опрятной", "аккуратная", "интеллигенция среднего достатка",
+      "любит кофе по утрам", "экспериментирует на кухне", "любит дарить подарки без повода",
+      "дома — только вдвоём", "общается онлайн в дискорде",
+      "спит как убитая", "любит ходить пешком", "любит спорт", "молодая и здоровая", "стоик"
+    ]
+  },
+  "habits": [
+    { "kind": "music", "strength": 0.6, "note": "электропианино и электрогитара" },
+    { "kind": "computer", "strength": 0.6, "note": "ноутбук и монитор; переписывается и созванивается в дискорде" },
+    { "kind": "chess", "strength": 0.2, "note": "иногда играет с Иваном" },
+    { "kind": "walking", "strength": 0.9, "note": "ходит пешком всегда, когда есть возможность, любит гулять" },
+    { "kind": "jogging", "strength": 0.4, "note": "спорт" },
+    { "kind": "fitness", "strength": 0.6, "note": "спорт" },
+    { "kind": "cooking", "strength": 0.7, "note": "готовит на двоих, пробует необычные блюда" },
+    { "kind": "reading", "strength": 0.5, "note": "стоицизм" }
+  ],
+  "backstory": "",
+  "appearance": {
+    "skin": "#f1d6c2",
+    "eyes": "#4a86c8",
+    "hair": { "style": "bob_tucked", "color": "#5a1626" },
+    "height": "average", "build": "average",
+    "outfit": { "top": "#d8c8a0", "bottom": "#1c1c22", "shoes": "#2a2a2e", "style": "sweater", "pattern": "knit", "patternColor": "#2f5a6b", "coat": "#3a3a44" },
+    "accessories": ["glasses_big"]
+  },
+  "contacts": [
+    { "kind": "parent", "gender": "f", "age": 50, "phone": true, "note": "родня — созваниваются, в гости домой не зовут" },
+    { "kind": "friend", "gender": "f", "age": 22, "phone": true, "note": "друзья — онлайн, в дискорде" }
+  ],
+  "relationships": [
+    { "with": "ivan-muravyev", "kind": "partner", "affinity": 85, "familiarity": 95, "note": "живут вместе" }
+  ]
+}

@@ -81,21 +81,68 @@ export const read = leisure({
   base: 1.4, label: () => 'читает', rates: { mood: 6 }, minutes: [25, 80], cooldown: 3 * 3600, bonus: beforeBed,
 });
 
-export const music = leisure({
+const musicBase = leisure({
   id: 'music', icon: 'music', use: 'music', habit: 'music', requiresHabit: true,
-  base: 1.2, label: (ctx) => (ctx.home.rooms.some((r) => r.furniture.some((f) => f.def.draw === 'piano')) ? 'играет на пианино' : 'играет на гитаре'),
+  base: 1.2, label: () => 'музицирует',
   rates: { mood: 9 }, minutes: [20, 60], cooldown: 5 * 3600,
 });
 
+/** Музыка: на чём играет — видно по инструменту, к которому подошёл */
+export const music: ActionDef = {
+  ...musicBase,
+  onArrive(ctx, a) {
+    const slot = a.target.slot ? ctx.sim.slotIndex.get(a.target.slot) : undefined;
+    const f = slot ? ctx.home.rooms[slot.roomIndex].furniture.find((x) => x.uid === slot.furnitureUid) : undefined;
+    a.label = f?.def.draw === 'eguitar_amp' ? 'играет на электрогитаре' : f?.def.draw === 'guitar' ? 'играет на гитаре' : 'играет на пианино';
+    return true;
+  },
+};
+
 export const gaming = leisure({
   id: 'gaming', icon: 'game', use: 'gaming', habit: 'gaming', requiresHabit: true,
-  base: 1.3, label: () => 'играет в компьютерные игры', rates: { mood: 8, energy: -0.8 }, minutes: [40, 120], cooldown: 4 * 3600,
-  bonus: (ctx) => (ctx.cal.hourOfDay >= 21 || ctx.cal.hourOfDay < 3 ? 2 : 0),
+  base: 1.3,
+  label: (ctx) => (online(ctx) && ctx.sim.rng.chance(0.6) ? 'играет по сети с друзьями' : 'играет в компьютерные игры'),
+  rates: { mood: 8, energy: -0.8 }, minutes: [40, 120], cooldown: 4 * 3600,
+  bonus: (ctx) => {
+    const h = ctx.cal.hourOfDay;
+    // ночь напролёт за игрой (до четырёх утра)
+    if (ctx.r.plan?.allNighter && (h >= 22 || h < 4)) return 14;
+    return h >= 21 || h < 3 ? 2 : 0;
+  },
 });
+
+/** Общается онлайн (дискорд): переписка, созвоны, совместные игры */
+export function online(ctx: AgentCtx): boolean {
+  return ctx.def.traits.tags.some((t) => /дискорд|онлайн/i.test(t));
+}
+
+/** Шахматы: один — разбирает партию, вдвоём — играют (совместное — в couple.ts) */
+export const chess: ActionDef = {
+  id: 'chess',
+  icon: 'dots',
+  plan(ctx) {
+    if (sleepTime(ctx) || minutesToLeave(ctx) < 25) return null;
+    const h = habit(ctx, 'chess');
+    if (h <= 0) return null;
+    const room = ctx.home.rooms.find((rm) => rm.furniture.some((f) => f.def.draw === 'chessboard'));
+    if (!room) return null;
+    const sl = ctx.sim.findSlot(ctx.home, 'eat', ctx.r.id, room.index) ?? ctx.sim.findSlot(ctx.home, 'sit', ctx.r.id, room.index);
+    if (!sl || sl.roomIndex !== room.index) return null;
+    return {
+      score: (1.2 + h * 3.2 + (100 - ctx.r.needs.mood) / 25) * novelty(ctx, 'chess', 4 * 3600),
+      target: { level: ctx.home.level, x: sl.x, slot: sl.key },
+      duration: fitDuration(ctx, ctx.sim.rng.int(25, 70) * 60),
+      label: 'разбирает шахматную партию',
+    };
+  },
+  perform(ctx, _a, dt) {
+    gain(ctx.r, 'mood', 6, dt);
+  },
+};
 
 export const computer = leisure({
   id: 'computer', icon: 'game', use: 'work', habit: 'computer', requiresHabit: true,
-  base: 1, label: () => 'сидит в интернете', rates: { mood: 4, social: 2 }, minutes: [20, 70], cooldown: 3 * 3600,
+  base: 1, label: (ctx) => (online(ctx) ? ctx.sim.rng.pick(['переписывается в дискорде', 'созванивается с друзьями онлайн', 'сидит в интернете']) : 'сидит в интернете'), rates: { mood: 4, social: 2 }, minutes: [20, 70], cooldown: 3 * 3600,
 });
 
 export const crafts = leisure({
@@ -163,6 +210,8 @@ export const tea = leisure({
   rates: { mood: 5, energy: 4 }, minutes: [8, 20], cooldown: 3 * 3600,
   bonus: (ctx) => {
     const h = ctx.cal.hourOfDay;
+    // любители кофе по утрам: первым делом — чашка
+    if (h >= 6 && h < 11 && ctx.def.traits.tags.some((t) => /кофе/i.test(t)) && ctx.now - (ctx.r.recent.tea ?? -1e9) > 5 * 3600) return 6;
     return (h >= 7 && h < 10) || (h >= 15.5 && h < 17.5) ? 1.8 : 0;
   },
 });

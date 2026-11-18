@@ -54,7 +54,9 @@ export const illness: EventDef = {
     const tired = r.needs.energy < 30 ? 2 : 1;
     const old = c.sim.age(def) >= 65 ? 1.5 : 1;
     const chilled = (c.sim.state.flags[`wet:${c.who}`] ?? -1e9) > c.sim.time - 2 * 86400 ? 2.2 : 1;
-    return 0.006 * season * tired * old * chilled;
+    // молодые, здоровые, со спортом — болеют заметно реже
+    const healthy = def.traits.tags.some((t) => /здоров|любит спорт/i.test(t)) ? 0.35 : 1;
+    return 0.006 * season * tired * old * chilled * healthy;
   },
   apply(c) {
     const { sim, who } = c;

@@ -99,9 +99,22 @@ export class LifeDetails {
   }
 
   /** Что жилец несёт в руках */
-  drawCarry(g: CanvasRenderingContext2D, carrying: 'bags' | 'trash', x: number, y: number, facing: 1 | -1) {
+  drawCarry(g: CanvasRenderingContext2D, carrying: 'bags' | 'trash' | 'gift' | 'flowers', x: number, y: number, facing: 1 | -1) {
     const hx = x + facing * 3;
-    if (carrying === 'bags') {
+    if (carrying === 'flowers') {
+      // букет: стебли и головки цветов
+      rect(g, hx, y - 12, 1, 6, '#4a8a3a');
+      rect(g, hx + facing, y - 11, 1, 5, '#4a8a3a');
+      rect(g, hx - 1, y - 15, 2, 2, '#e8506a');
+      rect(g, hx + facing * 2, y - 14, 2, 2, '#ffb3c0');
+      rect(g, hx + facing, y - 16, 1, 1, '#e8c040');
+      rect(g, hx - 1, y - 8, 3, 2, '#f4f2ec'); // обёртка
+    } else if (carrying === 'gift') {
+      rect(g, hx - 2, y - 10, 5, 4, '#3a6ab0');
+      rect(g, hx, y - 10, 1, 4, '#e8c040');
+      rect(g, hx - 2, y - 8, 5, 1, '#e8c040');
+      rect(g, hx - 1, y - 11, 3, 1, '#e8c040'); // бантик
+    } else if (carrying === 'bags') {
       drawShoppingBag(g, hx - 2, y - 2, '#f4f2ec', '#c8402e');
       drawShoppingBag(g, hx - 2 - facing * 6, y - 2, '#f0e8d0', '#3f6e9e');
     } else drawTrashBag(g, hx - 3, y - 2, false);
@@ -256,7 +269,7 @@ const WORKER_A: Appearance = {
   hair: { style: 'short', color: '#3a2a20' },
   height: 'average',
   build: 'average',
-  outfit: { top: '#3a5f8a', bottom: '#3a5f8a', shoes: '#2a2a2a', style: 'casual' },
+  outfit: { top: '#3a5f8a', bottom: '#3a5f8a', shoes: '#2a2a2a', style: 'casual', pattern: 'plain', variants: [], variantChance: 0 },
   accessories: ['cap', 'stubble'],
 };
 const WORKER_B: Appearance = {
@@ -264,7 +277,7 @@ const WORKER_B: Appearance = {
   hair: { style: 'buzz', color: '#2a2018' },
   height: 'tall',
   build: 'heavy',
-  outfit: { top: '#e08a2a', bottom: '#4a4a52', shoes: '#2a2a2a', style: 'casual' },
+  outfit: { top: '#e08a2a', bottom: '#4a4a52', shoes: '#2a2a2a', style: 'casual', pattern: 'plain', variants: [], variantChance: 0 },
   accessories: ['mustache'],
 };
 

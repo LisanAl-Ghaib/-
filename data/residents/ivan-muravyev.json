@@ -1,0 +1,61 @@
+{
+  "id": "ivan-muravyev",
+  "name": {
+    "first": "Иван", "last": "Муравьев", "patronymic": "Никитич", "short": "Иван",
+    "cases": { "gen": "Ивана", "dat": "Ивану", "acc": "Ивана", "ins": "Иваном", "pre": "Иване" }
+  },
+  "gender": "m",
+  "birthday": "2005-04-12",
+  "apartment": "apt-2-right",
+  "occupation": {
+    "kind": "student", "title": "студент", "workplace": "университет",
+    "schedule": { "days": [1, 2, 3, 5], "start": "09:30", "end": "15:10" },
+    "commuteMinutes": 25, "commute": "walk",
+    "sideJob": { "title": "работает онлайн в компании", "workplace": "удалённо", "days": [1, 2, 3, 4, 5], "hours": 3 }
+  },
+  "traits": {
+    "chronotype": "neutral", "sociability": "outgoing", "temper": "even", "outlook": "cheerful", "activity": "active",
+    "tags": [
+      "очень общительный", "приветливый", "гиперактивный", "редко ссорятся, но бывает",
+      "старается быть опрятным", "аккуратный", "интеллигенция среднего достатка",
+      "любит кофе по утрам", "экспериментирует на кухне", "любит дарить подарки без повода",
+      "дома — только вдвоём", "общается онлайн в дискорде", "иногда играет ночами до 4 утра",
+      "спит как убитый", "любит ходить пешком", "любит спорт", "молодой и здоровый", "стоик"
+    ]
+  },
+  "habits": [
+    { "kind": "gaming", "strength": 0.8, "note": "игровой компьютер с двумя мониторами; играет онлайн с друзьями, иногда всю ночь до четырёх" },
+    { "kind": "computer", "strength": 0.6, "note": "переписывается и созванивается в дискорде" },
+    { "kind": "chess", "strength": 0.7, "note": "шахматы — по большей части один" },
+    { "kind": "music", "strength": 0.4, "note": "иногда играет на электропианино" },
+    { "kind": "walking", "strength": 0.9, "note": "ходит пешком всегда, когда есть возможность, любит гулять" },
+    { "kind": "jogging", "strength": 0.5, "note": "спорт" },
+    { "kind": "fitness", "strength": 0.6, "note": "турник, спорт" },
+    { "kind": "cooking", "strength": 0.7, "note": "готовит на двоих, пробует необычные блюда" },
+    { "kind": "reading", "strength": 0.5, "note": "стоицизм" }
+  ],
+  "backstory": "",
+  "appearance": {
+    "skin": "#efcfb8",
+    "eyes": "#4a86c8",
+    "hair": { "style": "short", "color": "#6e5a44" },
+    "height": "tall", "build": "average",
+    "outfit": {
+      "top": "#1f2d4f", "bottom": "#1c1c22", "shoes": "#e4e4e4", "style": "hoodie", "coat": "#eeece6",
+      "tie": "#1f2d4f",
+      "variants": [
+        { "top": "#7a1f2b", "style": "formal", "accessories": ["tie"] },
+        { "top": "#a8cce8", "style": "formal", "accessories": ["tie"] }
+      ],
+      "variantChance": 0.3
+    },
+    "accessories": []
+  },
+  "contacts": [
+    { "kind": "parent", "gender": "f", "age": 48, "phone": true, "note": "родня — созваниваются, в гости домой не зовут" },
+    { "kind": "friend", "gender": "m", "age": 21, "phone": true, "note": "друзья — онлайн: дискорд, сетевые игры" }
+  ],
+  "relationships": [
+    { "with": "snezhana-galimova", "kind": "partner", "affinity": 85, "familiarity": 95, "note": "живут вместе" }
+  ]
+}

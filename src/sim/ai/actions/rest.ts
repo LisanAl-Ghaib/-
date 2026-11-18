@@ -10,7 +10,7 @@ export const sleep: ActionDef = {
   plan(ctx) {
     const { r } = ctx;
     const night = sleepTime(ctx);
-    const exhausted = r.needs.energy < 10;
+    const exhausted = r.needs.energy < (r.plan?.allNighter && !sleepTime(ctx) ? 1 : 10);
     // проснулась среди ночи от бессонницы — не сразу уснёт снова
     if (r.recent.insomnia !== undefined && ctx.now - r.recent.insomnia < 45 * 60 && !exhausted) return null;
     const sick = !!(r.sick && r.sick.until > ctx.now) && r.needs.energy < 50;
@@ -119,11 +119,12 @@ export const wash: ActionDef = {
     const spot = homeSlot(ctx, 'wash', ['bathroom', 'hall', 'kitchen']);
     const hall = roomOfType(ctx.home, 'hall', 'bathroom') ?? ctx.home.rooms[0];
     const bath = spot?.slot.pose === 'lie';
+    const shower = !!spot && ctx.home.rooms[spot.slot.roomIndex].furniture.some((f) => f.uid === spot.slot.furnitureUid && f.def.draw === 'shower');
     return {
       score: 9,
       target: spot?.target ?? roomPoint(ctx, hall),
       duration: ctx.sim.rng.int(bath ? 20 : 8, bath ? 35 : 18) * 60,
-      label: bath ? 'принимает ванну' : spot ? 'умывается' : gv(ctx.def, 'собирается', 'собирается'),
+      label: bath ? 'принимает ванну' : shower ? 'в душе' : spot ? 'умывается' : gv(ctx.def, 'собирается', 'собирается'),
       interruptible: false,
     };
   },

@@ -10,14 +10,14 @@ import { updateAgent } from './ai/brain';
 import { ACTIONS } from './ai/actions';
 import type { ActionDef, AgentCtx } from './ai/types';
 import { advanceMovement } from './movement';
-import { updateNeeds } from './needs';
+import { STOICS, updateNeeds } from './needs';
 import { ensurePlan } from './schedule';
 import { daylight } from './env/sun';
 import { createWeather, seasonOf, updateWeather, weatherAppeal, type WeatherState } from './env/weather';
 import { createResidentState, type ApartmentState, type ChronicleEntry, type ResidentState, type WorldState } from './state';
 import { endAction, startAction } from './ai/brain';
 import type { ActionPlan } from './ai/types';
-import { chronicle, flushPendingChronicle } from './chronicle/chronicle';
+import { chronicle, chronicleAt, flushPendingChronicle } from './chronicle/chronicle';
 import { familyName } from './chronicle/russian';
 import { runExclusive, runIndependent } from './events/engine';
 import { detectEncounters } from './social/encounters';
@@ -28,6 +28,7 @@ import { addMoodlet } from './needs';
 import { petNotes, syncPets, updatePets } from './pets';
 import { scheduleVisits, updateVisitors } from './visitors';
 import { syncWorkers, updateWorkers } from './workers';
+import { joinCooking, planTogether } from './couple';
 
 export type SimEvent =
   | { type: 'action.start'; t: number; residentId: string; actionId: string; label: string }
@@ -65,15 +66,21 @@ export class Simulation {
     state.workers ??= [];
     for (const r of Object.values(state.residents)) r.needs.bladder ??= 70;
     this.syncResidents();
+    STOICS.clear();
+    for (const d of defs.residents) if (d.traits.tags.some((t) => /стоик|стоиц/i.test(t))) STOICS.add(d.id);
     initRelations(this);
     if (fresh) chronicle(this, 'world.start', [], 3);
     this.bus.on('cooked', (e) => this.onCooked(e.residentId, e.baking));
     this.bus.on('action.end', (e) => this.onActionEnd(e.residentId, e.actionId, e.interrupted));
+    this.bus.on('action.start', (e) => {
+      if (e.actionId === 'cook') joinCooking(this, e.residentId);
+    });
     syncPets(this);
     syncWorkers(this);
   }
 
   private onCooked(id: string, baking: boolean): void {
+    this.cookExperiment(id);
     if (!baking) return;
     chronicle(this, 'baked', [id], 2);
     const def = this.defs.residentById.get(id)!;
@@ -89,6 +96,7 @@ export class Simulation {
 
   /** Телефонный разговор с кем-то вне дома — иногда слышно через стену */
   private onActionEnd(id: string, actionId: string, interrupted: boolean): void {
+    if ((actionId === 'gaming' || actionId === 'computer') && !interrupted) this.onlineHeard(id, actionId);
     if (actionId !== 'phone' || interrupted) return;
     const def = this.defs.residentById.get(id);
     const friends = def?.contacts.filter((c) => c.phone) ?? [];
@@ -96,6 +104,47 @@ export class Simulation {
     const c = this.rng.pick(friends);
     const topic = this.rng.pick(['цены на рынке', 'давление и погоду', 'новых соседей', 'вчерашний сериал', 'рецепт засолки', 'общих знакомых', 'внуков']);
     chronicle(this, 'phone-call', [id], 1, { name: c.name ?? null, gender: c.gender, kind: c.kind, topic });
+  }
+
+  /** Голоса из-за стены: играет по сети, созванивается; ночь за компьютером видна по свету */
+  private onlineHeard(id: string, actionId: string): void {
+    const def = this.defs.residentById.get(id);
+    const r = this.state.residents[id];
+    if (!def || !r) return;
+    const cal = this.calendar();
+    const h = cal.hourOfDay;
+    if (actionId === 'gaming' && r.plan?.allNighter && h >= 3 && h < 5.5) {
+      const key = `allnight:${id}:${cal.dayIndex}`;
+      if (!this.state.flags[key]) {
+        this.state.flags[key] = this.time;
+        // заметно утром: свет монитора видели из двора, а днём он отсыпается
+        chronicleAt(this, this.time + 5 * 3600, 'all-nighter', [id], 1);
+      }
+      return;
+    }
+    if (!def.traits.tags.some((t) => /дискорд|онлайн/i.test(t)) || !this.rng.chance(0.12)) return;
+    const key = `online:${id}:${cal.dayIndex}`;
+    if (this.state.flags[key]) return;
+    this.state.flags[key] = this.time;
+    chronicle(this, 'online-voice', [id], 1, { game: actionId === 'gaming', late: h >= 23 || h < 5 });
+  }
+
+  /** Кулинарные эксперименты: по запаху из квартиры слышно, что готовят что-то необычное */
+  private cookExperiment(id: string): void {
+    const def = this.defs.residentById.get(id)!;
+    if (!def.traits.tags.some((t) => /эксперимент/i.test(t)) || !this.rng.chance(0.35)) return;
+    const cal = this.calendar();
+    const key = `cookexp:${def.apartment}`;
+    if (this.time - (this.state.flags[key] ?? -1e9) < 2 * 86400) return;
+    this.state.flags[key] = this.time;
+    const helper = Object.values(this.state.residents).find(
+      (o) => o.id !== id && o.action?.id === 'together' && o.action.data.kind === 'help_cook' && o.action.data.with === id,
+    );
+    const dish = this.rng.pick([
+      'карри с яблоком', 'суп на кокосовом молоке', 'шакшуку', 'тыквенное ризотто', 'пад-тай', 'гречневую лапшу с кунжутом',
+      'запечённую свёклу с козьим сыром', 'пельмени с необычной начинкой', 'том ям', 'сырники с кардамоном',
+    ]);
+    chronicle(this, 'cook.experiment', helper ? [id, helper.id] : [id], 1, { dish, hour: cal.hour });
   }
 
   /** Принудительно сменить действие жильца (визит, разговор) */
@@ -251,7 +300,10 @@ export class Simulation {
   }
   /** свободный слот нужного типа в квартире (предпочтительно в комнате room) */
   findSlot(apt: ApartmentModel, use: string, rid: string, room?: number): SlotInstance | undefined {
-    const free = apt.slots.filter((s) => s.use.includes(use as never) && this.isSlotFree(s.key, rid));
+    // чужие вещи («Ванин компьютер») не трогаем, свои — в первую очередь
+    const free = apt.slots
+      .filter((s) => s.use.includes(use as never) && this.isSlotFree(s.key, rid) && (!s.owner || s.owner === rid))
+      .sort((a, b) => Number(b.owner === rid) - Number(a.owner === rid));
     if (room !== undefined) {
       const inRoom = free.find((s) => s.roomIndex === room);
       if (inRoom) return inRoom;
@@ -332,6 +384,7 @@ export class Simulation {
     flushPendingChronicle(this);
     if (s.time % 60 === 0) detectEncounters(this);
     if (s.time % 300 === 0) this.familyDinners();
+    if (s.time % 600 === 0) planTogether(this);
   }
 
   /** Семья дома вместе — раз в час что-нибудь происходит */

@@ -1452,6 +1452,168 @@
    "rooms": [
     "bathroom"
    ]
+  },
+  {
+   "id": "gaming_desk",
+   "name": "Игровой стол: компьютер, два монитора, кресло",
+   "draw": "gaming_desk",
+   "w": 28,
+   "h": 22,
+   "paletteKey": "wood",
+   "rooms": [
+    "living",
+    "bedroom",
+    "study",
+    "studio"
+   ],
+   "slots": [
+    {
+     "use": [
+      "work",
+      "gaming"
+     ],
+     "dx": 5,
+     "pose": "sit",
+     "dy": 4,
+     "face": 1
+    }
+   ]
+  },
+  {
+   "id": "laptop_desk",
+   "name": "Стол с ноутбуком и монитором",
+   "draw": "laptop_desk",
+   "w": 24,
+   "h": 20,
+   "paletteKey": "wood",
+   "rooms": [
+    "living",
+    "bedroom",
+    "study",
+    "studio"
+   ],
+   "slots": [
+    {
+     "use": [
+      "work",
+      "read"
+     ],
+     "dx": 5,
+     "pose": "sit",
+     "dy": 4,
+     "face": 1
+    }
+   ]
+  },
+  {
+   "id": "digital_piano",
+   "name": "Электропианино",
+   "draw": "digital_piano",
+   "w": 22,
+   "h": 14,
+   "paletteKey": "metal",
+   "color": "#26262c",
+   "rooms": [
+    "living",
+    "bedroom",
+    "studio"
+   ],
+   "slots": [
+    {
+     "use": [
+      "music"
+     ],
+     "dx": 11,
+     "pose": "sit",
+     "dy": 4,
+     "face": 0
+    }
+   ]
+  },
+  {
+   "id": "eguitar_amp",
+   "name": "Электрогитара на стойке и комбик",
+   "draw": "eguitar_amp",
+   "w": 12,
+   "h": 18,
+   "paletteKey": "metal",
+   "rooms": [
+    "living",
+    "bedroom",
+    "studio"
+   ],
+   "slots": [
+    {
+     "use": [
+      "music"
+     ],
+     "dx": 5,
+     "pose": "stand",
+     "dy": 0,
+     "face": 1
+    }
+   ]
+  },
+  {
+   "id": "couple_photo",
+   "name": "Совместная фотография",
+   "draw": "couple_photo",
+   "w": 12,
+   "h": 10,
+   "paletteKey": "wood",
+   "elevation": 30
+  },
+  {
+   "id": "chessboard",
+   "name": "Шахматная доска",
+   "draw": "chessboard",
+   "w": 8,
+   "h": 3,
+   "paletteKey": "wood",
+   "elevation": 10
+  },
+  {
+   "id": "shower",
+   "name": "Душевая кабина",
+   "draw": "shower",
+   "w": 12,
+   "h": 34,
+   "paletteKey": "metal",
+   "layer": "front",
+   "rooms": [
+    "bathroom"
+   ],
+   "slots": [
+    {
+     "use": [
+      "wash"
+     ],
+     "dx": 6,
+     "pose": "stand",
+     "dy": 0,
+     "face": 0
+    }
+   ]
+  },
+  {
+   "id": "pullup_bar",
+   "name": "Турник в дверном проёме",
+   "draw": "pullup_bar",
+   "w": 14,
+   "h": 3,
+   "paletteKey": "metal",
+   "elevation": 27,
+   "slots": [
+    {
+     "use": [
+      "exercise"
+     ],
+     "dx": 7,
+     "pose": "stand",
+     "dy": 0,
+     "face": 0
+    }
+   ]
   }
  ]
 }

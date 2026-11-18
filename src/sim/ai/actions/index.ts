@@ -1,12 +1,13 @@
 import type { ActionDef } from '../types';
 import { cook, eat, shopping, snack } from './food';
 import { makeBed, takeOutTrash, unpack, washDishes } from './home';
-import { chores, computer, crafts, fitness, gaming, idle, lookOutside, music, phone, plants, read, tea, watchTv } from './leisure';
+import { chess, chores, computer, crafts, fitness, gaming, idle, lookOutside, music, phone, plants, read, tea, watchTv } from './leisure';
 import { bench, goOut, jog, smoke, snowman, walkYard } from './outside';
 import { nap, sleep, toilet, wash } from './rest';
 import { chat, guest, host, visit } from './social';
 import { familyVisit, feedPets, nightWatch } from './personal';
-import { goToWork, workFromHome } from './work';
+import { goToWork, sideWork, workFromHome } from './work';
+import { together } from '../../couple';
 
 /**
  * Реестр действий. Чтобы добавить действие — создай ActionDef и допиши сюда.
@@ -20,13 +21,15 @@ export const ACTIONS: readonly ActionDef[] = [
   // домашние дела, которые видно со стороны
   washDishes, makeBed, unpack, takeOutTrash,
   // работа
-  goToWork, workFromHome,
+  goToWork, workFromHome, sideWork,
   // досуг дома
-  watchTv, read, tea, music, gaming, computer, crafts, plants, fitness, phone, lookOutside, chores, idle,
+  watchTv, read, tea, music, gaming, computer, crafts, plants, fitness, phone, lookOutside, chores, chess, idle,
   // на улице
   walkYard, bench, smoke, jog, goOut, snowman,
   // общение
   visit, host, guest, chat,
   // личное: питомцы, родные, бессонница
   feedPets, familyVisit, nightWatch,
+  // вдвоём (пара)
+  together,
 ];

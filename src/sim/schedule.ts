@@ -48,6 +48,9 @@ export function makePlan(ctx: AgentCtx, day: number): DailyPlan {
   let bed = ch.bed + rng.gauss(0, 18) + (weekday === 5 || weekday === 6 ? 40 : 0) - (age >= 70 ? 30 : 0);
   // бессонница: многие ночи ложится сильно позже
   if (def.traits.tags.some((t) => /бессонн|не спится|плохо спит/i.test(t)) && rng.chance(0.65)) bed += rng.range(60, 200);
+  // «иногда играет ночами до четырёх утра» — а потом всё равно ложится
+  const allNighter = def.traits.tags.some((t) => /ночами .*игра|играет .*ночами|до 4 утра|до четырёх/i.test(t)) && rng.chance(weekday === 5 || weekday === 6 ? 0.3 : 0.12);
+  if (allNighter) bed = 28 * 60 + rng.int(-10, 20);
 
   let leave: number | null = null;
   let ws: number | null = null;
@@ -76,6 +79,7 @@ export function makePlan(ctx: AgentCtx, day: number): DailyPlan {
     breakfastAt: abs(wake + 20 + rng.int(0, 15)),
     lunchAt: abs(13 * 60 + rng.gauss(0, 20)),
     dinnerAt: abs(dinner + rng.gauss(0, 20)),
+    allNighter: allNighter || undefined,
   };
 }
 

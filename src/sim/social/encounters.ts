@@ -66,6 +66,8 @@ export function detectEncounters(sim: Simulation): void {
       const rb = s.residents[b];
       const sb = spots.get(b);
       if (!sb || rb.interaction !== null || sa.key !== sb.key) continue;
+      // живут вместе — встреча во дворе не событие
+      if (sim.defs.residentById.get(a)?.apartment === sim.defs.residentById.get(b)?.apartment) continue;
       const near = sa.kind === 'elevator' || (Math.abs(ra.x - rb.x) < (sa.key === 'yard' || sa.key === 'bench' ? 28 : sa.key === 'ground' ? 44 : 16) && Math.abs(ra.y - rb.y) < 10);
       if (!near) continue;
       const key = pairKey(a, b);

@@ -106,6 +106,8 @@ export const FurniturePlacementSchema = z.object({
   color: hexColor.optional(),
   /** поднять над полом (радио на столе, телевизор на комоде) */
   elevation: z.number().int().min(0).max(48).optional(),
+  /** чья вещь: остальные жильцы её место не занимают («Ванин компьютер») */
+  owner: z.string().optional(),
 });
 
 export const RoomSchema = z.object({
@@ -143,7 +145,7 @@ export type ApartmentDef = z.infer<typeof ApartmentSchema>;
 
 export const HabitKindSchema = z.enum([
   'reading', 'tv', 'cooking', 'walking', 'jogging', 'music', 'gaming', 'crafts',
-  'plants', 'phone', 'smoking', 'bench', 'fitness', 'computer',
+  'plants', 'phone', 'smoking', 'bench', 'fitness', 'computer', 'chess',
 ]);
 export type HabitKind = z.infer<typeof HabitKindSchema>;
 
@@ -162,6 +164,8 @@ export type OccupationKind = z.infer<typeof OccupationKindSchema>;
 
 export const HairStyleSchema = z.enum([
   'short', 'buzz', 'long', 'bob', 'ponytail', 'bun', 'curly', 'bald', 'balding', 'mohawk', 'braid', 'pigtails',
+  /** каре, убранное за уши, концы чуть вьются */
+  'bob_tucked',
 ]);
 
 export const AccessorySchema = z.enum([
@@ -170,6 +174,8 @@ export const AccessorySchema = z.enum([
   'frown',
   /** шаль/платок на плечах */
   'shawl',
+  /** большие квадратные очки */
+  'glasses_big',
 ]);
 
 /** Домашнее животное (живёт в квартире хозяина) */
@@ -240,6 +246,16 @@ export const ResidentSchema = z.object({
       .optional(),
     commuteMinutes: z.number().int().min(0).max(180).default(30),
     commute: z.enum(['bus', 'walk']).default('bus'),
+    /** подработка из дома параллельно с основным занятием (студент работает онлайн) */
+    sideJob: z
+      .object({
+        title: z.string(),
+        workplace: z.string().default(''),
+        days: z.array(z.number().int().min(1).max(7)),
+        /** часов в такой день */
+        hours: z.number().min(0.5).max(12),
+      })
+      .optional(),
   }),
   traits: z.object({
     chronotype: z.enum(['lark', 'neutral', 'owl']),
@@ -268,11 +284,31 @@ export const ResidentSchema = z.object({
       top: hexColor,
       bottom: hexColor,
       shoes: hexColor.default('#3a2a20'),
-      style: z.enum(['casual', 'formal', 'sport', 'dress', 'robe']).default('casual'),
+      style: z.enum(['casual', 'formal', 'sport', 'dress', 'robe', 'hoodie', 'sweater']).default('casual'),
       /** верхняя одежда для холодной погоды */
       coat: hexColor.optional(),
+      /** узор на кофте (свитер с орнаментом) и его цвет */
+      pattern: z.enum(['plain', 'knit']).default('plain'),
+      patternColor: hexColor.optional(),
+      /** галстук (если есть в аксессуарах или в варианте одежды) */
+      tie: hexColor.optional(),
+      /** иногда надевает другое: вместо top/style этого варианта, плюс аксессуары */
+      variants: z
+        .array(
+          z.object({
+            top: hexColor,
+            style: z.enum(['casual', 'formal', 'sport', 'dress', 'robe', 'hoodie', 'sweater']).optional(),
+            accessories: z.array(AccessorySchema).default([]),
+            tie: hexColor.optional(),
+          }),
+        )
+        .default([]),
+      /** как часто надевает не основной вариант (доля дней) */
+      variantChance: z.number().min(0).max(1).default(0.35),
     }),
     accessories: z.array(AccessorySchema).default([]),
+    /** цвет глаз */
+    eyes: hexColor.optional(),
   }),
   relationships: z
     .array(

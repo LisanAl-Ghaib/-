@@ -423,6 +423,114 @@ const drawers: Record<string, Drawer> = {
     R(c, 2, h - 8, w - 4, 1, shade(main, -0.12));
     R(c, 3, h - 1, w - 6, 1, shade(main, -0.25));
   },
+  gaming_desk(c) {
+    // игровой стол: два монитора, системник с подсветкой, игровое кресло
+    const { w, h, main } = c;
+    const top = h - 12;
+    R(c, 4, top, w - 4, 2, main);
+    R(c, 4, top, w - 4, 1, shade(main, 0.2));
+    R(c, 5, top + 2, 1, 10, shade(main, -0.25));
+    R(c, w - 2, top + 2, 1, 10, shade(main, -0.25));
+    R(c, w - 8, top + 2, 5, 9, '#1e2026'); // системник
+    R(c, w - 7, top + 3, 3, 7, '#26303a'); // стеклянный бок
+    for (const [mx, mw] of [[9, 9], [18, 9]] as const) {
+      R(c, mx, 0, mw, 7, '#1e2026');
+      R(c, mx + 1, 1, mw - 2, 5, DARK_SCREEN);
+    }
+    R(c, 17, 7, 2, top - 7, '#1e2026'); // общая стойка
+    R(c, 9, top - 1, 7, 1, '#3a3e48'); // клавиатура
+    R(c, 17, top - 1, 2, 1, '#3a3e48'); // мышь
+    // игровое кресло
+    R(c, 0, h - 14, 3, 11, '#26262c');
+    R(c, 0, h - 13, 1, 6, '#c8402e');
+    R(c, 0, h - 5, 7, 2, '#26262c');
+    R(c, 3, h - 3, 1, 2, '#555');
+    R(c, 1, h - 1, 5, 1, '#555');
+  },
+  laptop_desk(c) {
+    // стол: ноутбук и рядом внешний монитор, кружка, лампа
+    const { w, h, main } = c;
+    const top = h - 12;
+    R(c, 4, top, w - 4, 2, main);
+    R(c, 4, top, w - 4, 1, shade(main, 0.2));
+    R(c, 5, top + 2, 1, 10, shade(main, -0.25));
+    R(c, w - 2, top + 2, 1, 10, shade(main, -0.25));
+    R(c, w - 8, top + 2, 6, 4, shade(main, -0.1)); // ящик
+    R(c, w - 6, top + 3, 2, 1, '#d6c38a');
+    R(c, 12, 0, 10, 7, '#2e3138'); // монитор
+    R(c, 13, 1, 8, 5, DARK_SCREEN);
+    R(c, 16, 7, 2, top - 7, '#2e3138');
+    R(c, 6, top - 4, 6, 4, '#b8bcc4'); // ноутбук: крышка
+    R(c, 7, top - 3, 4, 2, DARK_SCREEN);
+    R(c, 5, top - 1, 8, 1, '#9aa0a8');
+    R(c, w - 3, top - 3, 2, 3, '#f4f2ec'); // кружка
+    // стул
+    R(c, 1, h - 9, 1, 7, '#3a3a42');
+    R(c, 1, h - 5, 6, 1, '#3a3a42');
+    R(c, 2, h - 4, 1, 4, '#3a3a42');
+    R(c, 6, h - 4, 1, 4, '#3a3a42');
+  },
+  digital_piano(c) {
+    // электропианино на X-стойке, банкетка
+    const { w, h, main } = c;
+    R(c, 0, 0, w, 4, main);
+    R(c, 0, 0, w, 1, shade(main, 0.25));
+    R(c, 2, 1, 3, 1, '#7fd0ff'); // экранчик
+    R(c, 0, 4, w, 2, WHITE);
+    for (let x = 1; x < w; x += 3) R(c, x, 4, 1, 1, '#111');
+    R(c, 3, 6, 1, h - 6, '#2a2a30'); // стойка крест-накрест
+    R(c, w - 4, 6, 1, h - 6, '#2a2a30');
+    for (let i = 0; i < h - 7; i++) R(c, 3 + Math.round((i * (w - 7)) / (h - 7)), 6 + i, 1, 1, '#3a3a42');
+    R(c, 5, h - 2, 3, 1, '#555'); // педаль
+  },
+  eguitar_amp(c) {
+    // комбоусилитель с ручками
+    const { h } = c;
+    R(c, 0, h - 8, 8, 8, '#26262c');
+    R(c, 1, h - 6, 6, 5, '#3a3a42');
+    for (let y = h - 6; y < h - 1; y += 2) R(c, 1, y, 6, 1, '#2e2e34');
+    R(c, 1, h - 8, 6, 1, '#c8b070');
+    R(c, 2, h - 8, 1, 1, '#1a1a1a');
+    R(c, 4, h - 8, 1, 1, '#1a1a1a');
+    R(c, 9, h - 4, 3, 4, '#2a2a30'); // стойка для гитары (гитару рисует рендер)
+  },
+  couple_photo(c) {
+    // совместное фото в рамке (кто на нём — дорисовывает рендер по жильцам квартиры)
+    const { w, h, main } = c;
+    R(c, 0, 0, w, h, main);
+    R(c, 1, 1, w - 2, h - 2, '#b8d8e8');
+    R(c, 1, h - 4, w - 2, 3, '#7aa86a');
+  },
+  chessboard(c) {
+    const { w, h } = c;
+    R(c, 0, h - 1, w, 1, '#6b4a2a');
+    for (let x = 0; x < w; x++) R(c, x, h - 1, 1, 1, x % 2 ? '#e8dcc0' : '#4a3020');
+    R(c, 1, h - 3, 1, 2, WHITE);
+    R(c, 3, h - 2, 1, 1, WHITE);
+    R(c, w - 2, h - 3, 1, 2, '#1e1e22');
+    R(c, w - 4, h - 2, 1, 1, '#1e1e22');
+  },
+  shower(c) {
+    // душевая кабина: лейка, плитка; матовое стекло — спереди (слой front)
+    const { w, h } = c;
+    R(c, 1, 2, 1, 6, '#b8bcc4');
+    R(c, 1, 2, 4, 1, '#b8bcc4');
+    R(c, 4, 3, 3, 1, '#d8dce4'); // лейка
+    R(c, 0, h - 2, w, 2, '#e8ecef'); // поддон
+    c.g.globalAlpha = 0.45;
+    R(c, 0, 0, w, h - 2, '#dfeff6');
+    c.g.globalAlpha = 1;
+    R(c, 0, 0, w, 1, '#9aa4ad');
+    R(c, 0, 0, 1, h - 2, '#9aa4ad');
+    R(c, w - 1, 0, 1, h - 2, '#9aa4ad');
+    R(c, w - 3, h / 2, 1, 3, '#9aa4ad'); // ручка
+  },
+  pullup_bar(c) {
+    const { w } = c;
+    R(c, 0, 0, 2, 3, '#555');
+    R(c, w - 2, 0, 2, 3, '#555');
+    R(c, 0, 1, w, 1, '#b8bcc4');
+  },
   wc_shelf(c) {
     const { w, main } = c;
     R(c, 0, 6, w, 1, main);
@@ -1112,11 +1220,29 @@ export function screenRect(draw: string, w: number, h: number): [number, number,
       return [3, 7, w - 8, h - 15];
     case 'computer_desk':
       return [12, 1, 9, 5];
+    case 'gaming_desk':
+      return [10, 1, 7, 5];
+    case 'laptop_desk':
+      return [13, 1, 8, 5];
     case 'small_tv':
       return [1, 1, w - 4, h - 3];
     case 'concierge_desk':
       return [w - 13, h - 20, 9, 6];
     default:
       return null;
+  }
+}
+
+/** Все экраны предмета (у игрового стола — два монитора, у стола с ноутбуком — ноутбук и монитор) */
+export function screenRects(draw: string, w: number, h: number): [number, number, number, number][] {
+  switch (draw) {
+    case 'gaming_desk':
+      return [[10, 1, 7, 5], [19, 1, 7, 5]];
+    case 'laptop_desk':
+      return [[13, 1, 8, 5], [7, h - 12 - 3, 4, 2]];
+    default: {
+      const r = screenRect(draw, w, h);
+      return r ? [r] : [];
+    }
   }
 }

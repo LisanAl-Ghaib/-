@@ -92,7 +92,7 @@ export function generateCharacterSheet(app: Appearance, opts: { coat?: boolean }
     bottom: app.outfit.bottom,
     bottomS: shade(app.outfit.bottom, -0.3),
     shoes: app.outfit.shoes,
-    eye: '#2a1d1a',
+    eye: app.eyes ?? '#2a1d1a',
     white: '#f4f1ea',
   };
   const H = app.height === 'short' ? 18 : app.height === 'tall' ? 22 : 20;
@@ -182,6 +182,12 @@ function drawFrame(
     px(g, tw0, ty, tw1 - tw0 + 1, torsoLen, p.top);
     px(g, tw0, ty, 1, torsoLen, p.topS);
     if (build === 'heavy') px(g, tw1 + 1, ty + 2, 1, torsoLen - 2, p.top);
+    if (!coat) knit(g, app, p, tw0 + 1, ty + 1, tw1 - tw0, torsoLen - 2);
+    if (!coat && app.outfit.style === 'hoodie') {
+      px(g, tw0 - 1, ty - 1, 2, 3, p.topS); // капюшон за спиной
+      px(g, tw1, ty + 1, 1, 3, '#e8e4dc'); // шнурок
+    }
+    if (!coat && app.outfit.style === 'sweater') px(g, tw0, ty, tw1 - tw0 + 1, 1, p.topS); // горло
     if (dress && !sitting) {
       const skirt = Math.max(2, Math.floor(legLen / 2) + (app.outfit.style === 'robe' ? 2 : 0));
       px(g, tw0 - 1, ty + torsoLen, tw1 - tw0 + 3, skirt, p.top);
@@ -190,8 +196,8 @@ function drawFrame(
     if (coat && !sitting) px(g, tw0, ty + torsoLen, tw1 - tw0 + 1, 2, p.top);
     if (acc.has('apron')) px(g, tw1 - 1, ty + 2, 2, torsoLen + 2, '#e9e4d8');
     if (acc.has('tie') || app.outfit.style === 'formal') {
-      px(g, tw1, ty, 1, 1, p.white);
-      if (acc.has('tie')) px(g, tw1, ty + 1, 1, 3, '#7a1f2b');
+      px(g, tw1, ty, 1, 1, coat ? p.top : p.white);
+      if (acc.has('tie')) px(g, tw1, ty + 1, 1, 3, app.outfit.tie ?? '#7a1f2b');
     }
     if (acc.has('scarf') || coat) px(g, C - 2, ty, 5, 1, coat ? shade(p.top, 0.25) : '#b8423a');
     if (acc.has('shawl')) {
@@ -234,6 +240,13 @@ function drawFrame(
       const gl = acc.has('sunglasses') ? '#1d1d22' : '#3c3c44';
       px(g, C, hy + 2, 3, 1, gl);
       if (!acc.has('sunglasses')) px(g, C + 1, hy + 2, 1, 1, '#bfe0f0');
+    }
+    if (acc.has('glasses_big')) {
+      // большая квадратная оправа
+      px(g, C, hy + 1, 3, 3, '#2a2a30');
+      px(g, C + 1, hy + 2, 1, 1, p.eye);
+      px(g, C + 2, hy + 2, 1, 1, '#cfe6f2');
+      px(g, C - 1, hy + 2, 1, 1, '#2a2a30'); // дужка
     }
     if (acc.has('beard')) px(g, C, hy + 3, 3, 2, p.hair);
     else if (acc.has('stubble')) px(g, C, hy + 4, 3, 1, shade(p.skin, -0.3));
@@ -292,9 +305,20 @@ function drawFrame(
     px(g, tw0, ty + torsoLen, tw1 - tw0 + 1, 2, p.top);
     px(g, C - 1, ty + 1, 1, torsoLen + 1, p.topS); // застёжка
   }
+  if (!coat && !back) knit(g, app, p, tw0 + 1, ty + 1, tw1 - tw0 - 1, torsoLen - 2);
+  if (!coat && app.outfit.style === 'hoodie') {
+    if (back) px(g, C - 2, ty, 4, 3, p.topS); // капюшон
+    else {
+      px(g, C - 2, ty, 4, 1, p.topS);
+      px(g, C - 2, ty + 1, 1, 2, '#e8e4dc'); // шнурки
+      px(g, C + 1, ty + 1, 1, 2, '#e8e4dc');
+      px(g, C - 2, ty + torsoLen - 3, 4, 2, p.topS); // карман-кенгуру
+    }
+  }
+  if (!coat && app.outfit.style === 'sweater') px(g, C - 2, ty, 4, 1, p.topS); // горло
   if (acc.has('apron')) px(g, C - 2, ty + 2, 4, torsoLen + 2, '#e9e4d8');
-  if (acc.has('tie')) px(g, C - 1, ty + 1, 1, 4, '#7a1f2b');
-  if (app.outfit.style === 'formal') {
+  if (acc.has('tie') && !back) px(g, C - 1, ty + 1, 1, 4, app.outfit.tie ?? '#7a1f2b');
+  if (app.outfit.style === 'formal' && !back && !coat) {
     px(g, C - 2, ty, 1, 1, p.white);
     px(g, C, ty, 1, 1, p.white);
   }
@@ -366,6 +390,15 @@ function drawFrame(
       px(g, C - 2, hy + 2, 1, 1, '#bfe0f0');
       px(g, C + 1, hy + 2, 1, 1, '#bfe0f0');
     }
+  }
+  if (acc.has('glasses_big')) {
+    // две большие квадратные линзы, глаза внутри
+    px(g, C - 3, hy + 1, 3, 3, '#2a2a30');
+    px(g, C, hy + 1, 3, 3, '#2a2a30');
+    px(g, C - 2, hy + 2, 1, 1, p.eye);
+    px(g, C + 1, hy + 2, 1, 1, p.eye);
+    px(g, C - 3, hy + 2, 1, 1, '#cfe6f2');
+    px(g, C + 2, hy + 2, 1, 1, '#cfe6f2');
   }
   if (acc.has('frown')) {
     const brow = shade(p.hair, -0.45);
@@ -453,6 +486,15 @@ function drawHairSide(g: CanvasRenderingContext2D, style: string, p: Pal, y0: nu
       top();
       px(g, C - 4, hy + 1, 2, 3, p.hair);
       break;
+    case 'bob_tucked':
+      // каре за ухом: ухо открыто, волосы за ним до подбородка, кончики подвиты
+      top();
+      px(g, C + 2, hy, 1, 1, p.hair);
+      px(g, C - 3, hy, 1, 5, p.hair);
+      px(g, C - 2, hy + 3, 1, 2, p.hair);
+      px(g, C - 4, hy + 4, 1, 1, p.hairS);
+      px(g, C - 2, hy + 5, 1, 1, p.hairS);
+      break;
   }
 }
 
@@ -512,6 +554,19 @@ function drawHairFront(g: CanvasRenderingContext2D, style: string, p: Pal, y0: n
       top();
       px(g, C - 5, hy + 1, 2, 3, p.hair);
       px(g, C + 3, hy + 1, 2, 3, p.hair);
+      break;
+    case 'bob_tucked':
+      // убрано за уши: уши видны, пряди за ними, концы завиваются наружу
+      top();
+      px(g, C - 1, hy + 1, 2, 1, p.hair); // чёлка набок
+      px(g, C - 4, hy, 1, 1, p.hair);
+      px(g, C + 3, hy, 1, 1, p.hair);
+      px(g, C - 4, hy + 2, 1, 1, p.skinS); // ухо
+      px(g, C + 3, hy + 2, 1, 1, p.skinS);
+      px(g, C - 5, hy + 1, 1, 4, p.hair);
+      px(g, C + 4, hy + 1, 1, 4, p.hair);
+      px(g, C - 6, hy + 4, 1, 1, p.hairS); // подвитые концы
+      px(g, C + 5, hy + 4, 1, 1, p.hairS);
       break;
   }
 }
@@ -573,6 +628,13 @@ function drawHairBack(g: CanvasRenderingContext2D, style: string, p: Pal, y0: nu
       px(g, C - 5, hy + 2, 2, 4, p.hair);
       px(g, C + 3, hy + 2, 2, 4, p.hair);
       break;
+    case 'bob_tucked':
+      crown();
+      px(g, C - 4, hy + 1, 8, 3, p.hair);
+      for (let x = C - 4; x < C + 4; x += 2) px(g, x, hy + 4, 1, 1, p.hairS); // волной
+      px(g, C - 5, hy + 3, 1, 1, p.hairS);
+      px(g, C + 4, hy + 3, 1, 1, p.hairS);
+      break;
     default:
       crown();
   }
@@ -614,6 +676,21 @@ function drawLie(g: CanvasRenderingContext2D, app: Appearance, p: Pal, H: number
   // волосы на подушке
   if (app.hair.style !== 'bald') {
     px(g, x1 - 1, y, 1, 5, p.hair);
-    if (['long', 'bob', 'curly', 'braid', 'ponytail'].includes(app.hair.style)) px(g, x1, y + 1, 1, 4, p.hair);
+    if (['long', 'bob', 'bob_tucked', 'curly', 'braid', 'ponytail'].includes(app.hair.style)) px(g, x1, y + 1, 1, 4, p.hair);
+  }
+}
+
+/** Узор на свитере: «причудливый» орнамент вязкой — ромбики и точки второго цвета */
+function knit(g: CanvasRenderingContext2D, app: Appearance, p: Pal, x0: number, y0: number, w: number, h: number) {
+  if (app.outfit.pattern !== 'knit' || w < 2 || h < 2) return;
+  const c2 = app.outfit.patternColor ?? shade(p.top, -0.35);
+  const c3 = shade(c2, 0.35);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const row = y % 4;
+      if (row === 1 && x % 2 === 0) px(g, x0 + x, y0 + y, 1, 1, c2);
+      else if (row === 2 && (x + 1) % 4 === 0) px(g, x0 + x, y0 + y, 1, 1, c3);
+      else if (row === 3 && x % 2 === 1) px(g, x0 + x, y0 + y, 1, 1, c2);
+    }
   }
 }

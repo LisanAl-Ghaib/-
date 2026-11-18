@@ -1,11 +1,12 @@
 import { addMoodlet, gain } from '../../needs';
 import { isCommuter, worksFromHome } from '../../schedule';
-import { gv, homeSlot, roomOfType, roomPoint, sleepTime } from '../helpers';
+import { gv, homeSlot, minutesToLeave, roomOfType, roomPoint, sleepTime } from '../helpers';
 import type { ActionDef, AgentCtx } from '../types';
 
 function workLabel(ctx: AgentCtx): string {
   const k = ctx.def.occupation.kind;
-  if (k === 'student' || k === 'school') return gv(ctx.def, 'поехал на учёбу', 'поехала на учёбу');
+  if (k === 'student') return gv(ctx.def, 'поехал на пары', 'поехала на пары');
+  if (k === 'school') return gv(ctx.def, 'поехал на учёбу', 'поехала на учёбу');
   if (k === 'shift') return gv(ctx.def, 'поехал на смену', 'поехала на смену');
   return gv(ctx.def, 'поехал на работу', 'поехала на работу');
 }
@@ -26,7 +27,7 @@ export const goToWork: ActionDef = {
       score: 40,
       target: { level: 0, x: ctx.sim.defs.layout.yard.offscreenX, away: true },
       duration: Math.max(600, p.workEndAt + commute - ctx.now),
-      label: walk ? workLabel(ctx).replace('поехал', 'пошёл').replace('поехала', 'пошла') : workLabel(ctx),
+      label: walk ? workLabel(ctx).replace('поехала', 'пошла').replace('поехал', 'пошёл') : workLabel(ctx),
       via: walk ? 'walk' : 'bus',
       interruptible: false,
       data: { returnAt: p.workEndAt + commute, out: true },
@@ -34,7 +35,7 @@ export const goToWork: ActionDef = {
   },
   onArrive(ctx, a) {
     const k = ctx.def.occupation.kind;
-    a.label = k === 'student' || k === 'school' ? 'на учёбе' : k === 'shift' ? 'на смене' : 'на работе';
+    a.label = k === 'student' ? 'на парах' : k === 'school' ? 'на учёбе' : k === 'shift' ? 'на смене' : 'на работе';
     a.endsAt = Number(a.data.returnAt);
     ctx.sim.emit({ type: 'left-for-work', t: ctx.now, residentId: ctx.r.id });
     return true;
@@ -110,4 +111,36 @@ export const workFromHome: ActionDef = {
     if (p && !ctx.r.today.lunch && ctx.now >= p.lunchAt - 15 * 60 && ctx.now < p.lunchAt + 90 * 60 && ctx.r.needs.food < 70) return 2;
     return 11;
   },
+};
+
+/** Подработка онлайн из дома (студент, который ещё и работает в компании) */
+export const sideWork: ActionDef = {
+  id: 'side_work',
+  icon: 'work',
+  plan(ctx) {
+    const { r, def } = ctx;
+    const sj = def.occupation.sideJob;
+    if (!sj || sleepTime(ctx) || minutesToLeave(ctx) < 40) return null;
+    if (!sj.days.includes(ctx.cal.weekday)) return null;
+    const h = ctx.cal.hourOfDay;
+    if (h < 9 || h >= 23) return null;
+    const done = r.today.side ?? 0;
+    const need = sj.hours * 60;
+    if (done >= need) return null;
+    const spot = homeSlot(ctx, 'work', ['study', 'living', 'bedroom', 'studio']);
+    if (!spot) return null;
+    const late = h >= 17 ? 3 : 0;
+    return {
+      score: 6.5 + late + Math.min(4, (need - done) / 60),
+      target: spot.target,
+      duration: ctx.sim.rng.int(45, 100) * 60,
+      label: 'работает онлайн',
+    };
+  },
+  perform(ctx, _a, dt) {
+    ctx.r.today.side = (ctx.r.today.side ?? 0) + dt / 60;
+    gain(ctx.r, 'energy', -0.8, dt);
+    gain(ctx.r, 'mood', -0.3, dt);
+  },
+  continueScore: () => 8,
 };

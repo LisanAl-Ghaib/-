@@ -12,8 +12,15 @@ export function bump(r: ResidentState, need: keyof Needs, delta: number): void {
 }
 
 /** Временные причины настроения («поссорился с соседом», «вкусный ужин»…) */
+/** Стоики: неприятности задевают их вдвое слабее (заполняет Simulation по тегам) */
+export const STOICS = new Set<string>();
+
 export function addMoodlet(ctx: AgentCtx | { r: ResidentState; now: number }, key: string, label: string, value: number, hours: number, instant = 0): void {
   const { r, now } = ctx;
+  if (STOICS.has(r.id)) {
+    if (value < 0) value = Math.round(value / 2);
+    if (instant < 0) instant = Math.round(instant / 2);
+  }
   r.moodlets = r.moodlets.filter((m) => m.key !== key);
   r.moodlets.push({ key, label, value, until: now + hours * 3600 });
   if (instant) bump(r, 'mood', instant);
@@ -37,7 +44,9 @@ export function updateNeeds(ctx: AgentCtx, dt: number): void {
   const sick = r.sick && r.sick.until > now;
 
   // бодрость
-  if (!sleeping) gain(r, 'energy', -(4.6 + (age > 65 ? 0.6 : 0) + (sick ? 2 : 0)), dt);
+  // ночь за игрой «на азарте» — усталость не берёт до самого утра
+  const hooked = r.plan?.allNighter && a?.phase === 'perform' && a.id === 'gaming';
+  if (!sleeping && !hooked) gain(r, 'energy', -(4.6 + (age > 65 ? 0.6 : 0) + (sick ? 2 : 0)), dt);
   // сытость
   gain(r, 'food', sleeping ? -1.8 : -4.8, dt);
   // общение

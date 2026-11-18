@@ -156,6 +156,9 @@ export function buildDefs(raw: RawData): BuildResult {
   // ── квартира vs жильцы
   for (const a of apartments) {
     const people = residents.filter((r) => r.apartment === a.id);
+    for (const room of a.rooms)
+      for (const fp of room.furniture)
+        if (fp.owner && !people.some((p) => p.id === fp.owner)) warnings.push(`${a.id}: хозяин вещи ${fp.item} «${fp.owner}» тут не живёт`);
     const slots = a.rooms.flatMap((room) =>
       room.furniture.flatMap((fp) => catalog.get(fp.item)?.slots ?? []),
     );

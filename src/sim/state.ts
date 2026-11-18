@@ -7,9 +7,9 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 /** версии сохранений, которые можно дополнить до текущей (недостающие поля заполнит Simulation) */
-export const MIGRATABLE_VERSIONS = [7];
+export const MIGRATABLE_VERSIONS = [7, 8];
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -58,6 +58,8 @@ export interface DailyPlan {
   breakfastAt: number;
   lunchAt: number;
   dinnerAt: number;
+  /** эту ночь играет до утра (до 4) */
+  allNighter?: boolean;
 }
 
 export interface ResidentState {
@@ -78,7 +80,7 @@ export interface ResidentState {
   moodlets: Moodlet[];
   plan: DailyPlan | null;
   /** что уже было сегодня (по логическим суткам) */
-  today: { day: number; breakfast: boolean; lunch: boolean; dinner: boolean; worked: number; washed: boolean };
+  today: { day: number; breakfast: boolean; lunch: boolean; dinner: boolean; worked: number; washed: boolean; side?: number };
   /** когда последний раз выполнялось действие (id → время) — для разнообразия */
   recent: Record<string, number>;
   /** значок над головой */
@@ -94,7 +96,7 @@ export interface ResidentState {
   /** намерение навестить кого-то (подарок, извинение…) */
   intents: { target: string; kind: string; until: number }[];
   /** что несёт в руках — видно на улице и в подъезде */
-  carrying: 'bags' | 'trash' | null;
+  carrying: 'bags' | 'trash' | 'gift' | 'flowers' | null;
   /** жест: кивнула, помахала */
   gesture?: Gesture | null;
 }

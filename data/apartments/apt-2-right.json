@@ -1,0 +1,41 @@
+{
+  "id": "apt-2-right",
+  "floor": 2,
+  "side": "right",
+  "style": "student",
+  "description": "Студенческая квартира Ивана и Снежаны: два стола — у Ивана игровой компьютер с двумя мониторами, у Снежаны ноутбук с монитором; электропианино, электрогитара Снежаны с комбиком, совместная фотография над кроватью, шахматная доска на кухонном столе, турник в проёме, кофемашина.",
+  "palette": { "wall": "#e4ddd0", "floor": "#a8865e", "wood": "#c8a878", "textile": "#3a5a7a", "accent": "#c8402e", "metal": "#2a2a30" },
+  "wallpaper": "plain",
+  "flooring": "boards",
+  "rooms": [
+    { "type": "hall", "name": "прихожая", "width": 2, "window": false, "furniture": [
+      { "item": "coat_rack", "x": 2 },
+      { "item": "shoe_rack", "x": 11 },
+      { "item": "mirror", "x": 23, "elevation": 14 },
+      { "item": "pullup_bar", "x": 17 }
+    ] },
+    { "type": "bathroom", "name": "санузел", "width": 2, "window": false, "wallpaper": "tiles", "wall": "#b8d0d8", "furniture": [
+      { "item": "washbasin", "x": 1 },
+      { "item": "toilet", "x": 12 },
+      { "item": "shower", "x": 20 }
+    ] },
+    { "type": "kitchen", "name": "кухня", "width": 4, "wallpaper": "tiles", "furniture": [
+      { "item": "fridge", "x": 1 },
+      { "item": "stove", "x": 14 },
+      { "item": "kitchen_counter", "x": 28 },
+      { "item": "coffee_machine", "x": 38, "elevation": 13 },
+      { "item": "spice_shelf", "x": 2, "elevation": 34 },
+      { "item": "kitchen_table", "x": 44 },
+      { "item": "chessboard", "x": 50 }
+    ] },
+    { "type": "living", "name": "комната", "width": 8, "furniture": [
+      { "item": "bed_double", "x": 1 },
+      { "item": "couple_photo", "x": 10 },
+      { "item": "gaming_desk", "x": 34, "owner": "ivan-muravyev" },
+      { "item": "laptop_desk", "x": 63, "owner": "snezhana-galimova" },
+      { "item": "digital_piano", "x": 88 },
+      { "item": "wall_shelf", "x": 91, "elevation": 34 },
+      { "item": "eguitar_amp", "x": 113, "owner": "snezhana-galimova" }
+    ] }
+  ]
+}

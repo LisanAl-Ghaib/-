@@ -45,6 +45,8 @@ export const visit: ActionDef = {
     let best: { host: string; score: number; intent: string } | null = null;
     for (const other of sim.defs.residents) {
       if (other.id === r.id || other.apartment === def.apartment) continue;
+      // «дома стараются быть только вдвоём» — в гости к ним не ходят
+      if (other.traits.tags.some((t) => /только вдвоём/i.test(t))) continue;
       let intent = r.intents.find((i) => i.target === other.id);
       // уже помирились — извиняться не нужно
       if (intent?.kind === 'apologize' && !rel(sim, r.id, other.id).conflict) {

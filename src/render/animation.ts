@@ -16,7 +16,7 @@ import { FRAME } from './sprites/character';
  */
 export type PropKind =
   | 'phone' | 'cup' | 'book' | 'remote' | 'fork' | 'pen' | 'knitting' | 'guitar'
-  | 'spoon' | 'rag' | 'can' | 'sponge' | 'paper' | 'hoop';
+  | 'spoon' | 'rag' | 'can' | 'sponge' | 'paper' | 'hoop' | 'laptop' | 'headset';
 
 export type PropAt = 'hands' | 'ear' | 'mouth' | 'fwd' | 'up' | 'low';
 
@@ -43,6 +43,10 @@ export interface AnimEnv {
   tableBack?: boolean;
   /** окно/плита/мойка перед ним у стены — стоит спиной */
   wallWork?: boolean;
+  /** на чём играет: за пианино сидят спиной, электрогитару держат в руках */
+  instrument?: 'piano' | 'guitar';
+  /** подтягивается на турнике */
+  pullup?: boolean;
 }
 
 type Orient = 'front' | 'side' | 'back';
@@ -158,6 +162,33 @@ const SIT: Record<string, Variant[]> = {
     { g: 'rest', o: 'front' },
   ],
   idle: SIT_IDLE,
+  side_work: [
+    { g: 'hands', alt: { g: 'rest', ms: 260 } },
+    { g: 'hands', alt: { g: 'rest', ms: 400 } },
+    { g: 'handUp', prop: CUP },
+    { g: 'slouch' },
+    { g: 'rest', o: 'front', prop: { kind: 'phone', at: 'hands' } },
+  ],
+  chess: [
+    { g: 'hands', alt: { g: 'rest', ms: 1900 } },
+    { g: 'handUp' },
+    { g: 'slouch' },
+    { g: 'rest', o: 'front' },
+    { g: 'cross', o: 'front' },
+  ],
+  'together:chess': [
+    { g: 'hands', alt: { g: 'rest', ms: 2300 } },
+    { g: 'handUp' },
+    { g: 'rest' },
+    { g: 'slouch' },
+  ],
+  'together:film': [
+    { g: 'hands', o: 'front', prop: { kind: 'laptop', at: 'hands' } },
+    { g: 'cross', o: 'front' },
+    { g: 'slouch', o: 'front' },
+    { g: 'handUp', o: 'front', prop: CUP },
+    { g: 'rest', o: 'side' },
+  ],
   host: SIT_IDLE,
   guest: SIT_IDLE,
   family_visit: SIT_IDLE,
@@ -182,19 +213,31 @@ const STAND: Record<string, Variant[]> = {
   window: [{ g: 'stand', o: 'back' }, { g: 'stand', o: 'back' }, { g: 'stand', o: 'front' }],
   look: [{ g: 'stand', o: 'back' }],
   idle: [{ g: 'stand', o: 'front' }, { g: 'stand', o: 'side' }, { g: 'stand', o: 'back' }],
+  music: [
+    { g: 'work', o: 'side', prop: { kind: 'guitar', at: 'hands' }, alt: { g: 'workUp', ms: 300 } },
+    { g: 'work', o: 'front', prop: { kind: 'guitar', at: 'hands' }, alt: { g: 'stand', ms: 450 } },
+  ],
+  'together:help_cook': [
+    { g: 'work', o: 'back', alt: { g: 'workUp', ms: 420 } },
+    { g: 'stand', o: 'side', prop: CUP },
+    { g: 'talk', o: 'front' },
+  ],
+  'together:gift': [{ g: 'talk', o: 'side' }, { g: 'wave', o: 'side' }],
 };
 
 /** Поза жильца прямо сейчас */
 export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, nowMs: number, env: AnimEnv = {}): Pose {
   const h = hashString(r.id);
   const a = r.action;
-  const id = a?.phase === 'perform' ? a.id : '';
+  const id = a?.phase === 'perform' ? (a.id === 'together' ? `together:${a.data.kind}` : a.id) : '';
   const seg = Math.floor((tGame / 60 + (h % 13)) / SEG_MIN);
   const pick = <T,>(list: T[]) => list[mixHash(seg, h) % list.length];
   const talking = a?.data.talking === true || r.interaction !== null;
   // мелкие движения: окно ~2.6 с, активная часть — первые ~1.1 с
-  const win = Math.floor((nowMs + (h % 2600)) / 2600);
-  const inWin = (nowMs + (h % 2600)) % 2600;
+  // непоседы (активные) ёрзают и оглядываются чаще
+  const P = def.traits.activity === 'active' ? 1700 : def.traits.activity === 'lazy' ? 3400 : 2600;
+  const win = Math.floor((nowMs + (h % P)) / P);
+  const inWin = (nowMs + (h % P)) % P;
   const micro = inWin < 1100 ? mixHash(win, h ^ 0x55) % 12 : -1;
   const blink = (nowMs + h * 53) % 3700 < 140;
   const faceTo: 1 | -1 | undefined = env.faceToX !== undefined ? (env.faceToX >= r.x ? 1 : -1) : undefined;
@@ -225,7 +268,14 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
     const dx = (mixHash(seg, h ^ 0x33) % 3) - 1; // поёрзал
     if (id === 'sleep' || id === 'nap') return { frame: SIT_FRAMES[base].slouch!, bob: breathe };
     if (id === 'fitness') return { frame: FRAME.sit, bob: Math.floor(nowMs / 250) % 2 };
-    const list = talking ? SIT_IDLE.slice(0, 4) : SIT[id] ?? SIT_IDLE;
+    if (id === 'music' && env.instrument === 'piano') {
+      // за пианино — спиной, руки бегают по клавишам, иногда замирает
+      const pause = micro === 3 || micro === 4;
+      return { frame: pause ? FRAME.backSit : Math.floor(nowMs / 230 + h) % 3 ? FRAME.backSitWork : FRAME.backSit, bob: breathe, dx: Math.floor(nowMs / 1700) % 2 };
+    }
+    let list = talking ? SIT_IDLE.slice(0, 4) : SIT[id] ?? SIT_IDLE;
+    // кино вдвоём: ноутбук у одного, второй — рядом, откинувшись или нога на ногу
+    if (id === 'together:film' && !a?.data.lead) list = list.filter((x) => x.prop?.kind !== 'laptop');
     const v = pick(list);
     let o: Orient = v.o && !env.tableBack ? v.o : base;
     let g: Gesture = v.g;
@@ -253,6 +303,11 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
     const g: Gesture = Math.floor(nowMs / 700 + h) % 3 === 0 ? 'talk' : 'stand';
     const o: Orient = micro === 0 ? 'side' : 'front';
     return { frame: STAND_FRAMES[o][g]!, facing: faceTo, blink };
+  }
+  if (id === 'fitness' && env.pullup) {
+    // подтягивания
+    const ph = [0, 1, 2, 3, 2, 1][Math.floor(nowMs / 160) % 6];
+    return { frame: FRAME.frontWave, bob: ph };
   }
   if (id === 'fitness') {
     const k = Math.floor(nowMs / 300) % 2;
