@@ -4,6 +4,7 @@ import { buildDefs } from './data/defs';
 import { loadRawData } from './data/loadBrowser';
 import { clearWorld, loadWorld, saveWorld } from './persist/save';
 import { Renderer } from './render/renderer';
+import { computeEnvironment } from './render/season';
 import { Simulation } from './sim/simulation';
 import { createWorldState, type WorldState } from './sim/state';
 import { $, el, escapeHtml } from './ui/dom';
@@ -213,6 +214,7 @@ async function boot() {
       }
     }
     renderer.camera.update(now);
+    renderer.env = computeEnvironment(sim);
     renderer.render(now, alpha, prev, {
       hoverResident,
       selectedResident: host.selected,

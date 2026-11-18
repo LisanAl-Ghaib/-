@@ -1,3 +1,4 @@
+import { chronicle } from '../../chronicle/chronicle';
 import { gain } from '../../needs';
 import { daytime, fitDuration, gv, habit, minutesToLeave, novelty, sleepTime } from '../helpers';
 import type { ActionDef, AgentCtx } from '../types';
@@ -22,11 +23,12 @@ export const walkYard: ActionDef = {
     const act = def.traits.activity === 'active' ? 1 : def.traits.activity === 'lazy' ? -0.8 : 0;
     const score = (1.4 + habit(ctx, 'walking') * 3.5 + act + SOCIAL_BONUS[def.traits.sociability] + (100 - r.needs.mood) / 30 + (100 - r.needs.social) / 40) * w * novelty(ctx, 'walk_yard', 5 * 3600);
     const x = Math.round(sim.rng.range(Y.x0 + 30, Y.busStop - 34));
+    const wk = sim.weather.kind;
     return {
       score,
       target: { level: 0, x },
-      duration: fitDuration(ctx, sim.rng.int(15, 45) * 60),
-      label: gv(def, 'гуляет во дворе', 'гуляет во дворе'),
+      duration: fitDuration(ctx, sim.rng.int(15, 45) * (wk === 'rain' ? 0.5 : 1) * 60),
+      label: wk === 'rain' ? 'гуляет под зонтом' : wk === 'snow' || sim.weather.snowCover > 0.5 ? 'гуляет по снегу' : wk === 'fog' ? 'бродит в тумане' : 'гуляет во дворе',
       data: { out: true, stroll: true },
     };
   },
@@ -165,3 +167,34 @@ function minutesToBedSafe(ctx: AgentCtx): number {
   const p = ctx.r.plan;
   return p ? (p.bedAt - ctx.now) / 60 : 999;
 }
+
+/** Слепить снеговика (если снега много, а настроение хорошее) */
+export const snowman: ActionDef = {
+  id: 'snowman',
+  icon: 'snow',
+  plan(ctx) {
+    const { sim, def, r } = ctx;
+    const w = sim.weather;
+    if (sim.state.yard.snowman || w.snowCover < 0.5 || w.temp > 1 || w.temp < -12) return null;
+    if (sleepTime(ctx) || !daytime(ctx, 10, 17) || minutesToLeave(ctx) < 90) return null;
+    const fun = (def.traits.outlook === 'cheerful' ? 1.5 : 0) + (def.traits.activity === 'active' ? 1.2 : 0) + (sim.age(def) < 40 ? 1 : 0);
+    if (fun < 1) return null;
+    const Y = sim.defs.layout.yard;
+    return {
+      score: (1 + fun) * (0.6 + (100 - r.needs.mood) / 120) * novelty(ctx, 'snowman', 3 * 86400),
+      target: { level: 0, x: Math.round(sim.rng.range(Y.trees[0] + 14, Y.bench.x - 8)) },
+      duration: sim.rng.int(25, 45) * 60,
+      label: gv(def, 'лепит снеговика', 'лепит снеговика'),
+      data: { out: true },
+    };
+  },
+  perform(ctx, _a, dt) {
+    gain(ctx.r, 'mood', 12, dt);
+    gain(ctx.r, 'energy', -3, dt);
+  },
+  onEnd(ctx, _a, interrupted) {
+    if (interrupted || ctx.sim.state.yard.snowman) return;
+    ctx.sim.state.yard.snowman = { x: Math.round(ctx.r.x + ctx.r.facing * 8), builtAt: ctx.now, by: ctx.r.id };
+    chronicle(ctx.sim, 'snowman', [ctx.r.id], 2, { hat: ctx.sim.rng.chance(0.5) });
+  },
+};

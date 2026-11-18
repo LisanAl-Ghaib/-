@@ -1,5 +1,6 @@
 import { SPEEDS } from '../config';
 import { formatDate, hhmm } from '../core/time';
+import { SEASON_NAME, seasonOf, WEATHER_NAME, windMs } from '../sim/env/weather';
 import type { WorldDefs } from '../data/defs';
 import type { Simulation } from '../sim/simulation';
 import { $, el } from './dom';
@@ -113,6 +114,13 @@ export class Ui {
     const cal = sim.calendar();
     $('#clock-time').textContent = hhmm(cal.minuteOfDay);
     $('#clock-date').textContent = formatDate(cal);
+    const w = sim.weather;
+    const strong = (w.kind === 'rain' || w.kind === 'snow' || w.kind === 'fog') && w.intensity > 0.7;
+    const kindName = w.kind === 'rain' && strong ? 'ливень' : w.kind === 'snow' && strong ? 'снегопад' : w.kind === 'fog' && strong ? 'густой туман' : WEATHER_NAME[w.kind];
+    const t = Math.round(w.temp);
+    const env = $('#env');
+    const text = `${SEASON_NAME[seasonOf(cal.month)]} · ${kindName} · ${t > 0 ? '+' : ''}${t}° · ветер ${windMs(w)} м/с`;
+    if (env.textContent !== text) env.textContent = text;
     for (const [id, { row, act }] of this.resRows) {
       const r = sim.state.residents[id];
       row.classList.toggle('selected', id === this.host.selected);

@@ -13,6 +13,7 @@ import { advanceMovement } from './movement';
 import { updateNeeds } from './needs';
 import { ensurePlan } from './schedule';
 import { daylight } from './env/sun';
+import { createWeather, seasonOf, updateWeather, weatherAppeal, type WeatherState } from './env/weather';
 import { createResidentState, type ApartmentState, type ChronicleEntry, type ResidentState, type WorldState } from './state';
 import { endAction, startAction } from './ai/brain';
 import type { ActionPlan } from './ai/types';
@@ -53,6 +54,8 @@ export class Simulation {
     this.rng = new Rng(state.rng);
     for (const apt of defs.layout.apartments) for (const s of apt.slots) this.slotIndex.set(s.key, s);
     const fresh = state.time === 0 && state.chronicle.length === 0;
+    state.weather ??= createWeather(this.calendar(), this.rng, state.time);
+    state.yard ??= { snowman: null };
     this.syncResidents();
     initRelations(this);
     if (fresh) chronicle(this, 'world.start', [], 3);
@@ -156,10 +159,61 @@ export class Simulation {
     return advanceMovement(this, r, dt);
   }
 
-  /** Насколько тянет на улицу: 0..1 (погода и свет; погода появится на этапе 4) */
-  outdoorAppeal(_def: ResidentDef): number {
+  get weather(): WeatherState {
+    return this.state.weather!;
+  }
+
+  /** Насколько тянет на улицу: 0..1 — свет и погода (в дождь гуляют мало) */
+  outdoorAppeal(def: ResidentDef): number {
     const day = daylight(this.calendar());
-    return 0.35 + 0.65 * day;
+    return (0.35 + 0.65 * day) * weatherAppeal(this.weather, def.traits.outlook === 'cheerful' || def.traits.activity === 'active');
+  }
+
+  /** Погода: обновление, заметные события, влияние на настроение */
+  private stepWeather(newHour: boolean): void {
+    const w = this.weather;
+    const cal = this.calendar();
+    const changed = updateWeather(w, cal, this.rng, this.time, DT);
+    const flag = (key: string) => {
+      const k = `${key}:${cal.dayIndex}`;
+      if (this.state.flags[k]) return false;
+      this.state.flags[k] = this.time;
+      return true;
+    };
+    if (changed) {
+      const season = seasonOf(cal.month);
+      if (w.kind === 'snow' && w.firstSnowYear !== (cal.month >= 7 ? cal.year : cal.year - 1) && season !== 'summer') {
+        w.firstSnowYear = cal.month >= 7 ? cal.year : cal.year - 1;
+        chronicle(this, 'first-snow', [], 3);
+      } else if (w.kind === 'rain' && w.intensity > 0.75 && flag('downpour')) chronicle(this, 'downpour', [], 2, { wind: w.wind > 0.5 });
+      else if (w.kind === 'fog' && w.intensity > 0.85 && flag('fog')) chronicle(this, 'fog', [], 1);
+    }
+    if (!newHour) return;
+    if (w.temp <= -15 && flag('frost')) chronicle(this, 'frost', [], 2, { temp: Math.round(w.temp) });
+    if (w.temp >= 28 && flag('heat')) chronicle(this, 'heat', [], 2, { temp: Math.round(w.temp) });
+    // снеговик тает
+    const sm = this.state.yard.snowman;
+    if (sm && w.temp > 2 && w.snowCover < 0.25) {
+      this.state.yard.snowman = null;
+      chronicle(this, 'snowman.melt', [sm.by], 1);
+    }
+    // погода и настроение
+    const L = this.defs.layout;
+    for (const d of this.defs.residents) {
+      const r = this.state.residents[d.id];
+      if (!r || r.action?.id === 'sleep') continue;
+      const ctx = { r, now: this.time };
+      const gloomySky = w.kind === 'rain' || w.kind === 'fog' || (w.kind === 'cloudy' && seasonOf(cal.month) !== 'summer');
+      if (d.traits.outlook === 'gloomy' && gloomySky) addMoodlet(ctx, 'weather', 'Тоскливая погода', -5, 2);
+      else if (w.kind === 'clear' && cal.hourOfDay > 8 && cal.hourOfDay < 19 && d.traits.outlook !== 'gloomy') addMoodlet(ctx, 'weather', 'Солнечный день', 3, 2);
+      else if (w.kind === 'snow' && d.traits.outlook === 'cheerful') addMoodlet(ctx, 'weather', 'Снег идёт', 3, 2);
+      const outside = !r.away && r.level === 0 && (r.x > L.buildingX1 || r.x < L.buildingX0);
+      if (outside && w.kind === 'rain' && (w.wind > 0.45 || w.intensity > 0.8)) {
+        this.state.flags[`wet:${d.id}`] = this.time;
+        addMoodlet(ctx, 'wet', d.gender === 'f' ? 'Промокла под дождём' : 'Промок под дождём', -4, 3);
+      }
+      if (outside && w.temp < -12) addMoodlet(ctx, 'cold', d.gender === 'f' ? 'Замёрзла' : 'Замёрз', -3, 2);
+    }
   }
 
   // ── слоты мебели
@@ -222,6 +276,7 @@ export class Simulation {
     }
     updateElevator(s.elevator, this.defs.layout, DT);
     const newHour = cal.hour !== s.lastHour;
+    this.stepWeather(newHour);
     if (newHour) {
       s.lastHour = cal.hour;
       runIndependent('hourly', { sim: this, now: s.time });

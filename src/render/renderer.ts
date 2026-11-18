@@ -166,6 +166,8 @@ export class Renderer {
     drawGround(wg, defs, env.look);
     drawYardProps(wg, defs, env.look);
     drawTrees(wg, defs, this.trees, env.look, nowMs);
+    this.drawSnowman();
+    this.drawLeaves(nowMs);
 
     // дом
     wg.drawImage(this.layers.back, 0, 0);
@@ -260,6 +262,41 @@ export class Renderer {
       rect(g, L.buildingX1, y, this.W - L.buildingX1, 4, color);
     }
     g.globalAlpha = 1;
+  }
+
+  private drawSnowman() {
+    const sm = this.sim.state.yard.snowman;
+    if (!sm) return;
+    const g = this.wg;
+    const y = this.defs.layout.groundY;
+    const melt = Math.max(0, Math.min(1, (this.sim.weather.temp - 0) / 4)) * (1 - this.sim.weather.snowCover);
+    const k = 1 - melt * 0.4;
+    disc(g, sm.x, y - Math.round(5 * k), Math.round(5 * k), '#f4f8fb');
+    disc(g, sm.x, y - Math.round(13 * k), Math.round(4 * k), '#eef4f8');
+    disc(g, sm.x, y - Math.round(19 * k), Math.round(3 * k), '#f4f8fb');
+    rect(g, sm.x + 2, y - Math.round(19 * k), 3, 1, '#e8742a');
+    rect(g, sm.x - 1, y - Math.round(20 * k), 1, 1, '#222');
+    rect(g, sm.x + 1, y - Math.round(20 * k), 1, 1, '#222');
+    if (sm.builtAt % 2 === 0) rect(g, sm.x - 3, y - Math.round(25 * k), 6, 3, '#6a7a8a');
+    rect(g, sm.x - 7, y - Math.round(14 * k), 4, 1, '#5b4030');
+    rect(g, sm.x + 4, y - Math.round(14 * k), 4, 1, '#5b4030');
+  }
+
+  private leaves: { x: number; y: number; vx: number; c: string; ph: number }[] = [];
+  private drawLeaves(nowMs: number) {
+    const look = this.env.look;
+    const L = this.defs.layout;
+    const falling = look.foliage.length > 0 && look.leafAmount < 0.99 && look.foliage === look.foliage && this.sim.calendar().month >= 9 && this.sim.calendar().month <= 11;
+    if (falling && this.leaves.length < 14 && this.fxRng.chance(0.03 + this.env.wind * 0.08)) {
+      const tx = this.fxRng.pick(L.yard.trees);
+      this.leaves.push({ x: tx + this.fxRng.range(-12, 12), y: L.groundY - this.fxRng.range(30, 50), vx: this.env.wind * 0.5 + this.fxRng.range(-0.1, 0.2), c: this.fxRng.pick(look.foliage), ph: this.fxRng.range(0, 6) });
+    }
+    for (const lf of this.leaves) {
+      lf.y += 0.18;
+      lf.x += lf.vx + Math.sin(nowMs / 400 + lf.ph) * 0.25;
+      rect(this.wg, lf.x, lf.y, 1, 1, lf.c);
+    }
+    this.leaves = this.leaves.filter((lf) => lf.y < L.groundY && lf.x < this.W + 2);
   }
 
   private drawDoors() {
@@ -462,7 +499,8 @@ export class Renderer {
   }
 
   private roomLit(apt: ApartmentModel, roomIndex: number, day: number): boolean {
-    if (day > 0.6 || apt.vacant) return false;
+    // в пасмурную погоду свет включают раньше
+    if (day * (1 - this.env.overcast * 0.4) > 0.6 || apt.vacant) return false;
     const room = apt.rooms[roomIndex];
     for (const r of Object.values(this.sim.state.residents)) {
       if (r.away || r.level !== apt.level || r.x < room.x0 || r.x >= room.x1) continue;
@@ -491,7 +529,7 @@ export class Renderer {
       const fy = L.floorY(apt.level);
       for (const room of apt.rooms) {
         const on = this.roomLit(apt, room.index, day);
-        const a = on ? 0.04 : apt.vacant ? 0.18 + (1 - day) * 0.7 : 0.1 + overcastDim + (1 - day) * 0.74;
+        const a = on ? 0.04 : apt.vacant ? 0.18 + overcastDim + (1 - day) * 0.7 : 0.1 + overcastDim * 1.5 + (1 - day) * 0.74;
         region(room.x0, lt, room.x1 - room.x0, fy - lt + 2, Math.min(0.88, a));
         if (on) lit.push([room.x0, lt, room.x1 - room.x0, fy - lt]);
       }
@@ -526,7 +564,7 @@ export class Renderer {
     this.wg.drawImage(this.light, 0, 0);
     // тёплый свет в окнах
     if (lit.length) {
-      const k = clamp01((0.6 - day) * 2);
+      const k = clamp01((0.6 - day * (1 - this.env.overcast * 0.4)) * 2);
       this.wg.globalAlpha = 0.09 * k;
       for (const [x, y, w, h] of lit) rect(this.wg, x, y, w, h, '#ffc070');
       this.wg.globalAlpha = 1;

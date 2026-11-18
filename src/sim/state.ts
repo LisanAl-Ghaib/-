@@ -4,9 +4,10 @@ import type { WorldDefs } from '../data/defs';
 import type { Pose, RelationKind } from '../data/schemas';
 import { createElevator, type ElevatorState } from '../world/elevator';
 import type { Step, Target } from '../world/navigation';
+import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -167,6 +168,9 @@ export interface WorldState {
   pairCooldown: Record<string, number>;
   /** флаги «уже было» (дни рождения и т. п.) */
   flags: Record<string, number>;
+  weather: WeatherState | null;
+  /** предметы во дворе, которые появляются сами (снеговик) */
+  yard: { snowman: { x: number; builtAt: number; by: string } | null };
 }
 
 export function createResidentState(defs: WorldDefs, id: string, rngNext: () => number): ResidentState {
@@ -226,5 +230,7 @@ export function createWorldState(defs: WorldDefs, seedOverride?: number | string
     nextId: 1,
     pairCooldown: {},
     flags: {},
+    weather: null,
+    yard: { snowman: null },
   };
 }
