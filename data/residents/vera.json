@@ -1,0 +1,33 @@
+{
+  "id": "vera",
+  "name": {
+    "first": "Вера", "last": "Кузнецова", "patronymic": "Павловна", "short": "Вера Павловна",
+    "cases": { "gen": "Веры Павловны", "dat": "Вере Павловне", "acc": "Веру Павловну", "ins": "Верой Павловной", "pre": "Вере Павловне" }
+  },
+  "gender": "f",
+  "birthday": "1954-09-17",
+  "apartment": "apt-2-right",
+  "occupation": { "kind": "retired", "title": "пенсионерка, бывшая учительница литературы", "workplace": "школа №14 (на пенсии)" },
+  "traits": {
+    "chronotype": "lark", "sociability": "balanced", "temper": "even", "outlook": "cheerful", "activity": "normal",
+    "tags": ["всё про всех знает", "любит цитировать Чехова", "строгая, но добрая"]
+  },
+  "habits": [
+    { "kind": "bench", "strength": 0.8, "note": "утром и вечером сидит на лавочке у подъезда" },
+    { "kind": "plants", "strength": 0.8, "note": "фиалки на подоконнике" },
+    { "kind": "reading", "strength": 0.7, "note": "перечитывает классику" },
+    { "kind": "tv", "strength": 0.5, "note": "вечерние новости и сериалы" }
+  ],
+  "backstory": "Живёт в доме с самого его заселения в 1979 году. Сорок лет преподавала литературу; половина района — её бывшие ученики. Муж умер восемь лет назад, сын живёт в Петербурге и звонит по воскресеньям.",
+  "appearance": {
+    "skin": "#efcdb5",
+    "hair": { "style": "bun", "color": "#c9c6c2" },
+    "height": "short", "build": "average",
+    "outfit": { "top": "#8c4a5a", "bottom": "#4a3f4f", "shoes": "#5a3a2a", "style": "dress", "coat": "#6d6152" },
+    "accessories": ["glasses"]
+  },
+  "relationships": [
+    { "with": "olga", "kind": "neighbor", "affinity": 50, "familiarity": 70, "note": "называет её «Олечка»" },
+    { "with": "mark", "kind": "neighbor", "affinity": 25, "familiarity": 30, "note": "считает, что ему пора жениться" }
+  ]
+}

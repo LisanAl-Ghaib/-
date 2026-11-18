@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Дом</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'><rect x='3' y='3' width='10' height='12' fill='%23bdb5a8'/><rect x='5' y='5' width='2' height='2' fill='%23ffd98a'/><rect x='9' y='5' width='2' height='2' fill='%232a3050'/><rect x='5' y='9' width='2' height='2' fill='%232a3050'/><rect x='9' y='9' width='2' height='2' fill='%23ffd98a'/><rect x='2' y='2' width='12' height='1' fill='%238e8a84'/></svg>" />
+  </head>
+  <body>
+    <div id="app">
+      <header id="topbar">
+        <div class="brand">ДОМ <span id="address"></span></div>
+        <div class="clock">
+          <span id="clock-time">--:--</span>
+          <span id="clock-date"></span>
+        </div>
+        <div id="env"></div>
+        <div id="speed" role="group" aria-label="Скорость времени"></div>
+        <div class="menu">
+          <button id="btn-overview" title="Обзор дома (Esc)">⌂ Дом</button>
+          <button id="btn-panel" title="Показать/скрыть панель">☰</button>
+          <button id="btn-new" title="Начать мир заново">Новый мир</button>
+        </div>
+      </header>
+      <main>
+        <div id="stage">
+          <canvas id="view"></canvas>
+          <div id="toast"></div>
+          <div id="help">Колёсико — масштаб · перетаскивание — панорама · клик по квартире — заглянуть внутрь · клик по жильцу — карточка · Пробел — пауза, 1–4 — скорость</div>
+        </div>
+        <aside id="panel">
+          <nav class="tabs">
+            <button data-tab="chronicle" class="active">Хроника</button>
+            <button data-tab="residents">Жильцы</button>
+            <button data-tab="details">Подробно</button>
+          </nav>
+          <section id="tab-chronicle" class="tab active"></section>
+          <section id="tab-residents" class="tab"></section>
+          <section id="tab-details" class="tab"></section>
+        </aside>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "id": "apt-3-left",
+  "floor": 3,
+  "side": "left",
+  "style": "cozy",
+  "description": "Тёплая квартира Ольги: много текстиля, запах выпечки, на кухне всегда что-то стоит на плите.",
+  "palette": { "wall": "#e7cfa8", "floor": "#9a6a44", "wood": "#a8743f", "textile": "#c75c5c", "accent": "#5f9e6e", "metal": "#b9c1c7" },
+  "wallpaper": "flowers",
+  "flooring": "parquet",
+  "rooms": [
+    { "type": "bedroom", "width": 3, "furniture": [
+      { "item": "bed_double", "x": 2 },
+      { "item": "nightstand", "x": 37 },
+      { "item": "picture", "x": 12 }
+    ] },
+    { "type": "living", "width": 4, "furniture": [
+      { "item": "rug", "x": 6 },
+      { "item": "sofa", "x": 3 },
+      { "item": "floor_lamp", "x": 37 },
+      { "item": "tv_stand", "x": 44 },
+      { "item": "picture", "x": 13 }
+    ] },
+    { "type": "kitchen", "width": 3, "wallpaper": "tiles", "furniture": [
+      { "item": "fridge", "x": 1 },
+      { "item": "stove", "x": 14 },
+      { "item": "kitchen_table", "x": 27 },
+      { "item": "wall_clock", "x": 36 }
+    ] },
+    { "type": "hall", "width": 2, "furniture": [
+      { "item": "shoe_rack", "x": 2 },
+      { "item": "mirror", "x": 4 },
+      { "item": "coat_rack", "x": 21 }
+    ] }
+  ]
+}
