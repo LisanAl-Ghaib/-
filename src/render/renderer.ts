@@ -9,7 +9,8 @@ import type { ApartmentModel } from '../world/layout';
 import { drawApartmentDoor, drawEntrance, renderBuilding, type BuildingLayers } from './building';
 import { Camera } from './camera';
 import { DEFAULT_LOOK, drawGround, drawTrees, drawYardProps, makeTrees, type OutdoorLook, type TreeShape } from './outdoor';
-import { disc, rect } from './pixel';
+import { busPhase } from '../world/transport';
+import { digits, disc, rect } from './pixel';
 import { drawSkyGradient, drawStars, drawSunMoon, makeCity, makeCloud, makeStars, skyColors, type Star } from './sky';
 import { CELL_H, CELL_W, FRAME, generateCharacterSheet } from './sprites/character';
 import { screenRect } from './sprites/furniture';
@@ -173,6 +174,7 @@ export class Renderer {
     this.drawElevator();
     this.drawActors(alpha, prev, opts, nowMs);
     wg.drawImage(this.layers.front, 0, 0);
+    this.drawBus(tGame);
 
     // освещение
     this.drawLighting(day);
@@ -274,6 +276,31 @@ export class Renderer {
     drawEntrance(this.wg, this.defs, open);
   }
 
+  private drawBus(t: number) {
+    const ph = busPhase(t);
+    if (ph === null) return;
+    const L = this.defs.layout;
+    const k = ph <= 0.5 ? ph * 2 : 1 - (ph - 0.5) * 2; // 0 — за краем, 1 — у остановки
+    const ease = 1 - Math.pow(1 - k, 2);
+    const x = Math.round(this.W + 4 + (L.yard.busStop - 22 - this.W - 4) * ease);
+    const y = L.groundY;
+    const g = this.wg;
+    rect(g, x, y - 22, 48, 19, '#e0b020');
+    rect(g, x, y - 22, 48, 2, '#f0c84a');
+    rect(g, x + 1, y - 8, 46, 2, '#b88a18');
+    for (let i = 0; i < 5; i++) rect(g, x + 4 + i * 8, y - 18, 6, 6, '#5a7890');
+    rect(g, x + 4, y - 18, 2, 6, '#a8c8dc');
+    rect(g, x + 43, y - 17, 3, 9, '#3a4a5a'); // дверь
+    rect(g, x + 1, y - 13, 1, 2, '#ffe6a0');
+    digits(g, '7', x + 20, y - 27, '#333');
+    rect(g, x + 18, y - 28, 9, 7, '#f4f1ea');
+    digits(g, '7', x + 21, y - 27, '#333');
+    rect(g, x + 7, y - 4, 6, 4, '#222');
+    rect(g, x + 35, y - 4, 6, 4, '#222');
+    rect(g, x + 9, y - 3, 2, 2, '#888');
+    rect(g, x + 37, y - 3, 2, 2, '#888');
+  }
+
   private drawElevator() {
     const L = this.defs.layout;
     const e = this.sim.state.elevator;
@@ -351,7 +378,7 @@ export class Renderer {
       }
       const ix = Math.round(x);
       const iy = Math.round(y);
-      const moving = r.path.length > 0 && (r.path[0].k === 'walk') && r.action?.phase === 'travel';
+      const moving = r.path.length > 0 && r.path[0].k === 'walk' && (p ? Math.abs(p.x - r.x) + Math.abs(p.y - r.y) > 0.01 : true);
       let frame: number = FRAME.stand;
       let top = iy - CELL_H;
       if (moving) frame = FRAME.walk0 + (Math.floor(r.walkDist / 3) % 4);
@@ -423,10 +450,11 @@ export class Renderer {
     }
     const sel = opts.selectedResident ? this.sim.state.residents[opts.selectedResident] : null;
     if (sel && !sel.away) {
-      const yTop = sel.pose === 'lie' ? sel.y - 12 : sel.pose === 'sit' ? sel.y - 26 : sel.y - 28;
+      const head = sel.pose === 'lie' ? sel.y - 8 : sel.pose === 'sit' ? sel.y - 24 : sel.y - 26;
+      const icon = sel.pose === 'lie' ? sel.y - 16 : sel.pose === 'sit' ? sel.y - 31 : sel.y - 34;
       const bob = Math.floor(nowMs / 400) % 2;
       const x = Math.round(sel.x);
-      const y = Math.round(yTop) - 12 - bob - (sel.bubble ? 9 : 0);
+      const y = Math.round(sel.bubble ? icon : head) - 5 - bob;
       rect(g, x - 2, y, 5, 1, '#ffe066');
       rect(g, x - 1, y + 1, 3, 1, '#ffe066');
       rect(g, x, y + 2, 1, 1, '#ffe066');

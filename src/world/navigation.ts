@@ -6,6 +6,8 @@ export type Step =
   | { k: 'walk'; x: number; y: number; level?: number }
   | { k: 'elevator'; from: number; to: number; phase?: 'wait' | 'ride' }
   | { k: 'leave' }
+  /** ждать автобус на остановке */
+  | { k: 'bus' }
   | { k: 'appear'; x: number; y: number; level: number }
   | { k: 'wait'; until: number };
 
@@ -28,6 +30,10 @@ export interface Target {
 export interface PathOptions {
   /** с какой разницы этажей ехать на лифте (Infinity — никогда) */
   elevatorFrom?: number;
+  /** как уходить/возвращаться «за кадр» */
+  via?: 'bus' | 'walk';
+  /** как вернулся последний раз (для точки появления) */
+  returnVia?: 'bus' | 'walk';
 }
 
 export function planPath(L: BuildingLayout, from: Position, to: Target, opts: PathOptions = {}): Step[] {
@@ -37,7 +43,8 @@ export function planPath(L: BuildingLayout, from: Position, to: Target, opts: Pa
 
   if (from.away) {
     if (to.away) return steps;
-    steps.push({ k: 'appear', x: L.yard.offscreenX, y: L.floorY(0), level: 0 });
+    const ax = opts.returnVia === 'bus' ? L.yard.busStop - 4 : L.yard.offscreenX;
+    steps.push({ k: 'appear', x: ax, y: L.floorY(0), level: 0 });
     level = 0;
   }
 
@@ -63,7 +70,10 @@ export function planPath(L: BuildingLayout, from: Position, to: Target, opts: Pa
   }
 
   if (to.away) {
-    steps.push({ k: 'walk', x: L.yard.offscreenX, y: L.floorY(0), level: 0 });
+    if (opts.via === 'bus') {
+      steps.push({ k: 'walk', x: L.yard.busStop - 6, y: L.floorY(0), level: 0 });
+      steps.push({ k: 'bus' });
+    } else steps.push({ k: 'walk', x: L.yard.offscreenX, y: L.floorY(0), level: 0 });
     steps.push({ k: 'leave' });
   } else {
     steps.push({ k: 'walk', x: to.x, y: L.floorY(destLevel), level: destLevel });

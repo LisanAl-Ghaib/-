@@ -1,0 +1,62 @@
+import { describe, expect, it } from 'vitest';
+import { DT } from '../src/config';
+import { calendar, DAY } from '../src/core/time';
+import { buildDefs } from '../src/data/defs';
+import { loadRawDataNode } from '../src/data/loadNode';
+import { Simulation } from '../src/sim/simulation';
+import { createWorldState } from '../src/sim/state';
+
+function makeSim(seed = 11) {
+  const r = buildDefs(loadRawDataNode());
+  if (!r.defs) throw new Error(r.errors.join('\n'));
+  return new Simulation(r.defs, createWorldState(r.defs, seed));
+}
+
+/** собрать, кто что делал по часам */
+function trace(sim: Simulation, days: number) {
+  const log: { id: string; hour: number; weekday: number; action: string; away: boolean }[] = [];
+  const steps = Math.round((days * DAY) / DT);
+  for (let i = 0; i < steps; i++) {
+    sim.step();
+    if (sim.time % 600 === 0) {
+      const c = calendar(sim.defs.epochMs, sim.time);
+      for (const id of sim.residentIds()) {
+        const r = sim.state.residents[id];
+        log.push({ id, hour: c.hourOfDay, weekday: c.weekday, action: r.action?.id ?? '', away: r.away });
+      }
+    }
+  }
+  return log;
+}
+
+describe('поведение', () => {
+  const sim = makeSim();
+  const log = trace(sim, 4);
+
+  it('ночью все спят', () => {
+    const night = log.filter((l) => l.hour >= 3 && l.hour < 4.5);
+    expect(night.length).toBeGreaterThan(0);
+    expect(night.every((l) => l.action === 'sleep')).toBe(true);
+  });
+
+  it('Ольга в рабочий день уходит на смену и возвращается', () => {
+    const work = log.filter((l) => l.id === 'olga' && l.weekday === 2 && l.hour >= 10 && l.hour < 16);
+    expect(work.every((l) => l.away && l.action === 'go_to_work')).toBe(true);
+    const evening = log.filter((l) => l.id === 'olga' && l.weekday === 2 && l.hour >= 21 && l.hour < 21.5);
+    expect(evening.every((l) => !l.away)).toBe(true);
+  });
+
+  it('Марк работает из дома днём в будни', () => {
+    const work = log.filter((l) => l.id === 'mark' && l.weekday <= 4 && l.hour >= 11 && l.hour < 19);
+    const share = work.filter((l) => l.action === 'work').length / work.length;
+    expect(share).toBeGreaterThan(0.4);
+  });
+
+  it('никто не голодает и не падает без сил надолго', () => {
+    for (const id of sim.residentIds()) {
+      const n = sim.state.residents[id].needs;
+      expect(n.food).toBeGreaterThan(10);
+      expect(n.energy).toBeGreaterThan(5);
+    }
+  });
+});

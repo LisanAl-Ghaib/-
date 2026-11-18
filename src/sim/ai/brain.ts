@@ -45,7 +45,13 @@ export function startAction(ctx: AgentCtx, def: ActionDef, plan: ActionPlan): vo
   r.action = a;
   if (plan.target.slot) sim.reserveSlot(plan.target.slot, r.id);
   // пересчитать маршрут из текущей точки
-  r.path = planPath(sim.defs.layout, r, plan.target, { elevatorFrom: sim.elevatorThreshold(ctx.def, r) });
+  r.path = planPath(sim.defs.layout, r, plan.target, {
+    elevatorFrom: sim.elevatorThreshold(ctx.def, r),
+    via: plan.via,
+    returnVia: r.via,
+  });
+  if (r.away && !plan.target.away) r.via = 'walk';
+  if (plan.target.away && plan.via) r.via = plan.via;
   r.pose = 'stand';
   r.front = false;
   sim.emit({ type: 'action.start', t: now, residentId: r.id, actionId: def.id, label: plan.label });

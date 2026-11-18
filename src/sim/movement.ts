@@ -1,5 +1,6 @@
 import { WALK_SPEED } from '../config';
 import { callElevator, elevatorAt, elevatorDoorsOpen } from '../world/elevator';
+import { busAtStop } from '../world/transport';
 import type { ResidentState } from './state';
 import type { Simulation } from './simulation';
 
@@ -69,6 +70,14 @@ export function advanceMovement(sim: Simulation, r: ResidentState, dt: number): 
         continue;
       }
       callElevator(e, s.to);
+      break;
+    }
+    if (s.k === 'bus') {
+      r.front = true;
+      if (busAtStop(sim.state.time)) {
+        r.path.shift();
+        continue;
+      }
       break;
     }
     if (s.k === 'leave') {

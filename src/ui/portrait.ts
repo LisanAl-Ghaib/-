@@ -11,13 +11,15 @@ export function portrait(def: ResidentDef, size = 36): HTMLCanvasElement {
     sheet = generateCharacterSheet(def.appearance);
     cache.set(key, sheet);
   }
+  // кадр «лицом к зрителю», обрезанный по фигуре
   const c = document.createElement('canvas');
-  c.width = CELL_W;
+  c.width = 16;
   c.height = CELL_H;
   const g = c.getContext('2d')!;
   g.imageSmoothingEnabled = false;
-  g.drawImage(sheet, FRAME.frontStand * CELL_W, 0, CELL_W, CELL_H, 0, 0, CELL_W, CELL_H);
-  c.style.width = `${size}px`;
+  g.drawImage(sheet, FRAME.frontStand * CELL_W + (CELL_W - 16) / 2, 0, 16, CELL_H, 0, 0, 16, CELL_H);
+  c.className = 'portrait';
+  c.style.width = `${Math.round((size * 16) / CELL_H)}px`;
   c.style.height = `${size}px`;
   return c;
 }

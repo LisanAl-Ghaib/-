@@ -22,6 +22,8 @@ export interface ActionPlan {
   label: string;
   data?: ActiveAction['data'];
   interruptible?: boolean;
+  /** уходя за кадр: на автобусе или пешком */
+  via?: 'bus' | 'walk';
 }
 
 /**

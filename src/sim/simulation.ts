@@ -9,10 +9,18 @@ import type { ApartmentModel, SlotInstance } from '../world/layout';
 import { updateAgent } from './ai/brain';
 import { ACTIONS } from './ai/actions';
 import type { ActionDef, AgentCtx } from './ai/types';
-import { createResidentState, type ResidentState, type WorldState } from './state';
+import { advanceMovement } from './movement';
+import { updateNeeds } from './needs';
+import { ensurePlan } from './schedule';
+import { daylight } from './env/sun';
+import { createResidentState, type ApartmentState, type ResidentState, type WorldState } from './state';
 
 export type SimEvent =
   | { type: 'action.start'; t: number; residentId: string; actionId: string; label: string }
+  | { type: 'cooked'; t: number; residentId: string; baking: boolean; portions: number }
+  | { type: 'shopped'; t: number; residentId: string }
+  | { type: 'left-for-work'; t: number; residentId: string }
+  | { type: 'back-from-work'; t: number; residentId: string }
   | { type: 'resident.moved-in'; t: number; residentId: string }
   | { type: 'resident.moved-out'; t: number; residentId: string }
   | { type: 'day.start'; t: number; dayIndex: number };
@@ -91,6 +99,23 @@ export class Simulation {
     return { sim: this, r, def, cal: this.calendar(), home: this.home(def), now: this.state.time };
   }
 
+  aptState(id: string): ApartmentState {
+    let a = this.state.apartments[id];
+    if (!a) a = this.state.apartments[id] = { groceries: 5, meals: 1 };
+    return a;
+  }
+
+  /** Продвинуть жильца по текущему маршруту (для действий, которые двигаются на месте) */
+  advance(r: ResidentState, dt: number): boolean {
+    return advanceMovement(this, r, dt);
+  }
+
+  /** Насколько тянет на улицу: 0..1 (погода и свет; погода появится на этапе 4) */
+  outdoorAppeal(_def: ResidentDef): number {
+    const day = daylight(this.calendar());
+    return 0.35 + 0.65 * day;
+  }
+
   // ── слоты мебели
   reserveSlot(key: string, rid: string): void {
     this.state.slots[key] = rid;
@@ -152,7 +177,10 @@ export class Simulation {
     updateElevator(s.elevator, this.defs.layout, DT);
     for (const id of this.residentIds()) {
       const r = s.residents[id];
-      updateAgent(this.ctx(r), DT);
+      const ctx = this.ctx(r);
+      ensurePlan(ctx);
+      updateNeeds(ctx, DT);
+      updateAgent(ctx, DT);
       if (r.bubble && r.bubble.until <= s.time) r.bubble = null;
     }
   }

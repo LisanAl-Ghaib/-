@@ -59,14 +59,14 @@ main { flex: 1; display: flex; min-height: 0; }
 .res-row { display: flex; gap: 8px; align-items: center; padding: 6px; border: 1px solid transparent; cursor: pointer; }
 .res-row:hover { border-color: var(--line); background: var(--bg3); }
 .res-row.selected { border-color: var(--accent); }
-.res-row canvas { image-rendering: pixelated; width: 36px; height: 36px; background: var(--bg3); flex-shrink: 0; }
+.res-row canvas { image-rendering: pixelated; background: var(--bg3); flex-shrink: 0; }
 .res-row .nm { font-weight: 700; }
 .res-row .act { color: var(--muted); font-size: 12px; }
 
 /* карточка */
 .card h2 { margin: 0 0 2px; font-size: 16px; color: var(--accent); }
 .card .sub { color: var(--muted); margin-bottom: 8px; }
-.card .portrait { float: right; image-rendering: pixelated; width: 72px; height: 72px; background: var(--bg3); border: 1px solid var(--line); margin-left: 8px; }
+.card .portrait { float: right; image-rendering: pixelated; background: var(--bg3); border: 1px solid var(--line); margin-left: 8px; }
 .card h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 14px 0 6px; border-bottom: 1px solid var(--line); padding-bottom: 2px; clear: both; }
 .card p { margin: 4px 0; line-height: 1.45; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
