@@ -10,6 +10,8 @@ export class Camera {
   zoom = 2;
   viewW = 1;
   viewH = 1;
+  /** снизу экран закрыт панелью (телефон) — центрируем по видимой части */
+  insetBottom = 0;
   worldW: number;
   worldH: number;
   private anim: { fromX: number; fromY: number; fromZ: number; toX: number; toY: number; toZ: number; t0: number; dur: number } | null = null;
@@ -29,7 +31,11 @@ export class Camera {
 
   /** Наибольший целый масштаб, при котором прямоугольник целиком влезает */
   fitZoom(w: number, h: number, margin = 0): number {
-    return Math.max(1, Math.floor(Math.min((this.viewW - margin) / w, (this.viewH - margin) / h)));
+    return Math.max(1, Math.floor(Math.min((this.viewW - margin) / w, (this.visH - margin) / h)));
+  }
+
+  get visH(): number {
+    return Math.max(1, this.viewH - this.insetBottom);
   }
 
   minZoom(): number {
@@ -76,7 +82,7 @@ export class Camera {
 
   clampCenter() {
     const halfW = this.viewW / 2 / this.zoom;
-    const halfH = this.viewH / 2 / this.zoom;
+    const halfH = this.visH / 2 / this.zoom;
     this.cx = this.worldW <= halfW * 2 ? this.worldW / 2 : clamp(this.cx, halfW, this.worldW - halfW);
     this.cy = this.worldH <= halfH * 2 ? this.worldH / 2 : clamp(this.cy, halfH, this.worldH - halfH);
   }
@@ -85,7 +91,7 @@ export class Camera {
   offset(): { ox: number; oy: number } {
     return {
       ox: Math.round(this.viewW / 2 - this.cx * this.zoom),
-      oy: Math.round(this.viewH / 2 - this.cy * this.zoom),
+      oy: Math.round(this.visH / 2 - this.cy * this.zoom),
     };
   }
 

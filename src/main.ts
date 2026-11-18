@@ -41,9 +41,15 @@ async function boot() {
   renderer.overview(performance.now(), false);
 
   // ── состояние интерфейса
-  let speedIndex = Number(localStorage.getItem('dom.speed') ?? 1);
+  let speedIndex = 1;
+  try {
+    speedIndex = Number(localStorage.getItem('dom.speed') ?? 1);
+  } catch {
+    /* хранилище недоступно */
+  }
   if (!(speedIndex >= 0 && speedIndex < SPEEDS.length)) speedIndex = 1;
   let following = false;
+  let resetting = false;
   let hoverResident: string | null = null;
   let hoverApartment: string | null = null;
 
@@ -67,6 +73,10 @@ async function boot() {
     select(id, opts) {
       host.selected = id;
       following = !!(id && opts?.focus);
+      if (id) {
+        ui.openPanel();
+        syncInset();
+      }
       if (id && opts?.focus) {
         const r = sim.state.residents[id];
         if (r && !r.away) {
@@ -80,6 +90,10 @@ async function boot() {
       host.focusedApartment = id;
       host.selected = null;
       following = false;
+      if (id) {
+        ui.openPanel();
+        syncInset();
+      }
       const apt = id ? defs.layout.aptById.get(id) : null;
       if (apt) renderer.focusApartment(apt, performance.now());
       ui.showTab('details');
@@ -90,84 +104,155 @@ async function boot() {
       renderer.overview(performance.now());
     },
     async newWorld() {
+      resetting = true; // чтобы автосохранение при уходе со страницы не вернуло старый мир
       if (!NOSAVE) await clearWorld();
-      location.search = '';
-      location.reload();
+      if (location.search) location.href = location.pathname;
+      else location.reload();
     },
   };
   const ui = new Ui(host);
   installViews(ui, host);
   if (restored) ui.toast('Жизнь в доме продолжается с того же места');
 
-  // ── ввод
-  let drag: { x: number; y: number; moved: boolean } | null = null;
+  // ── ввод: мышь и тач (перетаскивание, щипок для масштаба, тап)
   const dpr = () => window.devicePixelRatio || 1;
+  const store = {
+    get: (k: string) => {
+      try {
+        return localStorage.getItem(k);
+      } catch {
+        return null;
+      }
+    },
+    set: (k: string, v: string) => {
+      try {
+        localStorage.setItem(k, v);
+      } catch {
+        /* хранилище недоступно */
+      }
+    },
+  };
+  const pointers = new Map<number, { x: number; y: number }>();
+  let moved = false;
+  let pinch: { dist: number; acc: number } | null = null;
+  const local = (e: MouseEvent) => {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * dpr(), y: (e.clientY - r.top) * dpr() };
+  };
   canvas.addEventListener('pointerdown', (e) => {
-    drag = { x: e.clientX, y: e.clientY, moved: false };
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     canvas.setPointerCapture(e.pointerId);
+    if (pointers.size === 1) moved = false;
+    if (pointers.size === 2) {
+      const [p1, p2] = [...pointers.values()];
+      pinch = { dist: Math.hypot(p1.x - p2.x, p1.y - p2.y), acc: 0 };
+      moved = true;
+    }
   });
   canvas.addEventListener('pointermove', (e) => {
-    if (drag) {
-      const dx = e.clientX - drag.x;
-      const dy = e.clientY - drag.y;
-      if (drag.moved || Math.abs(dx) + Math.abs(dy) > 4) {
-        drag.moved = true;
-        following = false;
-        canvas.classList.add('dragging');
-        renderer.camera.panBy(dx * dpr(), dy * dpr());
-        drag.x = e.clientX;
-        drag.y = e.clientY;
+    const prev = pointers.get(e.pointerId);
+    if (!prev) {
+      if (e.pointerType === 'mouse') {
+        const { x, y } = local(e);
+        hoverResident = renderer.pickResident(x, y);
+        hoverApartment = hoverResident ? null : renderer.pickApartment(x, y)?.id ?? null;
+        canvas.classList.toggle('pointer', !!(hoverResident || hoverApartment));
       }
       return;
     }
-    const sx = e.offsetX * dpr();
-    const sy = e.offsetY * dpr();
-    hoverResident = renderer.pickResident(sx, sy);
-    hoverApartment = hoverResident ? null : renderer.pickApartment(sx, sy)?.id ?? null;
-    canvas.classList.toggle('pointer', !!(hoverResident || hoverApartment));
+    const cur = { x: e.clientX, y: e.clientY };
+    pointers.set(e.pointerId, cur);
+    if (pointers.size >= 2 && pinch) {
+      // щипок: целочисленный масштаб, шаг — каждые ~60 px изменения расстояния
+      const [p1, p2] = [...pointers.values()];
+      const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+      pinch.acc += d - pinch.dist;
+      pinch.dist = d;
+      const r = canvas.getBoundingClientRect();
+      const cx = ((p1.x + p2.x) / 2 - r.left) * dpr();
+      const cy = ((p1.y + p2.y) / 2 - r.top) * dpr();
+      while (Math.abs(pinch.acc) > 60) {
+        renderer.camera.zoomAt(cx, cy, pinch.acc > 0 ? 1 : -1);
+        pinch.acc -= Math.sign(pinch.acc) * 60;
+      }
+      following = false;
+      return;
+    }
+    const dx = cur.x - prev.x;
+    const dy = cur.y - prev.y;
+    if (moved || Math.abs(dx) + Math.abs(dy) > 3) {
+      moved = true;
+      following = false;
+      canvas.classList.add('dragging');
+      renderer.camera.panBy(dx * dpr(), dy * dpr());
+    } else pointers.set(e.pointerId, prev); // копим смещение до порога
   });
-  canvas.addEventListener('pointerup', (e) => {
+  const release = (e: PointerEvent, tap: boolean) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = null;
+    if (pointers.size > 0) return;
     canvas.classList.remove('dragging');
-    const wasDrag = drag?.moved;
-    drag = null;
-    if (wasDrag) return;
-    const sx = e.offsetX * dpr();
-    const sy = e.offsetY * dpr();
-    const rid = renderer.pickResident(sx, sy);
+    if (!tap || moved) return;
+    const { x, y } = local(e);
+    const rid = renderer.pickResident(x, y);
     if (rid) return host.select(rid);
-    const apt = renderer.pickApartment(sx, sy);
+    const apt = renderer.pickApartment(x, y);
     if (apt) return host.focusApartment(apt.id);
-  });
-  canvas.addEventListener('pointerleave', () => {
-    hoverResident = hoverApartment = null;
+  };
+  canvas.addEventListener('pointerup', (e) => release(e, true));
+  canvas.addEventListener('pointercancel', (e) => release(e, false));
+  canvas.addEventListener('pointerleave', (e) => {
+    if (e.pointerType === 'mouse') hoverResident = hoverApartment = null;
   });
   canvas.addEventListener(
     'wheel',
     (e) => {
       e.preventDefault();
       following = false;
-      renderer.camera.zoomAt(e.offsetX * dpr(), e.offsetY * dpr(), e.deltaY < 0 ? 1 : -1);
+      const { x, y } = local(e);
+      renderer.camera.zoomAt(x, y, e.deltaY < 0 ? 1 : -1);
     },
     { passive: false },
   );
+  const zoomCenter = (d: number) => {
+    following = false;
+    renderer.camera.zoomAt(canvas.width / 2, canvas.height / 2, d);
+  };
+  $('#zoom-in').addEventListener('click', () => zoomCenter(1));
+  $('#zoom-out').addEventListener('click', () => zoomCenter(-1));
   window.addEventListener('keydown', (e) => {
     if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
     if (e.code === 'Space') {
       e.preventDefault();
-      host.setSpeed(speedIndex === 0 ? Number(localStorage.getItem('dom.lastSpeed') ?? 1) || 1 : 0);
-      if (speedIndex !== 0) localStorage.setItem('dom.lastSpeed', String(speedIndex));
+      if (speedIndex !== 0) store.set('dom.lastSpeed', String(speedIndex));
+      host.setSpeed(speedIndex === 0 ? Number(store.get('dom.lastSpeed') ?? 1) || 1 : 0);
     } else if (e.key >= '1' && e.key <= '4') host.setSpeed(Number(e.key) - 1);
+    else if (e.key === '+' || e.key === '=') zoomCenter(1);
+    else if (e.key === '-') zoomCenter(-1);
     else if (e.key === 'Escape') {
       host.select(null);
       host.overview();
     }
   });
   window.addEventListener('resize', () => renderer.resize());
+  // телефон: панель — нижний лист, камера центрирует то, что над ним
+  function syncInset() {
+    const panel = $('#panel');
+    const sheet = window.matchMedia('(max-width: 760px)').matches && !panel.classList.contains('hidden');
+    const stage = $('#stage').getBoundingClientRect();
+    const covered = sheet ? Math.max(0, stage.bottom - panel.getBoundingClientRect().top) : 0;
+    renderer.camera.insetBottom = Math.round(covered * (window.devicePixelRatio || 1));
+    renderer.camera.clampCenter();
+  }
+  new ResizeObserver(syncInset).observe($('#panel'));
+  new MutationObserver(syncInset).observe($('#panel'), { attributes: true, attributeFilter: ['class'] });
+  window.addEventListener('resize', syncInset);
+  syncInset();
 
   // ── сохранение
   let saving = false;
   const save = async () => {
-    if (NOSAVE || saving) return;
+    if (NOSAVE || saving || resetting) return;
     saving = true;
     try {
       await saveWorld(sim.state);

@@ -18,7 +18,7 @@
         <div id="speed" role="group" aria-label="Скорость времени"></div>
         <div class="menu">
           <button id="btn-overview" title="Обзор дома (Esc)">⌂ Дом</button>
-          <button id="btn-panel" title="Показать/скрыть панель">☰</button>
+          <button id="btn-panel" title="Показать/скрыть панель" aria-label="Панель">☰</button>
           <button id="btn-new" title="Начать мир заново">Новый мир</button>
         </div>
       </header>
@@ -26,6 +26,10 @@
         <div id="stage">
           <canvas id="view"></canvas>
           <div id="toast"></div>
+          <div id="zoom">
+            <button id="zoom-in" title="Приблизить (+)" aria-label="Приблизить">+</button>
+            <button id="zoom-out" title="Отдалить (−)" aria-label="Отдалить">−</button>
+          </div>
           <div id="help">Колёсико — масштаб · перетаскивание — панорама · клик по квартире — заглянуть внутрь · клик по жильцу — карточка · Пробел — пауза, 1–4 — скорость</div>
         </div>
         <aside id="panel">

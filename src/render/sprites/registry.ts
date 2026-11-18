@@ -25,6 +25,8 @@ export class SpriteRegistry {
   /** Загружает public/sprites/manifest.json и PNG из него. Ошибки не фатальны. */
   async loadOverrides(base = `${import.meta.env.BASE_URL}sprites/`): Promise<string[]> {
     const loaded: string[] = [];
+    // однофайловая сборка (страница на claude.ai): внешних файлов нет
+    if (import.meta.env.VITE_SINGLE_FILE) return loaded;
     try {
       const res = await fetch(`${base}manifest.json`);
       if (!res.ok) return loaded;

@@ -47,9 +47,24 @@ export class Ui {
     });
     $('#btn-overview').addEventListener('click', () => host.overview());
     $('#btn-panel').addEventListener('click', () => $('#panel').classList.toggle('hidden'));
-    $('#btn-new').addEventListener('click', () => {
-      if (confirm('Начать мир заново? Текущее сохранение будет удалено.')) host.newWorld();
+    // подтверждение вторым нажатием (confirm() работает не везде)
+    const btnNew = $('#btn-new');
+    let armed = 0;
+    btnNew.addEventListener('click', () => {
+      if (armed) {
+        window.clearTimeout(armed);
+        host.newWorld();
+        return;
+      }
+      btnNew.textContent = 'Точно? Ещё раз';
+      btnNew.classList.add('active');
+      armed = window.setTimeout(() => {
+        armed = 0;
+        btnNew.textContent = 'Новый мир';
+        btnNew.classList.remove('active');
+      }, 3000);
     });
+    if (window.matchMedia('(max-width: 760px)').matches) $('#panel').classList.add('hidden');
     this.buildResidentList();
     this.refreshSpeed();
   }
@@ -57,6 +72,11 @@ export class Ui {
   registerView(v: PanelView) {
     this.views.set(v.tab, v);
     if (v.tab === this.tab) this.renderTab();
+  }
+
+  /** На телефоне панель открывается поверх сцены */
+  openPanel() {
+    $('#panel').classList.remove('hidden');
   }
 
   showTab(tab: TabId) {

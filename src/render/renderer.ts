@@ -69,6 +69,7 @@ export class Renderer {
   private drops: { x: number; y: number; s: number }[] = [];
   readonly W: number;
   readonly H: number;
+  private skyTop = '#0b0f24';
   /** окружение (погода/сезон) — задаётся извне */
   env: Environment = { overcast: 0.15, rain: 0, snow: 0, fog: 0, wind: 0.2, look: DEFAULT_LOOK, coats: false };
 
@@ -149,6 +150,7 @@ export class Renderer {
 
     // небо
     const sky = skyColors(cal, env.overcast);
+    this.skyTop = sky.top;
     drawSkyGradient(wg, this.W, L.groundY, sky);
     drawStars(wg, this.stars, (1 - day) * (1 - env.overcast), nowMs);
     drawSunMoon(wg, cal, this.W, L.groundY - 40, env.overcast);
@@ -596,10 +598,18 @@ export class Renderer {
     g.imageSmoothingEnabled = false;
     const cal = this.sim.calendar();
     const day = daylight(cal);
-    g.fillStyle = mix('#0b0f24', '#5d4a3a', 0.15 + day * 0.1);
-    g.fillRect(0, 0, this.canvas.width, this.canvas.height);
     const { ox, oy } = camera.offset();
     const z = camera.zoom;
+    // за краями мира: сверху — небо, снизу — земля
+    g.fillStyle = this.skyTop;
+    g.fillRect(0, 0, this.canvas.width, Math.max(0, oy + 2 * z));
+    g.fillStyle = mix('#2a2018', '#5d4a3a', day * 0.6);
+    g.fillRect(0, Math.max(0, oy + this.H * z - 2 * z), this.canvas.width, this.canvas.height);
+    if (ox > 0) {
+      g.fillStyle = this.skyTop;
+      g.fillRect(0, 0, ox, this.canvas.height);
+      g.fillRect(ox + this.W * z, 0, this.canvas.width, this.canvas.height);
+    }
     // видимая часть мира
     const sx0 = Math.max(0, Math.floor(-ox / z));
     const sy0 = Math.max(0, Math.floor(-oy / z));

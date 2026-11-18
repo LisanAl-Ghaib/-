@@ -16,7 +16,11 @@ npm run sim -- --days 3 --seed 42   # безголовая симуляция, �
 npm test             # vitest: RNG, детерминизм, схемы, поведение
 npm run build        # typecheck + production-сборка
 npx tsx scripts/weather-check.ts   # статистика прогулок по погоде за 120 дней
+npm run build:artifact   # всё в один файл dist-artifact/dom.html (для страницы на claude.ai / телефона)
 ```
+
+Версия для телефона опубликована как страница: https://claude.ai/artifact/PjD8V56jUKJeJXHtVD1Xfo.
+После изменений: `npm run build:artifact` и опубликовать `dist-artifact/dom.html` в ту же страницу.
 
 В браузере в консоли доступен `dom` (`dom.sim`, `dom.defs`, `dom.renderer`, `dom.host`):
 например, `dom.sim.run(8640)` — прокрутить сутки.
