@@ -3,6 +3,7 @@ import { hashString } from '../core/rng';
 import type { WorldDefs } from '../data/defs';
 import type { ResidentDef } from '../data/schemas';
 import type { Simulation } from '../sim/simulation';
+import { workersAt } from '../sim/workers';
 import type { ApartmentModel, FurnitureInstance } from '../world/layout';
 import { rect } from './pixel';
 import { CELL_H, CELL_W, FRAME, generateCharacterSheet } from './sprites/character';
@@ -110,16 +111,46 @@ export class LifeDetails {
 
   /** Мастера работают в будни днём */
   workersOn(apt: ApartmentModel): boolean {
-    if (!apt.def?.renovation) return false;
-    const c = this.sim.calendar();
-    if (c.weekday > 6) return false;
-    const h = c.hourOfDay;
-    return h >= 9 && h < 18 && !(h >= 13 && h < 14);
+    return !!apt.def?.renovation && workersAt(this.sim, apt.id).length > 0;
+  }
+
+  /** Мастера в пути: идут через двор и подъезд, здороваются с консьержкой */
+  private drawWalkingWorkers(g: CanvasRenderingContext2D, nowMs: number): void {
+    for (const w of this.sim.state.workers) {
+      if (w.away || w.phase === 'working') continue;
+      const app = w.idx % 2 ? WORKER_B : WORKER_A;
+      const key = `npc:worker${w.idx % 2}`;
+      const x = Math.round(w.x);
+      const y = Math.round(w.y);
+      let frame: number = FRAME.walk0 + (Math.floor(w.walkDist / 3) % 4);
+      let facing = w.facing;
+      let bob = 0;
+      if (w.gesture) {
+        facing = w.gesture.toX < w.x ? -1 : 1;
+        if (w.gesture.kind === 'wave') frame = Math.floor(nowMs / 250) % 2 ? FRAME.frontWave : FRAME.frontStand;
+        else {
+          frame = FRAME.stand;
+          bob = Math.floor(nowMs / 220) % 2; // кивает
+        }
+      } else if (!w.path.length) frame = FRAME.stand;
+      this.drawWorker(g, key, app, x, y + bob, frame, facing);
+      // в руке: ящик с инструментом или пакет
+      const hx = x + facing * 3;
+      if (w.idx % 2) {
+        rect(g, hx - 3, y - 7, 6, 4, '#c8402e');
+        rect(g, hx - 1, y - 8, 2, 1, '#3a3a3a');
+      } else {
+        rect(g, hx - 2, y - 8, 5, 6, '#e8e4d8');
+        rect(g, hx - 1, y - 9, 1, 1, '#c8c2b0');
+      }
+    }
   }
 
   drawWorkers(g: CanvasRenderingContext2D, nowMs: number): void {
+    this.drawWalkingWorkers(g, nowMs);
     for (const apt of this.defs.layout.apartments) {
       if (!this.workersOn(apt)) continue;
+      const present = new Set(workersAt(this.sim, apt.id).map((w) => w.idx % 2));
       const fy = this.defs.layout.floorY(apt.level);
       const lt = this.defs.layout.levelTop(apt.level);
       const furn = apt.rooms.flatMap((r) => r.furniture);
@@ -141,6 +172,7 @@ export class LifeDetails {
       const inSeg = tMin - seg * SEG;
       const taken = new Set<string>();
       [WORKER_A, WORKER_B].forEach((app, wi) => {
+        if (!present.has(wi)) return;
         const choose = (sg: number) => {
           let k = (Math.imul(sg + 17 * wi, 2654435761) ^ seed) >>> 0;
           let sp = spots[k % spots.length];

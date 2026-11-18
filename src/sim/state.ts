@@ -7,7 +7,9 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
+/** версии сохранений, которые можно дополнить до текущей (недостающие поля заполнит Simulation) */
+export const MIGRATABLE_VERSIONS = [7];
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -18,6 +20,8 @@ export interface Needs {
   social: number;
   /** настроение */
   mood: number;
+  /** «не надо в туалет»: 0 — очень надо */
+  bladder: number;
 }
 
 export interface Moodlet {
@@ -91,6 +95,8 @@ export interface ResidentState {
   intents: { target: string; kind: string; until: number }[];
   /** что несёт в руках — видно на улице и в подъезде */
   carrying: 'bags' | 'trash' | null;
+  /** жест: кивнула, помахала */
+  gesture?: Gesture | null;
 }
 
 /** Отношение жильца A к жильцу B (направленное) */
@@ -178,6 +184,40 @@ export interface PetState {
   walkDist: number;
 }
 
+/** Жест без слов: кивнул, помахал (видно пару секунд) */
+export interface Gesture {
+  kind: 'wave' | 'nod';
+  until: number;
+  /** кому — в его сторону и повернётся */
+  toX: number;
+}
+
+/** Мастер, который делает ремонт: утром приходит с улицы, в обед уходит перекусить, вечером уходит */
+export interface WorkerState {
+  id: string;
+  aptId: string;
+  /** номер мастера в бригаде (внешность) */
+  idx: number;
+  phase: 'off' | 'arriving' | 'working' | 'lunch' | 'leaving';
+  /** логический день, на который составлен распорядок */
+  day: number;
+  arriveAt: number;
+  lunchAt: number;
+  backAt: number;
+  leaveAt: number;
+  lunchDone: boolean;
+  x: number;
+  y: number;
+  level: number;
+  away: boolean;
+  facing: 1 | -1;
+  path: Step[];
+  walkDist: number;
+  /** когда консьержка последний раз с ним поздоровалась */
+  greetedAt: number;
+  gesture: Gesture | null;
+}
+
 /** Гость «из города»: родня или друг жильца, приезжает и уезжает */
 export interface VisitorState {
   id: string;
@@ -224,6 +264,8 @@ export interface WorldState {
   weather: WeatherState | null;
   pets: Record<string, PetState>;
   visitors: VisitorState[];
+  /** мастера на ремонте */
+  workers: WorkerState[];
   /** еда в мисках по квартирам */
   petFood: Record<string, number>;
   /** записи хроники, которые станут заметны позже (болезнь видно днём, а не в 4 утра) */
@@ -255,6 +297,7 @@ export function createResidentState(defs: WorldDefs, id: string, rngNext: () => 
       food: 55 + rngNext() * 25,
       social: 50 + rngNext() * 30,
       mood: 55 + rngNext() * 25,
+      bladder: 60 + rngNext() * 40,
     },
     moodlets: [],
     plan: null,
@@ -294,6 +337,7 @@ export function createWorldState(defs: WorldDefs, seedOverride?: number | string
     pendingChronicle: [],
     pets: {},
     visitors: [],
+    workers: [],
     petFood: {},
     yard: { snowman: null },
   };

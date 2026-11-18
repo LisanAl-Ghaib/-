@@ -3,7 +3,7 @@ import { cook, eat, shopping, snack } from './food';
 import { makeBed, takeOutTrash, unpack, washDishes } from './home';
 import { chores, computer, crafts, fitness, gaming, idle, lookOutside, music, phone, plants, read, tea, watchTv } from './leisure';
 import { bench, goOut, jog, smoke, snowman, walkYard } from './outside';
-import { nap, sleep, wash } from './rest';
+import { nap, sleep, toilet, wash } from './rest';
 import { chat, guest, host, visit } from './social';
 import { familyVisit, feedPets, nightWatch } from './personal';
 import { goToWork, workFromHome } from './work';
@@ -14,7 +14,7 @@ import { goToWork, workFromHome } from './work';
  */
 export const ACTIONS: readonly ActionDef[] = [
   // отдых
-  sleep, nap, wash,
+  sleep, nap, wash, toilet,
   // еда
   eat, cook, snack, shopping,
   // домашние дела, которые видно со стороны

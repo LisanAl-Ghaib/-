@@ -42,6 +42,13 @@ export function updateNeeds(ctx: AgentCtx, dt: number): void {
   gain(r, 'food', sleeping ? -1.8 : -4.8, dt);
   // общение
   if (!sleeping) gain(r, 'social', -2.4 * SOCIAL_RATE[def.traits.sociability], dt);
+  // туалет: за кадром (на работе, в магазине) — сходит там; после чая и еды — скорее
+  if (r.away) {
+    if (r.needs.bladder < 80) gain(r, 'bladder', 30, dt);
+  } else {
+    const drink = a?.phase === 'perform' && a.id === 'tea' ? 18 : a?.phase === 'perform' && a.id === 'eat' ? 8 : 0;
+    gain(r, 'bladder', -((sleeping ? 2.6 : 10) + drink + (age > 65 ? 1.5 : 0)), dt);
+  }
 
   // настроение тянется к «цели» — характер + потребности + причины
   const n = r.needs;

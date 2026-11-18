@@ -1,4 +1,4 @@
-import { SAVE_VERSION, type WorldState } from '../sim/state';
+import { MIGRATABLE_VERSIONS, SAVE_VERSION, type WorldState } from '../sim/state';
 
 /**
  * Сохранение мира в IndexedDB. Хранится одна запись «autosave».
@@ -40,7 +40,13 @@ export interface SaveRecord {
 export async function loadWorld(): Promise<SaveRecord | null> {
   try {
     const rec = await tx<SaveRecord | undefined>('readonly', (s) => s.get(KEY));
-    if (!rec || rec.version !== SAVE_VERSION || rec.state?.version !== SAVE_VERSION) return null;
+    if (!rec || !rec.state) return null;
+    if (rec.version !== SAVE_VERSION || rec.state.version !== SAVE_VERSION) {
+      // старое сохранение того же мира — дополняем, а не начинаем заново
+      if (!MIGRATABLE_VERSIONS.includes(rec.state.version)) return null;
+      rec.state.version = SAVE_VERSION;
+      rec.version = SAVE_VERSION;
+    }
     return rec;
   } catch (e) {
     console.warn('[save] не удалось загрузить', e);

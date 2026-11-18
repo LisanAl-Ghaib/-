@@ -166,6 +166,7 @@ export function buildDefs(raw: RawData): BuildResult {
       if (has('sleep') < people.length) warnings.push(`${a.id}: спальных мест ${has('sleep')}, жильцов ${people.length}`);
       if (!has('cook')) warnings.push(`${a.id}: нет плиты (cook)`);
       if (!has('fridge')) warnings.push(`${a.id}: нет холодильника (fridge)`);
+      if (!has('toilet')) warnings.push(`${a.id}: нет туалета (toilet)`);
       if (!has('eat') && !has('sit')) warnings.push(`${a.id}: негде сесть поесть`);
     }
   }

@@ -142,6 +142,8 @@ export const shopping: ActionDef = {
       duration: ctx.sim.rng.int(30, 60) * 60,
       label: gv(ctx.def, 'ушёл в магазин', 'ушла в магазин'),
       via: 'walk',
+      // раз уж вышла — купит и вернётся, а не бросит корзину на полпути
+      interruptible: false,
       data: { out: true },
     };
   },

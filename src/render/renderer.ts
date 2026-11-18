@@ -328,7 +328,7 @@ export class Renderer {
 
   private drawDoors() {
     const L = this.defs.layout;
-    const residents: { x: number; y: number; level: number; away: boolean }[] = [...Object.values(this.sim.state.residents), ...this.sim.state.visitors];
+    const residents: { x: number; y: number; level: number; away: boolean }[] = [...Object.values(this.sim.state.residents), ...this.sim.state.visitors, ...this.sim.state.workers];
     for (const apt of L.apartments) {
       const fy = L.floorY(apt.level);
       const open = residents.some((r) => !r.away && r.level === apt.level && Math.abs(r.x - apt.doorX) < 7 && Math.abs(r.y - fy) < 4);
@@ -539,6 +539,30 @@ export class Renderer {
 
   private screensOn: [number, number, string, number][] = [];
 
+  /** Закрытая дверь туалета (занято) */
+  private drawWcDoor(level: number, x: number) {
+    const L = this.defs.layout;
+    const apt = L.apartmentAt(level, x);
+    if (!apt) return;
+    const room = L.roomAt(apt, x);
+    const g = this.wg;
+    const fy = L.floorY(level);
+    const pal = apt.def?.palette;
+    const wood = pal ? mix(pal.wood, '#d8cbb4', 0.55) : '#c8b8a0';
+    const x0 = room.x0 + 2;
+    const w = room.x1 - room.x0 - 3;
+    rect(g, x0 - 1, fy - 28, w + 2, 28, shade(wood, -0.35)); // наличник
+    rect(g, x0, fy - 27, w, 27, wood);
+    rect(g, x0 + 2, fy - 24, w - 4, 9, shade(wood, -0.08)); // филёнки
+    rect(g, x0 + 2, fy - 12, w - 4, 9, shade(wood, -0.08));
+    rect(g, x0 + w - 3, fy - 14, 2, 1, '#c8b070'); // ручка
+    rect(g, x0 + w - 3, fy - 16, 1, 1, '#8a7a50'); // шпингалет закрыт
+    rect(g, x0 + 1, fy - 1, w - 2, 1, '#ffe9a0'); // свет из-под двери
+    // окошко под потолком — горит
+    rect(g, x0 + 2, fy - 34, w - 4, 4, '#ffe9a0');
+    rect(g, x0 + 1, fy - 35, w - 2, 1, shade(wood, -0.35));
+  }
+
   private awakeHome(apt: ApartmentModel): boolean {
     return this.defs.residents.some((d) => {
       const r = this.sim.state.residents[d.id];
@@ -743,6 +767,12 @@ export class Renderer {
       const iy = Math.round(y);
       const moving = r.path.length > 0 && r.path[0].k === 'walk' && (p ? Math.abs(p.x - r.x) + Math.abs(p.y - r.y) > 0.01 : true);
       const def = this.defs.residentById.get(r.id)!;
+      if (r.action?.id === 'toilet' && r.action.phase === 'perform') {
+        // в туалете: дверь закрыта, в окошке над ней свет
+        this.drawWcDoor(r.level, r.x);
+        this.actorBoxes.push({ id: r.id, x: ix - 5, y: iy - 26, w: 10, h: 26 });
+        continue;
+      }
       let frame: number = FRAME.stand;
       let top = iy - CELL_H;
       let pose: Pose | null = null;

@@ -67,11 +67,13 @@ export const unpack: ActionDef = {
     if (!st.bags || sleepTime(ctx)) return null;
     const room = roomOfType(ctx.home, 'kitchen', 'hall', 'studio') ?? ctx.home.rooms[0];
     const fridge = homeSlot(ctx, 'fridge');
+    // продукты не ждут: молоко и мясо — сразу в холодильник, даже если на работе
     return {
-      score: 5,
+      score: 24,
       target: fridge?.target ?? roomPoint(ctx, room),
       duration: ctx.sim.rng.int(5, 10) * 60,
-      label: 'разбирает пакеты',
+      label: 'убирает продукты в холодильник',
+      interruptible: false,
     };
   },
   onEnd(ctx) {

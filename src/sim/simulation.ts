@@ -27,6 +27,7 @@ import { warmth } from './social/social';
 import { addMoodlet } from './needs';
 import { petNotes, syncPets, updatePets } from './pets';
 import { scheduleVisits, updateVisitors } from './visitors';
+import { syncWorkers, updateWorkers } from './workers';
 
 export type SimEvent =
   | { type: 'action.start'; t: number; residentId: string; actionId: string; label: string }
@@ -61,12 +62,15 @@ export class Simulation {
     state.yard ??= { snowman: null };
     state.pendingChronicle ??= [];
     state.visitors ??= [];
+    state.workers ??= [];
+    for (const r of Object.values(state.residents)) r.needs.bladder ??= 70;
     this.syncResidents();
     initRelations(this);
     if (fresh) chronicle(this, 'world.start', [], 3);
     this.bus.on('cooked', (e) => this.onCooked(e.residentId, e.baking));
     this.bus.on('action.end', (e) => this.onActionEnd(e.residentId, e.actionId, e.interrupted));
     syncPets(this);
+    syncWorkers(this);
   }
 
   private onCooked(id: string, baking: boolean): void {
@@ -314,12 +318,16 @@ export class Simulation {
       if (r.carrying === 'bags' && !r.away && r.level === ctx.home.level && r.x >= ctx.home.x0 && r.x < ctx.home.x1) {
         r.carrying = null;
         this.aptState(ctx.home.id).bags = 2;
+        // первым делом — разобрать сумки (переоценка на следующем шаге)
+        if (r.action?.interruptible) r.action.lastEval = -Infinity;
       }
       if (r.bubble && r.bubble.until <= s.time) r.bubble = null;
+      if (r.gesture && r.gesture.until <= s.time) r.gesture = null;
     }
     updateInteractions(this, DT);
     updatePets(this, DT);
     updateVisitors(this, DT);
+    updateWorkers(this, DT);
     if (s.time % 600 === 0) petNotes(this);
     flushPendingChronicle(this);
     if (s.time % 60 === 0) detectEncounters(this);

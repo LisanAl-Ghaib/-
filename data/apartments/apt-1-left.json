@@ -3,7 +3,7 @@
   "floor": 1,
   "side": "left",
   "style": "soviet",
-  "description": "Старая советская квартира консьержки: ковёр на стене над кроватью, сервант с сервизом, вечно включённый телевизор с новостями, календарь 2012 года с драконом, который никто не перевешивает. Две кошки, когтеточка, вышивки на стенах.",
+  "description": "Старая советская квартира консьержки: ковёр на стене над кроватью, сервант с сервизом, вечно включённый телевизор с новостями, календарь 2012 года с драконом, который никто не перевешивает. Две кошки, когтеточка, вышивки на стенах. Узкий туалет с чугунным бачком под потолком и газетами на полочке.",
   "palette": { "wall": "#c9a862", "floor": "#7a3e24", "wood": "#4e2a18", "textile": "#8a2424", "accent": "#3f6f63", "metal": "#c7c3b8" },
   "wallpaper": "soviet",
   "flooring": "herringbone",
@@ -33,12 +33,16 @@
       { "item": "radio", "x": 36, "elevation": 10 },
       { "item": "sink_small", "x": 50 }
     ] },
-    { "type": "study", "name": "дежурка", "width": 5, "wall": "#93a9bb", "wallpaper": "oilpaint", "furniture": [
-      { "item": "coat_rack", "x": 2 },
-      { "item": "cat_tray", "x": 11 },
-      { "item": "heater", "x": 26 },
-      { "item": "keys_board", "x": 60, "elevation": 36 },
-      { "item": "concierge_desk", "x": 46 }
+    { "type": "bathroom", "name": "туалет", "width": 1, "window": false, "wall": "#8fb0b8", "wallpaper": "oilpaint", "furniture": [
+      { "item": "wc_shelf", "x": 8, "elevation": 16 },
+      { "item": "toilet", "x": 2 }
+    ] },
+    { "type": "study", "name": "дежурка", "width": 4, "wall": "#93a9bb", "wallpaper": "oilpaint", "furniture": [
+      { "item": "coat_rack", "x": 1 },
+      { "item": "cat_tray", "x": 9 },
+      { "item": "heater", "x": 21 },
+      { "item": "keys_board", "x": 46, "elevation": 36 },
+      { "item": "concierge_desk", "x": 32 }
     ] }
   ]
 }

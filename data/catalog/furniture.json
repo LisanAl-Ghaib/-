@@ -1417,6 +1417,41 @@
    "h": 7,
    "paletteKey": "wood",
    "slots": []
+  },
+  {
+   "id": "toilet",
+   "name": "Унитаз с бачком под потолком",
+   "draw": "toilet",
+   "w": 10,
+   "h": 34,
+   "paletteKey": "metal",
+   "color": "#e8e6e0",
+   "rooms": [
+    "bathroom"
+   ],
+   "slots": [
+    {
+     "use": [
+      "toilet"
+     ],
+     "dx": 5,
+     "pose": "sit",
+     "dy": 5,
+     "face": 0
+    }
+   ]
+  },
+  {
+   "id": "wc_shelf",
+   "name": "Полочка в туалете: газеты, освежитель, рулон",
+   "draw": "wc_shelf",
+   "w": 8,
+   "h": 11,
+   "paletteKey": "wood",
+   "elevation": 30,
+   "rooms": [
+    "bathroom"
+   ]
   }
  ]
 }

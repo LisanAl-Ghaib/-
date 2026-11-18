@@ -27,6 +27,8 @@ export const SlotUseSchema = z.enum([
   'fridge', 'plants', 'exercise', 'crafts', 'gaming', 'look',
   /** миски для животных */
   'pets',
+  /** унитаз */
+  'toilet',
 ]);
 export type SlotUse = z.infer<typeof SlotUseSchema>;
 

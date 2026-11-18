@@ -205,6 +205,19 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
     return { frame: FRAME.lie, turn, bob: Math.floor((nowMs + h) / 2200) % 2 };
   }
 
+  // жест: кивнула или помахала кому-то (мастерам из окошка)
+  const gest = r.gesture && r.gesture.until > tGame ? r.gesture : null;
+  if (gest) {
+    const toward: 1 | -1 = gest.toX >= r.x ? 1 : -1;
+    const k = Math.floor(nowMs / (gest.kind === 'wave' ? 260 : 220)) % 2;
+    if (r.pose === 'sit') {
+      if (gest.kind === 'wave') return { frame: k ? FRAME.sitArmUp : FRAME.sitArm, facing: toward };
+      return { frame: k ? FRAME.sitLean : FRAME.sit, bob: k, facing: toward };
+    }
+    if (gest.kind === 'wave') return { frame: k ? FRAME.frontWave : FRAME.frontStand };
+    return { frame: FRAME.stand, bob: k, facing: toward };
+  }
+
   if (r.pose === 'sit') {
     let base: Orient = env.tableBack ? 'back' : r.front ? 'front' : 'side';
     if (faceTo !== undefined && !env.tableBack) base = 'side';

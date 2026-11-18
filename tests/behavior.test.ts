@@ -118,3 +118,59 @@ describe('Ольга Дмитриевна (настоящий дом)', () => {
     expect(kinds.has('phone-call')).toBe(true);
   });
 });
+
+describe('быт и мастера (настоящий дом)', () => {
+  it('сумки разбирают сразу, в туалет ходят, мастера приходят и уходят, консьержка с ними здоровается', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const { Simulation: Sim } = await import('../src/sim/simulation');
+    const { createWorldState: create } = await import('../src/sim/state');
+    const d = build(loadRawDataNode()).defs!;
+    const sim = new Sim(d, create(d, 5));
+    const started: Record<string, number> = {};
+    sim.bus.on('action.start', (e) => (started[e.actionId] = (started[e.actionId] ?? 0) + 1));
+    let bagsSince = -1;
+    let maxBagsWait = 0;
+    const phases = new Set<string>();
+    let gestures = 0;
+    for (let i = 0; i < (14 * 86400) / 10; i++) {
+      sim.step();
+      const st = sim.state.apartments['apt-1-left'];
+      if (st.bags > 0 && bagsSince < 0) bagsSince = sim.time;
+      if (st.bags === 0 && bagsSince >= 0) {
+        maxBagsWait = Math.max(maxBagsWait, sim.time - bagsSince);
+        bagsSince = -1;
+      }
+      for (const w of sim.state.workers) phases.add(w.phase);
+      if (sim.state.residents['olga-shpak'].gesture) gestures++;
+    }
+    expect(started.shopping).toBeGreaterThan(0);
+    expect(maxBagsWait).toBeLessThan(40 * 60); // продукты не стоят в прихожей часами
+    expect(started.cook).toBeGreaterThan(10);
+    expect(started.toilet).toBeGreaterThan(14 * 2.5); // несколько раз в день
+    expect([...phases].sort()).toEqual(['arriving', 'leaving', 'lunch', 'off', 'working']);
+    expect(gestures).toBeGreaterThan(0);
+    expect(sim.state.chronicle.some((e) => e.kind === 'workers.greet')).toBe(true);
+    // в воскресенье мастеров нет
+    const sunday = sim.state.workers.every((w) => w.away || w.phase === 'off' || sim.calendar().weekday !== 7);
+    expect(sunday).toBe(true);
+  });
+});
+
+describe('старое сохранение', () => {
+  it('мир версии 7 (без мастеров и туалета) дополняется и живёт дальше', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const { Simulation: Sim } = await import('../src/sim/simulation');
+    const { createWorldState: create, MIGRATABLE_VERSIONS } = await import('../src/sim/state');
+    expect(MIGRATABLE_VERSIONS).toContain(7);
+    const d = build(loadRawDataNode()).defs!;
+    const old = new Sim(d, create(d, 3));
+    for (let i = 0; i < 8640; i++) old.step();
+    const st = JSON.parse(JSON.stringify(old.state));
+    delete st.workers;
+    for (const r of Object.values(st.residents) as { needs: Record<string, number> }[]) delete r.needs.bladder;
+    const sim = new Sim(d, st);
+    expect(sim.state.workers).toHaveLength(2);
+    for (let i = 0; i < 8640; i++) sim.step();
+    expect(Number.isFinite(sim.state.residents['olga-shpak'].needs.bladder)).toBe(true);
+  });
+});

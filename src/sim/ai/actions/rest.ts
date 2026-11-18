@@ -87,6 +87,29 @@ export const nap: ActionDef = {
 };
 
 /** Утро: умыться, собраться */
+/** Сходить в туалет (дверь закрыта — видно только, что занято) */
+export const toilet: ActionDef = {
+  id: 'toilet',
+  plan(ctx) {
+    const { r } = ctx;
+    const b = r.needs.bladder;
+    if (b > 45 || r.interaction !== null) return null;
+    const spot = homeSlot(ctx, 'toilet');
+    if (!spot) return null;
+    return {
+      score: 5 + (45 - b) * 0.55,
+      target: spot.target,
+      duration: ctx.sim.rng.int(3, 7) * 60,
+      label: 'в туалете',
+      interruptible: false,
+    };
+  },
+  onEnd(ctx, a, interrupted) {
+    if (interrupted && ctx.now - a.performStart < 60) return;
+    ctx.r.needs.bladder = 100;
+  },
+};
+
 export const wash: ActionDef = {
   id: 'wash',
   icon: 'wash',

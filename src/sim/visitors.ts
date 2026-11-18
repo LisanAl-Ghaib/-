@@ -3,7 +3,18 @@ import { planPath } from '../world/navigation';
 import { endAction, startAction } from './ai/brain';
 import { chronicle } from './chronicle/chronicle';
 import { addMoodlet } from './needs';
+import type { Step } from '../world/navigation';
 import type { VisitorState } from './state';
+
+export interface Walker {
+  x: number;
+  y: number;
+  level: number;
+  away: boolean;
+  facing: 1 | -1;
+  path: Step[];
+  walkDist: number;
+}
 import type { Simulation } from './simulation';
 
 /**
@@ -37,7 +48,8 @@ function hostHome(sim: Simulation, v: VisitorState): boolean {
   return !(r.action?.id === 'sleep' && r.action.phase === 'perform') && r.interaction === null;
 }
 
-function walk(sim: Simulation, v: VisitorState, dt: number): boolean {
+/** Шагать по маршруту (гости, мастера). true — пришёл */
+export function walk(sim: Simulation, v: Walker, dt: number): boolean {
   let budget = (WALK_SPEED * 0.9 * dt) / 60;
   while (v.path.length && budget > 0) {
     const s = v.path[0];

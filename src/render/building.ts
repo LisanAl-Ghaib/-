@@ -405,7 +405,12 @@ function drawApartment(
       const colors = ['#ffd27a', '#ff8a6a', '#8fd0ff', '#b8f08a'];
       for (let x = room.x0 + 3, i = 0; x < room.x1 - 3; x += 4, i++) rect(g, x, lt + 4 + (i % 2), 1, 1, colors[i % colors.length]);
     }
-    drawLamp(g, Math.round((room.x0 + room.x1) / 2), lt, style, pal);
+    if (room.type === 'bathroom' && w < 40) {
+      // в тесном туалете — голая лампочка в патроне
+      const lx = Math.round((room.x0 + room.x1) / 2);
+      rect(g, lx, lt + 2, 1, 4, '#555');
+      rect(g, lx - 1, lt + 6, 3, 3, '#f4ecd0');
+    } else drawLamp(g, Math.round((room.x0 + room.x1) / 2), lt, style, pal);
   }
   // мебель
   for (const room of apt.rooms) {
