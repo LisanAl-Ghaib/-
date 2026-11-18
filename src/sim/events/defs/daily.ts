@@ -1,4 +1,9 @@
-import { chronicle } from '../../chronicle/chronicle';
+import { chronicleAt } from '../../chronicle/chronicle';
+
+/** Заметно станет, когда дом проснётся: часов в 9–11 */
+function noticeAt(c: { sim: { time: number; rng: { int(a: number, b: number): number } } }): number {
+  return c.sim.time + c.sim.rng.int(5 * 60, 7 * 60) * 60;
+}
 import { addMoodlet } from '../../needs';
 import { rel } from '../../social/relations';
 import type { EventDef } from '../types';
@@ -25,7 +30,7 @@ export const birthday: EventDef = {
     const r = sim.state.residents[who!];
     addMoodlet({ r, now: sim.time }, 'birthday', 'День рождения!', 15, 20, 10);
     r.bubble = { icon: 'gift', until: sim.time + 3600 };
-    chronicle(sim, 'birthday', [who!], 3, { age: sim.age(def) });
+    chronicleAt(sim, noticeAt(c), 'birthday', [who!], 3, { age: sim.age(def) });
     for (const other of sim.defs.residents) {
       if (other.id === who) continue;
       const ro = rel(sim, other.id, who!);
@@ -58,7 +63,7 @@ export const illness: EventDef = {
     r.sick = { since: sim.time, until: sim.time + Math.round(days * 86400) };
     addMoodlet({ r, now: sim.time }, 'sick', 'Болеет', -10, days * 24);
     r.bubble = { icon: 'sick', until: sim.time + 4 * 3600 };
-    chronicle(sim, 'sick', [who!], 3);
+    chronicleAt(sim, noticeAt(c), 'sick', [who!], 3);
     // кто узнает — придёт проведать
     for (const other of sim.defs.residents) {
       if (other.id === who) continue;

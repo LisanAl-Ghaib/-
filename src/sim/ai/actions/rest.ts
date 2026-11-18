@@ -20,7 +20,7 @@ export const sleep: ActionDef = {
       score: night ? 18 + late * 4 : sick ? 10 : 9,
       target: bed.target,
       duration: 12 * 3600,
-      label: sick && !night ? 'лежит, болеет' : 'спит',
+      label: sick && !night ? 'лежит в постели' : 'спит',
       interruptible: false,
     };
   },

@@ -17,7 +17,7 @@ import { createWeather, seasonOf, updateWeather, weatherAppeal, type WeatherStat
 import { createResidentState, type ApartmentState, type ChronicleEntry, type ResidentState, type WorldState } from './state';
 import { endAction, startAction } from './ai/brain';
 import type { ActionPlan } from './ai/types';
-import { chronicle } from './chronicle/chronicle';
+import { chronicle, flushPendingChronicle } from './chronicle/chronicle';
 import { familyName } from './chronicle/russian';
 import { runExclusive, runIndependent } from './events/engine';
 import { detectEncounters } from './social/encounters';
@@ -56,6 +56,7 @@ export class Simulation {
     const fresh = state.time === 0 && state.chronicle.length === 0;
     state.weather ??= createWeather(this.calendar(), this.rng, state.time);
     state.yard ??= { snowman: null };
+    state.pendingChronicle ??= [];
     this.syncResidents();
     initRelations(this);
     if (fresh) chronicle(this, 'world.start', [], 3);
@@ -299,6 +300,7 @@ export class Simulation {
       if (r.bubble && r.bubble.until <= s.time) r.bubble = null;
     }
     updateInteractions(this, DT);
+    flushPendingChronicle(this);
     if (s.time % 60 === 0) detectEncounters(this);
     if (s.time % 300 === 0) this.familyDinners();
   }

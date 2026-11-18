@@ -1,18 +1,8 @@
 import { el } from './dom';
+import { observedLabel } from './observe';
 import { portrait } from './portrait';
 import type { UiHost } from './ui';
 
-const STYLE: Record<string, string> = {
-  soviet: 'советская классика', scandi: 'скандинавский', loft: 'лофт', boho: 'бохо', classic: 'классика',
-  minimal: 'минимализм', student: 'студенческая', cozy: 'уютная', retro: 'ретро',
-};
-const WALLPAPER: Record<string, string> = {
-  plain: 'однотонные стены', stripes: 'обои в полоску', dots: 'обои в горошек', diamonds: 'обои с ромбами', brick: 'кирпич',
-  tiles: 'плитка', damask: 'обои с вензелями', panels: 'панели', flowers: 'обои в цветочек',
-};
-const FLOOR: Record<string, string> = {
-  parquet: 'паркет', boards: 'доски', linoleum: 'линолеум', tiles: 'плитка', carpet: 'ковролин', concrete: 'бетон', herringbone: 'паркет «ёлочкой»',
-};
 
 /** Панель квартиры: интерьер, жильцы и то, что в ней видно прямо сейчас */
 export function renderApartmentPanel(box: HTMLElement, host: UiHost, aptId: string): void {
@@ -20,7 +10,7 @@ export function renderApartmentPanel(box: HTMLElement, host: UiHost, aptId: stri
   if (!apt) return;
   box.innerHTML = '';
   const people = host.defs.residents.filter((r) => r.apartment === aptId);
-  const card = el('div', { class: 'card' }, el('h2', {}, apt.level === 0 ? 'Комната консьержки' : `Квартира ${apt.number}`), el('div', { class: 'sub' }, apt.level === 0 ? '1 этаж, у входа в подъезд' : `${apt.level + 1} этаж, ${apt.side === 'left' ? 'слева' : 'справа'} от лестницы`));
+  const card = el('div', { class: 'card' }, el('h2', {}, apt.level === 0 ? 'Комната при дежурке' : `Квартира ${apt.number}`), el('div', { class: 'sub' }, apt.level === 0 ? '1 этаж, у входа в подъезд' : `${apt.level + 1} этаж, ${apt.side === 'left' ? 'слева' : 'справа'} от лестницы`));
   if (!apt.def) {
     card.append(
       el('p', {}, 'Квартира пустует: голые стены, лампочка на проводе, пыль на подоконнике.'),
@@ -31,12 +21,7 @@ export function renderApartmentPanel(box: HTMLElement, host: UiHost, aptId: stri
   }
   const d = apt.def;
   card.append(
-    el('p', {}, d.description || ''),
-    el('div', { class: 'chips' },
-      d.renovation ? el('span', { class: 'chip warn' }, 'идёт ремонт') : el('span', { class: 'chip' }, `стиль: ${STYLE[d.style] ?? d.style}`),
-      d.renovation ? null : el('span', { class: 'chip' }, WALLPAPER[d.wallpaper] ?? d.wallpaper),
-      d.renovation ? null : el('span', { class: 'chip' }, FLOOR[d.flooring] ?? d.flooring),
-    ),
+    ...(d.renovation ? [el('div', { class: 'chips' }, el('span', { class: 'chip warn' }, 'идёт ремонт'))] : []),
     el('h3', {}, 'Что видно сейчас'),
     el('div', { class: 'furn-list', 'data-k': 'seen' }),
     ...(people.length ? [el('h3', {}, people.length > 1 ? 'Живут' : 'Живёт')] : []),
@@ -87,7 +72,7 @@ function observations(host: UiHost, aptId: string): string[] {
 export function updateApartmentPanel(box: HTMLElement, host: UiHost, aptId: string): void {
   for (const node of box.querySelectorAll<HTMLElement>('[data-res]')) {
     const r = host.sim.state.residents[node.dataset.res!];
-    node.textContent = r ? (r.action?.label ?? 'думает, чем заняться') : '';
+    node.textContent = observedLabel(r);
   }
   const seen = box.querySelector<HTMLElement>('[data-k="seen"]');
   if (seen) {

@@ -7,7 +7,7 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -179,6 +179,8 @@ export interface WorldState {
   /** флаги «уже было» (дни рождения и т. п.) */
   flags: Record<string, number>;
   weather: WeatherState | null;
+  /** записи хроники, которые станут заметны позже (болезнь видно днём, а не в 4 утра) */
+  pendingChronicle: { at: number; kind: string; actors: string[]; importance: 1 | 2 | 3; data: ChronicleEntry['data'] }[];
   /** предметы во дворе, которые появляются сами (снеговик) */
   yard: { snowman: { x: number; builtAt: number; by: string } | null };
 }
@@ -242,6 +244,7 @@ export function createWorldState(defs: WorldDefs, seedOverride?: number | string
     pairCooldown: {},
     flags: {},
     weather: null,
+    pendingChronicle: [],
     yard: { snowman: null },
   };
 }

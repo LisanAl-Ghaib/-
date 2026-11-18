@@ -11,6 +11,32 @@ export function setNarrator(n: Narrator): void {
   narrator = n;
 }
 
+/** Записать событие, когда его станет видно (не раньше времени at) */
+export function chronicleAt(
+  sim: Simulation,
+  at: number,
+  kind: string,
+  actors: string[],
+  importance: 1 | 2 | 3,
+  data: ChronicleEntry['data'] = {},
+): void {
+  if (at <= sim.time) {
+    chronicle(sim, kind, actors, importance, data);
+    return;
+  }
+  sim.state.pendingChronicle.push({ at, kind, actors, importance, data });
+}
+
+/** Вызывается каждый шаг: выпускает отложенные записи */
+export function flushPendingChronicle(sim: Simulation): void {
+  const p = sim.state.pendingChronicle;
+  if (!p.length) return;
+  const due = p.filter((e) => e.at <= sim.time);
+  if (!due.length) return;
+  sim.state.pendingChronicle = p.filter((e) => e.at > sim.time);
+  for (const e of due) if (e.actors.every((id) => sim.state.residents[id])) chronicle(sim, e.kind, e.actors, e.importance, e.data);
+}
+
 /** Записать событие в хронику дома */
 export function chronicle(
   sim: Simulation,

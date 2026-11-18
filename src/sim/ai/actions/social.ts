@@ -24,19 +24,10 @@ export function hostAvailable(ctx: AgentCtx, host: string): boolean {
   return true;
 }
 
+/** Со стороны видно только, к кому идёт и несёт ли что-то в руках */
 function intentLabel(kind: string, h: ResidentDef): string {
-  switch (kind) {
-    case 'congratulate':
-      return `идёт поздравить ${nameCase(h, 'acc')}`;
-    case 'care':
-      return `несёт гостинцы ${nameCase(h, 'dat')}`;
-    case 'apologize':
-      return `идёт мириться к ${nameCase(h, 'dat')}`;
-    case 'treat':
-      return `несёт угощение ${nameCase(h, 'dat')}`;
-    default:
-      return `идёт в гости к ${nameCase(h, 'dat')}`;
-  }
+  if (kind === 'congratulate' || kind === 'care' || kind === 'treat' || kind === 'apologize') return `несёт что-то ${nameCase(h, 'dat')}`;
+  return `идёт к ${nameCase(h, 'dat')}`;
 }
 
 /** Зайти к соседу */

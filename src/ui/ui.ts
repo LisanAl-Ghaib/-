@@ -4,6 +4,7 @@ import { SEASON_NAME, seasonOf, WEATHER_NAME, windMs } from '../sim/env/weather'
 import type { WorldDefs } from '../data/defs';
 import type { Simulation } from '../sim/simulation';
 import { $, el } from './dom';
+import { observedLabel } from './observe';
 import { portrait } from './portrait';
 
 export interface UiHost {
@@ -123,7 +124,7 @@ export class Ui {
         'div',
         { class: 'res-row', onclick: () => this.host.select(def.id, { focus: true }) },
         portrait(def),
-        el('div', {}, el('div', { class: 'nm' }, `${def.name.first} ${def.name.last}`), el('div', { class: 'act' }, `${apt.level === 0 ? 'консьержная' : `кв. ${apt.number}`}, ${apt.level + 1} этаж · ${def.occupation.title}`), act),
+        el('div', {}, el('div', { class: 'nm' }, `${def.name.first} ${def.name.last}`), el('div', { class: 'act' }, `${apt.level === 0 ? 'комната при дежурке' : `кв. ${apt.number}`}, ${apt.level + 1} этаж`), act),
       );
       this.resRows.set(def.id, { row, act });
       box.append(row);
@@ -145,7 +146,7 @@ export class Ui {
     for (const [id, { row, act }] of this.resRows) {
       const r = sim.state.residents[id];
       row.classList.toggle('selected', id === this.host.selected);
-      act.textContent = r ? `→ ${r.away ? `${r.action?.label ?? 'нет дома'}` : r.action?.label ?? 'думает, чем заняться'}` : '';
+      act.textContent = r ? `→ ${observedLabel(r)}` : '';
     }
     const v = this.views.get(this.tab);
     if (v?.update) v.update($(`#tab-${this.tab}`));

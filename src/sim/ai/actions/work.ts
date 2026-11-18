@@ -85,14 +85,18 @@ export const workFromHome: ActionDef = {
     } else return null;
     if (r.today.worked >= need) return null;
     // обеденный перерыв
-    const lunchBreak = !r.today.lunch && p && ctx.now >= p.lunchAt - 15 * 60 && r.needs.food < 70;
+    const lunchBreak = !r.today.lunch && p && ctx.now >= p.lunchAt - 15 * 60 && ctx.now < p.lunchAt + 90 * 60 && r.needs.food < 70;
     const spot = homeSlot(ctx, 'work', ['study', 'living', 'bedroom', 'studio']) ?? homeSlot(ctx, 'eat');
     const target = spot?.target ?? roomPoint(ctx, roomOfType(ctx.home, 'living', 'studio') ?? ctx.home.rooms[0]);
     return {
       score: lunchBreak ? 3 : 13 + pressure,
       target,
       duration: ctx.sim.rng.int(50, 110) * 60,
-      label: def.occupation.kind === 'onsite' ? 'на посту, поглядывает в окошко' : `работает (${def.occupation.title})`,
+      label: spot?.slot && ctx.home.rooms[spot.slot.roomIndex].furniture.some((f) => f.uid === spot.slot.furnitureUid && f.def.draw === 'concierge_desk')
+        ? 'сидит у окошка в холл'
+        : spot?.slot && ctx.home.rooms[spot.slot.roomIndex].furniture.some((f) => f.uid === spot.slot.furnitureUid && f.def.draw === 'computer_desk')
+          ? 'сидит за компьютером'
+          : 'работает за столом',
     };
   },
   perform(ctx, _a, dt) {
@@ -103,7 +107,7 @@ export const workFromHome: ActionDef = {
   },
   continueScore(ctx) {
     const p = ctx.r.plan;
-    if (p && !ctx.r.today.lunch && ctx.now >= p.lunchAt - 15 * 60 && ctx.r.needs.food < 70) return 2;
+    if (p && !ctx.r.today.lunch && ctx.now >= p.lunchAt - 15 * 60 && ctx.now < p.lunchAt + 90 * 60 && ctx.r.needs.food < 70) return 2;
     return 11;
   },
 };

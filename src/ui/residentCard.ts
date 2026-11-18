@@ -1,28 +1,23 @@
 import { calendar, hhmm } from '../core/time';
 import type { ResidentDef } from '../data/schemas';
-import { FAMILY_KINDS } from '../data/defs';
-import { RELATION_WORDS } from '../sim/social/relations';
+import { observedLabel } from './observe';
 import { publicSpot } from '../sim/social/encounters';
 import { el } from './dom';
 import { portrait } from './portrait';
 import type { UiHost } from './ui';
 
 /**
- * Карточка жильца — только то, что видно со стороны: кто это, что сейчас делает,
- * где находится, что с ним случалось. Потребности, характер и настроение
- * у жильца есть, но в интерфейсе их нет: о них можно догадаться по поведению.
+ * Карточка жильца — только то, что видно со стороны: как зовут, где живёт, что делает,
+ * где сейчас и что с ним на твоих глазах случалось. Описание (история, характер, работа,
+ * привычки) живёт в данных и управляет поведением, но в интерфейсе его нет:
+ * характер узнаётся по поступкам.
  */
-const OCCUPATION: Record<string, string> = {
-  office: 'работает в офисе', shift: 'работает сменами', remote: 'работает из дома', freelance: 'работает на себя',
-  student: 'учится', school: 'ходит в школу', retired: 'на пенсии', unemployed: 'без работы', homemaker: 'ведёт хозяйство',
-  onsite: 'работает здесь, в доме',
-};
-
-function years(n: number): string {
-  const m10 = n % 10;
-  const m100 = n % 100;
-  const w = m10 === 1 && m100 !== 11 ? 'год' : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'года' : 'лет';
-  return `${n} ${w}`;
+function looksAge(n: number): string {
+  if (n < 7) return 'малыш';
+  if (n < 14) return 'школьник';
+  if (n < 20) return 'подросток';
+  const r = Math.round(n / 5) * 5;
+  return `на вид лет ${r}`;
 }
 
 /** Где сейчас жилец — словами */
@@ -54,33 +49,25 @@ export function renderResidentCard(box: HTMLElement, host: UiHost, id: string): 
     el('div', { class: 'card' },
       portrait(def, 84),
       el('h2', {}, fullName),
-      el('div', { class: 'sub' }, `${years(host.sim.age(def))} · ${def.occupation.title}`),
-      el('div', { class: 'sub' }, `${apt.level === 0 ? 'комната консьержки' : `кв. ${apt.number}`}, ${apt.level + 1} этаж · ${OCCUPATION[def.occupation.kind]}${def.occupation.workplace && def.occupation.kind !== 'onsite' ? ` — ${def.occupation.workplace}` : ''}`),
+      el('div', { class: 'sub' }, looksAge(host.sim.age(def))),
+      el('div', { class: 'sub' }, `живёт: ${apt.level === 0 ? 'комната при дежурке' : `кв. ${apt.number}`}, ${apt.level + 1} этаж`),
       family ? el('div', { class: 'sub' }, family) : null,
       el('div', { style: 'display:flex;gap:4px;margin:6px 0' },
         el('button', { onclick: () => host.select(id, { focus: true }) }, '◎ Следить'),
         el('button', { onclick: () => host.focusApartment(def.apartment) }, '⌂ Квартира'),
       ),
       el('div', { class: 'now' }, el('div', { 'data-k': 'now' }, '…'), el('div', { class: 'moodlet', 'data-k': 'where' }, '')),
-      el('h3', {}, 'История'),
-      el('p', {}, def.backstory || '—'),
-      el('h3', {}, 'Что с ним было недавно'.replace('ним', def.gender === 'f' ? 'ней' : 'ним')),
+      el('h3', {}, 'Что я замечал'),
       el('div', { 'data-k': 'recent' }),
     ),
   );
   updateResidentCard(box, host, id, true);
 }
 
+/** С кем живёт — это видно; кем они друг другу приходятся — нет */
 function familyLine(host: UiHost, def: ResidentDef): string {
-  const parts = def.relationships
-    .filter((r) => FAMILY_KINDS.has(r.kind))
-    .map((r) => {
-      const o = host.defs.residentById.get(r.with);
-      if (!o) return '';
-      return `${RELATION_WORDS[r.kind]?.[o.gender] ?? r.kind} — ${o.name.short ?? o.name.first}`;
-    })
-    .filter(Boolean);
-  return parts.length ? `Семья: ${parts.join(', ')}` : '';
+  const others = host.defs.residents.filter((d) => d.apartment === def.apartment && d.id !== def.id).map((d) => d.name.short ?? d.name.first);
+  return others.length ? `живёт вместе с: ${others.join(', ')}` : '';
 }
 
 let recentStamp = 0;
@@ -92,8 +79,7 @@ export function updateResidentCard(box: HTMLElement, host: UiHost, id: string, f
   const q = (k: string) => box.querySelector<HTMLElement>(`[data-k="${k}"]`);
   const now = q('now');
   if (now) {
-    const sick = r.sick && r.sick.until > host.sim.time ? (def.gender === 'f' ? ' · приболела' : ' · приболел') : '';
-    now.textContent = `Сейчас: ${r.action?.label ?? 'думает, чем заняться'}${sick}`;
+    now.textContent = `Сейчас: ${observedLabel(r)}`;
   }
   const where = q('where');
   if (where) where.textContent = whereNow(host, id);
