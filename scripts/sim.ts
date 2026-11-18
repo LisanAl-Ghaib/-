@@ -3,6 +3,7 @@
  *   --actions  печатать каждое начатое действие
  *   --quiet    не печатать сводку потребностей каждые 6 часов
  *   --min N    минимальная важность записей хроники (1..3)
+ *   --fixtures тестовый дом с пятью жильцами (tests/fixtures/data)
  * Безголовая симуляция: та же логика, что в браузере, без рендера.
  */
 import { calendar, DAY, HOUR, hhmm, formatDate } from '../src/core/time';
@@ -19,7 +20,8 @@ const opt = (name: string, def?: string) => {
 };
 const flag = (name: string) => args.includes(`--${name}`);
 
-const res = buildDefs(loadRawDataNode());
+// --fixtures — тестовый дом с пятью жильцами из tests/fixtures/data
+const res = buildDefs(flag('fixtures') ? loadRawDataNode('tests/fixtures/data', 'data') : loadRawDataNode());
 if (!res.defs) {
   console.error(res.errors.join('\n'));
   process.exit(1);

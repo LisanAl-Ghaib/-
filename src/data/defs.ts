@@ -98,13 +98,13 @@ export function buildDefs(raw: RawData): BuildResult {
   for (const a of apartments) {
     if (aptIds.has(a.id)) errors.push(`квартира ${a.id} описана дважды`);
     aptIds.add(a.id);
-    if (a.floor > config.building.residentialFloors)
-      errors.push(`${a.id}: этаж ${a.floor} выше последнего (${config.building.residentialFloors})`);
+    if (a.floor === 1 && a.side === 'right')
+      errors.push(`${a.id}: на первом этаже справа — колясочная и выход во двор, квартиры там нет`);
     const total = a.rooms.reduce((s, r) => s + r.width, 0);
     if (total !== config.building.apartmentWidthTiles)
       errors.push(`${a.id}: сумма ширин комнат ${total} ≠ ${config.building.apartmentWidthTiles} тайлов`);
     const entrance = a.side === 'left' ? a.rooms[a.rooms.length - 1] : a.rooms[0];
-    if (entrance && entrance.type !== 'hall' && entrance.type !== 'studio')
+    if (entrance && ['bedroom', 'kitchen', 'bathroom'].includes(entrance.type))
       warnings.push(`${a.id}: у лестницы обычно прихожая (hall), а тут ${entrance.type}`);
     a.rooms.forEach((room, ri) => {
       const roomW = room.width * 16;
@@ -127,7 +127,7 @@ export function buildDefs(raw: RawData): BuildResult {
     residentById.set(r.id, r);
     if (!aptIds.has(r.apartment))
       errors.push(`${r.id}: квартира "${r.apartment}" не описана в data/apartments/`);
-    const needsSchedule = ['office', 'shift', 'remote', 'student', 'school'].includes(r.occupation.kind);
+    const needsSchedule = ['office', 'shift', 'remote', 'student', 'school', 'onsite'].includes(r.occupation.kind);
     if (needsSchedule && !r.occupation.schedule)
       errors.push(`${r.id}: для занятости "${r.occupation.kind}" нужен occupation.schedule`);
     if (r.occupation.schedule && r.occupation.schedule.days.length === 0)
@@ -160,7 +160,8 @@ export function buildDefs(raw: RawData): BuildResult {
       room.furniture.flatMap((fp) => catalog.get(fp.item)?.slots ?? []),
     );
     const has = (u: string) => slots.filter((s) => s.use.includes(u as never)).length;
-    if (people.length === 0) warnings.push(`${a.id}: квартира описана, но в ней никто не живёт`);
+    if (people.length === 0 && !a.renovation) warnings.push(`${a.id}: квартира описана, но в ней никто не живёт`);
+    if (people.length > 0 && a.renovation) errors.push(`${a.id}: в квартире идёт ремонт — заселить нельзя (renovation: true)`);
     if (people.length > 0) {
       if (has('sleep') < people.length) warnings.push(`${a.id}: спальных мест ${has('sleep')}, жильцов ${people.length}`);
       if (!has('cook')) warnings.push(`${a.id}: нет плиты (cook)`);

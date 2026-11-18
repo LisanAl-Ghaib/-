@@ -1,0 +1,9 @@
+{
+  "seed": 20260914,
+  "startDate": "2026-09-14T05:30",
+  "address": "ул. Тополиная, 7 (тестовый дом)",
+  "building": {
+    "minFloors": 2,
+    "apartmentWidthTiles": 12
+  }
+}

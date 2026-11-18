@@ -26,7 +26,8 @@ export function chronicle(
   try {
     text = narrator.describe(base, {
       defs: sim.defs,
-      floorOf: (id) => sim.defs.layout.aptById.get(sim.defs.residentById.get(id)?.apartment ?? '')?.level ?? 0,
+      // этаж по-человечески: уровень 0 — первый этаж
+      floorOf: (id) => (sim.defs.layout.aptById.get(sim.defs.residentById.get(id)?.apartment ?? '')?.level ?? 0) + 1,
     });
   } catch (e) {
     text = `${kind}: ${actors.join(', ')}`;

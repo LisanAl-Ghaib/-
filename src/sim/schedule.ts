@@ -20,7 +20,7 @@ const CHRONO = {
 } as const;
 
 const COMMUTERS = new Set(['office', 'shift', 'student', 'school']);
-const HOME_WORKERS = new Set(['remote', 'freelance']);
+const HOME_WORKERS = new Set(['remote', 'freelance', 'onsite']);
 
 export function isCommuter(kind: string): boolean {
   return COMMUTERS.has(kind);

@@ -150,7 +150,7 @@ export class Simulation {
 
   aptState(id: string): ApartmentState {
     let a = this.state.apartments[id];
-    if (!a) a = this.state.apartments[id] = { groceries: 5, meals: 1 };
+    if (!a) a = this.state.apartments[id] = { groceries: 5, meals: 1, dishes: 0, unmade: [], trash: 0, bags: 0 };
     return a;
   }
 
@@ -291,6 +291,11 @@ export class Simulation {
       }
       updateNeeds(ctx, DT);
       updateAgent(ctx, DT);
+      // пришёл домой с пакетами — поставил в прихожей
+      if (r.carrying === 'bags' && !r.away && r.level === ctx.home.level && r.x >= ctx.home.x0 && r.x < ctx.home.x1) {
+        r.carrying = null;
+        this.aptState(ctx.home.id).bags = 2;
+      }
       if (r.bubble && r.bubble.until <= s.time) r.bubble = null;
     }
     updateInteractions(this, DT);

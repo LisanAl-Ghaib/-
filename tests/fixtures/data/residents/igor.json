@@ -1,0 +1,102 @@
+{
+  "id": "igor",
+  "name": {
+    "first": "Игорь",
+    "last": "Ковалёв",
+    "patronymic": "Сергеевич",
+    "short": "Игорь",
+    "cases": {
+      "gen": "Игоря",
+      "dat": "Игорю",
+      "acc": "Игоря",
+      "ins": "Игорем",
+      "pre": "Игоре"
+    }
+  },
+  "gender": "m",
+  "birthday": "1984-05-02",
+  "apartment": "apt-5-left",
+  "occupation": {
+    "kind": "office",
+    "title": "инженер-проектировщик",
+    "workplace": "проектное бюро на другом конце города",
+    "schedule": {
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "start": "09:00",
+      "end": "18:00"
+    },
+    "commuteMinutes": 50,
+    "commute": "bus"
+  },
+  "traits": {
+    "chronotype": "neutral",
+    "sociability": "balanced",
+    "temper": "calm",
+    "outlook": "neutral",
+    "activity": "normal",
+    "tags": [
+      "немногословный",
+      "всё чинит сам",
+      "любит футбол по телевизору"
+    ]
+  },
+  "habits": [
+    {
+      "kind": "tv",
+      "strength": 0.7,
+      "note": "футбол по вечерам"
+    },
+    {
+      "kind": "smoking",
+      "strength": 0.4,
+      "note": "бросает курить третий год"
+    },
+    {
+      "kind": "crafts",
+      "strength": 0.4,
+      "note": "чинит соседям табуретки"
+    }
+  ],
+  "backstory": "Вырос в этом же районе, в доме напротив. С Наташей женат двенадцать лет. Работает в проектном бюро и каждый день проводит почти два часа в автобусе.",
+  "appearance": {
+    "skin": "#e3b896",
+    "hair": {
+      "style": "balding",
+      "color": "#5a4632"
+    },
+    "height": "tall",
+    "build": "heavy",
+    "outfit": {
+      "top": "#7a8a99",
+      "bottom": "#2f3a4a",
+      "shoes": "#2b2b2b",
+      "style": "casual",
+      "coat": "#4a4f3a"
+    },
+    "accessories": [
+      "mustache"
+    ]
+  },
+  "relationships": [
+    {
+      "with": "natasha",
+      "kind": "spouse",
+      "affinity": 55,
+      "familiarity": 95,
+      "note": "любит, но устал от споров про ремонт"
+    },
+    {
+      "with": "mark",
+      "kind": "neighbor",
+      "affinity": 15,
+      "familiarity": 25,
+      "note": "иногда вместе курят у подъезда"
+    }
+  ]
+}

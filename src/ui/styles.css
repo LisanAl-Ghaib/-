@@ -111,7 +111,7 @@ main { flex: 1; display: flex; min-height: 0; }
   #clock-time { font-size: 17px; min-width: 0; }
   #env { order: 5; width: 100%; font-size: 11px; }
   .menu { margin-left: auto; }
-  #panel { left: 0; right: 0; top: auto; width: auto; height: 58%; border-left: 0; border-top: 2px solid var(--line); box-shadow: 0 -6px 18px rgba(0,0,0,.45); }
+  #panel { left: 0; right: 0; top: auto; width: auto; height: 50%; border-left: 0; border-top: 2px solid var(--line); box-shadow: 0 -6px 18px rgba(0,0,0,.45); }
   #panel .tab { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
   #zoom { right: 8px; bottom: 10px; }
   button { padding: 6px 9px; }

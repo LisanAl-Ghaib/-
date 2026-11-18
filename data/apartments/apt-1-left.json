@@ -1,0 +1,40 @@
+{
+  "id": "apt-1-left",
+  "floor": 1,
+  "side": "left",
+  "style": "soviet",
+  "description": "Комнатка консьержки при дежурке: тахта с клетчатым пледом, маленький телевизор на комоде, плитка с вечно горячим чайником и окошко в холл, из которого видно каждого, кто входит.",
+  "palette": { "wall": "#d8cfa8", "floor": "#8a5a3a", "wood": "#7a4a2a", "textile": "#9c4a3a", "accent": "#5f8a5a", "metal": "#b8b4a8" },
+  "wallpaper": "stripes",
+  "flooring": "linoleum",
+  "rooms": [
+    { "type": "bedroom", "name": "комнатка", "width": 6, "furniture": [
+      { "item": "rug", "x": 22 },
+      { "item": "cot", "x": 3 },
+      { "item": "family_photos", "x": 8 },
+      { "item": "nightstand", "x": 32 },
+      { "item": "armchair", "x": 42 },
+      { "item": "chest", "x": 58 },
+      { "item": "small_tv", "x": 60, "elevation": 13 },
+      { "item": "wall_clock", "x": 62 },
+      { "item": "wardrobe", "x": 76 },
+      { "item": "window_plants", "x": 40 }
+    ] },
+    { "type": "kitchen", "name": "кухонька", "width": 4, "wallpaper": "tiles", "furniture": [
+      { "item": "mini_fridge", "x": 1 },
+      { "item": "hotplate", "x": 14 },
+      { "item": "spice_shelf", "x": 14 },
+      { "item": "sink_small", "x": 33 },
+      { "item": "chair", "x": 53 },
+      { "item": "wall_calendar", "x": 52 }
+    ] },
+    { "type": "study", "name": "дежурка", "width": 6, "furniture": [
+      { "item": "coat_rack", "x": 3 },
+      { "item": "plant_big", "x": 13 },
+      { "item": "heater", "x": 27 },
+      { "item": "radio", "x": 41, "elevation": 0 },
+      { "item": "keys_board", "x": 78 },
+      { "item": "concierge_desk", "x": 60 }
+    ] }
+  ]
+}

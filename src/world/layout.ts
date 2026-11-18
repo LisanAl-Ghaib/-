@@ -81,9 +81,16 @@ const ROOM_NAMES: Record<RoomType, string> = {
   studio: 'комната',
 };
 
+/** Этаж по-человечески (уровень 0 — первый этаж) */
+export function floorNo(level: number): number {
+  return level + 1;
+}
+
 export class BuildingLayout {
-  readonly floors: number; // жилых этажей
-  readonly levels: number; // всего уровней, включая первый (0)
+  /** индекс верхнего уровня (уровень 0 — первый этаж с подъездом) */
+  readonly floors: number;
+  /** всего уровней = этажей в доме */
+  readonly levels: number;
   readonly aptW: number;
   readonly buildingX0: number;
   readonly buildingX1: number;
@@ -111,8 +118,10 @@ export class BuildingLayout {
   readonly elevator: { x0: number; x1: number; doorX: number };
 
   constructor(cfg: WorldConfig, aptDefs: ApartmentDef[], catalog: Map<string, FurnitureDef>) {
-    this.floors = cfg.building.residentialFloors;
-    this.levels = this.floors + 1;
+    // дом растёт вместе с жильцами
+    const maxFloor = Math.max(cfg.building.minFloors, ...aptDefs.map((a) => a.floor));
+    this.levels = maxFloor;
+    this.floors = maxFloor - 1;
     this.aptW = cfg.building.apartmentWidthTiles * TILE;
     this.buildingX0 = ALLEY_W;
     const bw = OUTER_WALL * 2 + this.aptW * 2 + CORE_W;
@@ -139,7 +148,14 @@ export class BuildingLayout {
     this.stairs = { footX: this.coreX + 8, landingX: this.coreX + 34, x0: this.coreX + 2, x1: this.coreX + 40 };
     this.elevator = { x0: this.coreX + 42, x1: this.coreX + 62, doorX: this.coreX + 52 };
 
-    const byKey = new Map(aptDefs.map((a) => [`${a.floor}-${a.side}`, a]));
+    const byKey = new Map(aptDefs.map((a) => [`${a.floor - 1}-${a.side}`, a]));
+    // на первом этаже слева может быть комната консьержки
+    const ground = byKey.get('0-left');
+    if (ground) {
+      const apt = this.buildApartment(0, 'left', ground, catalog);
+      this.apartments.push(apt);
+      this.aptById.set(apt.id, apt);
+    }
     for (let level = 1; level <= this.floors; level++) {
       for (const side of ['left', 'right'] as const) {
         const def = byKey.get(`${level}-${side}`) ?? null;
@@ -164,8 +180,9 @@ export class BuildingLayout {
     return Math.max(0, Math.min(this.floors, l));
   }
 
+  /** id квартиры по уровню: этаж в id — человеческий (уровень + 1) */
   static aptId(level: number, side: 'left' | 'right'): string {
-    return `apt-${level}-${side}`;
+    return `apt-${level + 1}-${side}`;
   }
 
   private buildApartment(
@@ -183,7 +200,7 @@ export class BuildingLayout {
       def,
       level,
       side,
-      number: def?.number ?? (level - 1) * 2 + (side === 'left' ? 1 : 2),
+      number: def?.number ?? (level === 0 ? 0 : (level - 1) * 2 + (side === 'left' ? 1 : 2)),
       x0,
       x1,
       doorX,
@@ -262,14 +279,14 @@ export class BuildingLayout {
     if (x < this.buildingX0) return { kind: 'alley' };
     if (x >= this.buildingX1) return { kind: 'yard' };
     if (x >= this.coreX && x < this.coreX + CORE_W) return { kind: 'core', level };
-    if (level === 0) return x < this.coreX ? { kind: 'ground-left' } : { kind: 'ground-right' };
     const side = x < this.coreX ? 'left' : 'right';
-    const apt = this.aptById.get(BuildingLayout.aptId(level, side))!;
+    const apt = this.aptById.get(BuildingLayout.aptId(level, side));
+    if (!apt) return side === 'left' ? { kind: 'ground-left' } : { kind: 'ground-right' };
     return { kind: 'apt', aptId: apt.id, room: this.roomAt(apt, x).index };
   }
 
   apartmentAt(level: number, x: number): ApartmentModel | undefined {
-    if (level < 1) return undefined;
+    if (level < 0) return undefined;
     if (x < this.buildingX0 + OUTER_WALL || x >= this.buildingX1 - OUTER_WALL) return undefined;
     if (x >= this.coreX && x < this.coreX + CORE_W) return undefined;
     const side = x < this.coreX ? 'left' : 'right';

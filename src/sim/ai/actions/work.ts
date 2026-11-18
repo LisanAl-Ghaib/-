@@ -92,12 +92,13 @@ export const workFromHome: ActionDef = {
       score: lunchBreak ? 3 : 13 + pressure,
       target,
       duration: ctx.sim.rng.int(50, 110) * 60,
-      label: `работает (${def.occupation.title})`,
+      label: def.occupation.kind === 'onsite' ? 'на посту, поглядывает в окошко' : `работает (${def.occupation.title})`,
     };
   },
   perform(ctx, _a, dt) {
     ctx.r.today.worked += dt / 60;
-    gain(ctx.r, 'energy', -1.0, dt);
+    // сидячая работа в доме (консьержка) утомляет меньше
+    gain(ctx.r, 'energy', ctx.def.occupation.kind === 'onsite' ? 0.6 : -1.0, dt);
     gain(ctx.r, 'mood', -0.5, dt);
   },
   continueScore(ctx) {

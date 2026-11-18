@@ -31,6 +31,9 @@ const ICONS: Record<string, IconDef> = {
   dots: { rows: ['.......', '.......', '.......', 'a.a.a..', '.......', '.......', '.......'], colors: { a: '#f4f1ea' } },
   laugh: { rows: ['.aaaaa.', 'aaaaaaa', 'ab.a.ba', 'aaaaaaa', 'accccca', '.accca.', '..aaa..'], colors: { a: '#f2d16b', b: '#3a2a1a', c: '#7a2a2a' } },
   snow: { rows: ['...a...', '.a.a.a.', '..aaa..', 'aaaaaaa', '..aaa..', '.a.a.a.', '...a...'], colors: { a: '#e8f4ff' } },
+  yawn: { rows: ['.aaaaa.', 'a.....a', 'a.b.b.a', 'a.....a', 'a.ccc.a', 'a.ccc.a', '.aaaaa.'], colors: { a: '#f2d16b', b: '#3a2a1a', c: '#7a2a2a' } },
+  gloom: { rows: ['..aaa..', '.aaaaa.', 'aaaaaaa', '.......', '.b.b.b.', 'b.b.b..', '.......'], colors: { a: '#8a92a0', b: '#7fb0e0' } },
+  hungry: { rows: ['..aaa..', '.a...a.', 'a..b..a', 'a.bbb.a', 'a..b..a', '.a...a.', '..aaa..'], colors: { a: '#e8d8b0', b: '#c8402e' } },
   umbrella: { rows: ['..aaa..', '.aaaaa.', 'aaaaaaa', '...b...', '...b...', '...b...', '..bb...'], colors: { a: '#3a6fb0', b: '#444' } },
 };
 

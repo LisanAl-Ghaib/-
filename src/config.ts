@@ -1,7 +1,7 @@
 /** Глобальные константы мира. */
 export const TILE = 16;
 /** высота этажа (от пола до пола) */
-export const FLOOR_H = 48;
+export const FLOOR_H = 64;
 /** толщина перекрытия */
 export const SLAB = 4;
 /** ширина лестнично-лифтового ядра */

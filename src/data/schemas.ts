@@ -12,10 +12,11 @@ export const WorldConfigSchema = z.object({
   address: z.string().default('ул. Тополиная, 7'),
   building: z
     .object({
-      residentialFloors: z.number().int().min(1).max(12).default(6),
-      apartmentWidthTiles: z.number().int().min(8).max(20).default(12),
+      /** дом растёт с жильцами: этажей = max(minFloors, самый высокий описанный этаж) */
+      minFloors: z.number().int().min(2).max(16).default(2),
+      apartmentWidthTiles: z.number().int().min(8).max(24).default(16),
     })
-    .default({ residentialFloors: 6, apartmentWidthTiles: 12 }),
+    .default({ minFloors: 2, apartmentWidthTiles: 16 }),
 });
 export type WorldConfig = z.infer<typeof WorldConfigSchema>;
 
@@ -38,7 +39,7 @@ export const FurnitureDefSchema = z.object({
   w: z.number().int().min(2).max(64),
   h: z.number().int().min(1).max(36),
   /** на какой высоте над полом висит (картины, полки, телевизор на стене) */
-  elevation: z.number().int().min(0).max(32).default(0),
+  elevation: z.number().int().min(0).max(48).default(0),
   /** рисовать позади жильцов (по умолчанию) или перед ними (одеяло, стол) */
   layer: z.enum(['back', 'front']).default('back'),
   slots: z
@@ -96,7 +97,7 @@ export const FurniturePlacementSchema = z.object({
   flip: z.boolean().default(false),
   color: hexColor.optional(),
   /** поднять над полом (радио на столе, телевизор на комоде) */
-  elevation: z.number().int().min(0).max(32).optional(),
+  elevation: z.number().int().min(0).max(48).optional(),
 });
 
 export const RoomSchema = z.object({
@@ -114,8 +115,11 @@ export type RoomDef = z.infer<typeof RoomSchema>;
 
 export const ApartmentSchema = z.object({
   id: z.string().regex(/^apt-\d+-(left|right)$/, 'id вида apt-<этаж>-<left|right>'),
+  /** этаж по-человечески: 1 — первый (подъезд; слева там комната консьержки), 2 — второй… */
   floor: z.number().int().min(1),
   side: z.enum(['left', 'right']),
+  /** в квартире идёт ремонт (жить нельзя, днём работают мастера) */
+  renovation: z.boolean().default(false),
   number: z.number().int().optional(),
   style: ApartmentStyleSchema,
   description: z.string().default(''),
@@ -143,6 +147,8 @@ export type RelationKind = z.infer<typeof RelationKindSchema>;
 
 export const OccupationKindSchema = z.enum([
   'office', 'shift', 'remote', 'freelance', 'student', 'school', 'retired', 'unemployed', 'homemaker',
+  /** работает прямо в доме (консьержка, дворник) — рабочее место — слот work в своей квартире */
+  'onsite',
 ]);
 export type OccupationKind = z.infer<typeof OccupationKindSchema>;
 

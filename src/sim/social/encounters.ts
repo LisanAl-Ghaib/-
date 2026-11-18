@@ -27,6 +27,9 @@ export function publicSpot(sim: Simulation, r: ResidentState): Spot | null {
   }
   if (r.x < L.buildingX0) return { kind: 'yard', phrase: 'в проулке', key: 'alley' };
   const inCore = r.x >= L.coreX - 8 && r.x < L.coreX + CORE_W + 8;
+  // консьержка на посту видит всех, кто идёт через холл
+  if (r.level === 0 && r.x < L.coreX && r.action?.id === 'work' && r.action.phase === 'perform')
+    return { kind: 'lobby', phrase: 'у окошка консьержки', key: 'ground' };
   if (r.level === 0) {
     if (r.x >= L.coreX + CORE_W) return { kind: 'entrance', phrase: 'в тамбуре у входа', key: 'ground' };
     if (inCore) return { kind: 'lobby', phrase: 'у почтовых ящиков', key: 'ground' };
@@ -36,7 +39,7 @@ export function publicSpot(sim: Simulation, r: ResidentState): Spot | null {
     const onStairs = Math.abs(r.y - L.floorY(r.level)) > 2;
     return onStairs
       ? { kind: 'stairs', phrase: 'на лестнице', key: `stairs:${Math.round(r.y / 24)}` }
-      : { kind: 'stairs', phrase: `на лестничной площадке ${onFloor(r.level).replace('на ', '')}`, key: `landing:${r.level}` };
+      : { kind: 'stairs', phrase: `на лестничной площадке ${onFloor(r.level + 1).replace('на ', '')}`, key: `landing:${r.level}` };
   }
   return null;
 }
@@ -63,7 +66,7 @@ export function detectEncounters(sim: Simulation): void {
       const rb = s.residents[b];
       const sb = spots.get(b);
       if (!sb || rb.interaction !== null || sa.key !== sb.key) continue;
-      const near = sa.kind === 'elevator' || (Math.abs(ra.x - rb.x) < (sa.key === 'yard' || sa.key === 'bench' ? 28 : 16) && Math.abs(ra.y - rb.y) < 10);
+      const near = sa.kind === 'elevator' || (Math.abs(ra.x - rb.x) < (sa.key === 'yard' || sa.key === 'bench' ? 28 : sa.key === 'ground' ? 44 : 16) && Math.abs(ra.y - rb.y) < 10);
       if (!near) continue;
       const key = pairKey(a, b);
       if ((s.pairCooldown[key] ?? -1) > sim.time) continue;

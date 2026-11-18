@@ -25,9 +25,9 @@ export interface BuildingLayers {
 export function windowRect(room: RoomModel, levelTop: number): [number, number, number, number] | null {
   if (!room.def.window) return null;
   const rw = room.x1 - room.x0;
-  const ww = rw >= 64 ? 20 : rw >= 40 ? 16 : 10;
+  const ww = rw >= 64 ? 22 : rw >= 40 ? 18 : 12;
   const x = Math.round(room.x0 + (rw - ww) / 2);
-  return [x, levelTop + 9, ww, 17];
+  return [x, levelTop + 11, ww, 25];
 }
 
 export function apartmentPalette(apt: ApartmentModel): Palette {
@@ -296,13 +296,48 @@ function drawApartment(
     const w = room.x1 - room.x0;
     const wallColor = room.def.wall ?? pal.wall;
     const wallpaper = apt.vacant ? 'plain' : room.def.wallpaper ?? def?.wallpaper ?? 'plain';
-    drawWallpaper(g, room.x0, lt, w, h, wallColor, wallpaper, `${apt.id}:${room.index}`);
-    rect(g, room.x0, lt, w, 2, shade(wallColor, -0.2)); // тень у потолка
-    rect(g, room.x0, fy - 2, w, 2, apt.vacant ? '#8a8580' : shade(pal.wood, -0.1)); // плинтус
-    drawFloor(g, room.x0, fy, w, pal.floor, apt.vacant ? 'concrete' : room.def.flooring ?? def?.flooring ?? 'boards');
+    const reno = !!def?.renovation;
+    if (reno) drawRenovationWalls(g, room.x0, lt, w, h, wallColor, wallpaper, pal, `${apt.id}:${room.index}`);
+    else drawWallpaper(g, room.x0, lt, w, h, wallColor, wallpaper, `${apt.id}:${room.index}`);
+    rect(g, room.x0, lt, w, 2, shade(reno ? '#cfc8bb' : wallColor, -0.2)); // тень у потолка
+    if (!reno) rect(g, room.x0, fy - 2, w, 2, apt.vacant ? '#8a8580' : shade(pal.wood, -0.1)); // плинтус
+    drawFloor(g, room.x0, fy, w, reno ? '#8a8580' : pal.floor, apt.vacant || reno ? 'concrete' : room.def.flooring ?? def?.flooring ?? 'boards');
+    if (reno) {
+      const dust = Rng.fromSeed(`dust:${apt.id}:${room.index}`);
+      for (let i = 0; i < w / 3; i++) rect(g, room.x0 + dust.int(0, w - 1), fy - dust.int(0, 1), 1, 1, '#d8d2c6');
+    }
     const wr = windowRect(room, lt);
-    const style = apt.vacant ? 'vacant' : def?.style ?? 'plain';
-    if (wr) drawWindow(g, wr, apt.vacant ? '#d0ccc4' : style === 'loft' ? '#3a3a40' : '#efece4', curtainsFor(style), pal);
+    const style = apt.vacant || reno ? 'vacant' : def?.style ?? 'plain';
+    if (wr) {
+      drawWindow(g, wr, apt.vacant || reno ? '#d0ccc4' : style === 'loft' ? '#3a3a40' : '#efece4', curtainsFor(style), pal);
+      if (reno) {
+        // малярный скотч крест-накрест
+        for (let i = 0; i < wr[2]; i++) {
+          rect(g, wr[0] + i, wr[1] + Math.round((i * wr[3]) / wr[2]), 1, 1, 'rgba(230,210,150,0.8)');
+          rect(g, wr[0] + i, wr[1] + wr[3] - 1 - Math.round((i * wr[3]) / wr[2]), 1, 1, 'rgba(230,210,150,0.8)');
+        }
+      }
+      // батарея под окном
+      const rx = wr[0] + 2;
+      const rw2 = wr[2] - 4;
+      rect(g, rx, fy - 15, rw2, 9, reno ? '#c8c4bc' : '#e6e2d8');
+      for (let x = rx + 1; x < rx + rw2 - 1; x += 3) rect(g, x, fy - 15, 1, 9, reno ? '#aaa69c' : '#c8c2b4');
+      rect(g, rx + rw2 - 1, fy - 6, 1, 4, '#9a968c');
+    }
+    if (!apt.vacant && !reno) {
+      rect(g, room.x0 + 4, fy - 9, 2, 2, '#f4f2ec'); // розетка
+      rect(g, room.x0 + 5, fy - 8, 1, 1, '#888');
+      rect(g, room.x1 - 6, fy - 32, 2, 3, '#f4f2ec'); // выключатель
+    }
+    if (reno) {
+      // провода вместо люстры и подрозетники
+      const lx = Math.round((room.x0 + room.x1) / 2);
+      rect(g, lx, lt + 2, 1, 7, '#333');
+      rect(g, lx + 1, lt + 8, 1, 2, '#c8402e');
+      rect(g, room.x0 + 6, fy - 10, 3, 3, '#5a5650');
+      rect(g, room.x1 - 9, fy - 33, 3, 3, '#5a5650');
+      continue;
+    }
     // лепнина под потолком
     if (style === 'classic' || style === 'soviet') {
       rect(g, room.x0, lt + 2, w, 1, shade(wallColor, 0.25));
@@ -334,6 +369,48 @@ function drawApartment(
   const dx = apt.side === 'left' ? apt.x1 - 1 : apt.x0 - 2;
   rect(g, dx, lt, 3, h - 26, '#c8c1b4');
   rect(g, dx, fy - 26, 3, 1, '#7a6a5a');
+  if (apt.level === 0) {
+    // окошко консьержки в холл
+    rect(g, dx - 1, fy - 46, 5, 14, '#8a7a6a');
+    rect(g, dx, fy - 45, 3, 12, '#bcd8e4');
+    rect(g, dx + 1, fy - 44, 1, 4, '#ffffff');
+    rect(g, dx - 3, fy - 32, 9, 2, '#8a6a4a'); // полочка
+  }
+}
+
+/** Стены квартиры на ремонте: содранные обои, штукатурка, свежая краска */
+function drawRenovationWalls(g: CanvasRenderingContext2D, x0: number, y0: number, w: number, h: number, oldWall: string, oldPaper: string, pal: Palette, seed: string) {
+  const rng = Rng.fromSeed(`reno:${seed}`);
+  rect(g, x0, y0, w, h, '#cfc8bb'); // штукатурка
+  for (let i = 0; i < (w * h) / 40; i++) rect(g, x0 + rng.int(0, w - 1), y0 + rng.int(0, h - 1), 1, 1, rng.pick(['#c4bcae', '#d8d2c6']));
+  // остатки старых обоев — рваными кусками
+  const pieces = rng.int(1, 3);
+  for (let p = 0; p < pieces; p++) {
+    const pw = rng.int(10, Math.max(12, Math.floor(w / 2)));
+    const px = x0 + rng.int(0, Math.max(0, w - pw));
+    const top = y0 + rng.int(4, 18);
+    const old = document.createElement('canvas');
+    old.width = pw;
+    old.height = h;
+    const og = old.getContext('2d')!;
+    drawWallpaper(og, 0, 0, pw, h, oldWall, oldPaper === 'plain' ? 'flowers' : oldPaper, `${seed}:${p}`);
+    for (let x = 0; x < pw; x++) {
+      const t = top + Math.round(Math.sin(x * 0.9 + p) * 2 + rng.range(0, 3));
+      g.drawImage(old, x, t - y0, 1, y0 + h - t, px + x, t, 1, y0 + h - t);
+    }
+  }
+  // полоса свежей краски, валиком
+  if (rng.chance(0.7)) {
+    const bw = rng.int(14, Math.max(16, Math.floor(w / 2)));
+    const bx = x0 + rng.int(0, Math.max(0, w - bw));
+    const ph = rng.int(Math.floor(h / 2), h);
+    const paint = mix(pal.accent, '#ffffff', 0.55);
+    rect(g, bx, y0 + h - ph, bw, ph, paint);
+    for (let x = bx; x < bx + bw; x += 5) rect(g, x, y0 + h - ph, 1, ph, shade(paint, -0.04));
+    for (let x = bx; x < bx + bw; x++) if (rng.chance(0.4)) rect(g, x, y0 + h - ph - 1, 1, 1, paint);
+  }
+  // карандашные пометки разметки
+  rect(g, x0 + rng.int(4, Math.max(5, w - 12)), y0 + rng.int(14, 30), 7, 1, '#7a7a80');
 }
 
 /** Закрытая входная дверь (рисуется динамически, т.к. открывается) */
@@ -377,7 +454,7 @@ function drawCore(g: CanvasRenderingContext2D, defs: WorldDefs, level: number, l
   rect(g, ex1 + 2, fy - 15, 2, 3, '#d8d0b8'); // кнопка
   rect(g, ex1 + 2, fy - 14, 1, 1, '#d84a3a');
   // номер этажа — краской на стене шахты, как в настоящих подъездах
-  if (level > 0) digits(g, String(level), ex0 + 8, fy - 33, '#8a8a92');
+  digits(g, String(level + 1), ex0 + 8, fy - 33, '#8a8a92');
   // лампа подъезда
   rect(g, x0 + 22, lt + 2, 6, 2, '#e8e2c8');
   rect(g, x0 + 23, lt + 4, 4, 1, '#cfc8ae');
@@ -437,59 +514,104 @@ function drawGroundFloor(g: CanvasRenderingContext2D, defs: WorldDefs, lt: numbe
   const lx1 = L.coreX;
   const rx0 = L.coreX + CORE_W;
   const rx1 = L.buildingX1 - OUTER_WALL;
-  // колясочная (слева)
-  drawWallpaper(g, lx0, lt, lx1 - lx0, h, '#cdc7b9', 'panels', 'ground-left');
-  rect(g, lx0, fy, lx1 - lx0, 2, '#8c7f73');
-  // трубы
-  rect(g, lx0, lt + 4, lx1 - lx0, 2, '#7a6a5e');
-  rect(g, lx0 + 30, lt + 4, 2, h - 4, '#7a6a5e');
-  // велосипед
-  const bx = lx0 + 40;
-  for (const [cx] of [[bx], [bx + 18]]) {
-    rect(g, cx - 4, fy - 9, 9, 1, '#333');
-    rect(g, cx - 4, fy - 1, 9, 1, '#333');
-    rect(g, cx - 5, fy - 8, 1, 7, '#333');
-    rect(g, cx + 5, fy - 8, 1, 7, '#333');
+  const rng = Rng.fromSeed('ground');
+
+  // слева — комната консьержки (рисуется как квартира), иначе — кладовка
+  if (!L.aptById.has('apt-1-left')) {
+    drawWallpaper(g, lx0, lt, lx1 - lx0, h, '#cdc7b9', 'panels', 'ground-left');
+    rect(g, lx0, fy, lx1 - lx0, 2, '#8c7f73');
+    rect(g, lx0, lt + 4, lx1 - lx0, 2, '#7a6a5e');
   }
-  rect(g, bx, fy - 9, 18, 1, '#b03a3a');
-  rect(g, bx + 8, fy - 13, 1, 5, '#b03a3a');
-  rect(g, bx + 6, fy - 14, 5, 1, '#222');
-  // коляска
-  const sx = lx0 + 90;
-  rect(g, sx, fy - 14, 16, 8, '#3f6e9e');
-  rect(g, sx + 10, fy - 18, 6, 5, '#2f5a85');
-  rect(g, sx + 2, fy - 4, 3, 3, '#222');
-  rect(g, sx + 11, fy - 4, 3, 3, '#222');
-  rect(g, sx - 3, fy - 20, 1, 8, '#888');
-  // санки, лыжи
-  rect(g, lx0 + 130, fy - 30, 2, 28, '#c84a3a');
-  rect(g, lx0 + 133, fy - 30, 2, 28, '#c84a3a');
-  rect(g, lx0 + 150, fy - 5, 16, 2, '#b8742e');
-  rect(g, lx0 + 150, fy - 3, 1, 3, '#666');
-  rect(g, lx0 + 165, fy - 3, 1, 3, '#666');
 
-  // лобби: почтовые ящики на стене ядра
-  const mx = L.coreX + 4;
-  rect(g, mx, fy - 30, 14, 9, '#5f7c9e');
-  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) rect(g, mx + 1 + i * 4, fy - 29 + j * 4, 3, 3, '#4a6585');
-
-  // тамбур (справа): доска объявлений, коврик, дверь на улицу
+  // справа — колясочная, велосипеды, почта, выход во двор
   drawWallpaper(g, rx0, lt, rx1 - rx0, h, '#cfd4c4', 'panels', 'ground-right');
+  rect(g, rx0, lt, rx1 - rx0, 2, shade('#cfd4c4', -0.2));
   rect(g, rx0, fy, rx1 - rx0, 2, '#8c7f73');
-  rect(g, rx0 + 24, fy - 32, 22, 14, '#b08a5a');
-  rect(g, rx0 + 26, fy - 30, 6, 7, '#f0ece0');
-  rect(g, rx0 + 34, fy - 29, 5, 6, '#f6e6a0');
-  rect(g, rx0 + 40, fy - 30, 4, 5, '#dfe9f0');
-  rect(g, rx0 + 28, fy - 22, 9, 3, '#f0ece0');
-  rect(g, rx1 - 30, fy - 1, 20, 1, '#5a4a3e'); // коврик
+  for (let x = rx0; x < rx1; x += 6) rect(g, x, fy, 3, 1, '#9a8c7e'); // плитка
+  // трубы под потолком
+  rect(g, rx0, lt + 4, rx1 - rx0, 2, '#7a6a5e');
+  rect(g, rx0, lt + 7, rx1 - rx0, 1, '#9a8a7e');
+  // лампы дневного света
+  for (const x of [rx0 + 40, rx0 + 150]) {
+    rect(g, x, lt + 8, 22, 2, '#d8d8d2');
+    rect(g, x + 1, lt + 10, 20, 1, '#f4f8f0');
+  }
+  // почтовые ящики: 3 ряда по 6
+  const mx = rx0 + 8;
+  const my = fy - 46;
+  rect(g, mx - 1, my - 1, 40, 22, '#3a5070');
+  for (let row = 0; row < 3; row++)
+    for (let col = 0; col < 6; col++) {
+      const x = mx + col * 6.5;
+      const y = my + row * 7;
+      rect(g, x, y, 6, 6, '#5f7c9e');
+      rect(g, x + 1, y + 1, 4, 1, '#2a3a50');
+      if (rng.chance(0.4)) rect(g, x + 1, y + 2, 3, 1, '#f3f1ea'); // торчит газета
+      rect(g, x + 4, y + 4, 1, 1, '#d6c38a');
+    }
+  // столик для «ненужной» почты и рекламы
+  rect(g, mx + 4, fy - 14, 28, 2, '#8a6a4a');
+  rect(g, mx + 6, fy - 12, 1, 12, '#6a4a3a');
+  rect(g, mx + 30, fy - 12, 1, 12, '#6a4a3a');
+  rect(g, mx + 8, fy - 16, 8, 2, '#f3f1ea');
+  rect(g, mx + 18, fy - 15, 6, 1, '#e8b040');
+  // доска объявлений
+  const nb = rx0 + 58;
+  rect(g, nb, fy - 50, 30, 20, '#b08a5a');
+  rect(g, nb + 2, fy - 48, 8, 9, '#f0ece0');
+  rect(g, nb + 12, fy - 47, 7, 8, '#f6e6a0');
+  rect(g, nb + 21, fy - 48, 7, 6, '#dfe9f0');
+  rect(g, nb + 3, fy - 37, 12, 5, '#f0ece0');
+  rect(g, nb + 18, fy - 40, 9, 8, '#ffd0d0');
+  for (const [x, y] of [[nb + 5, fy - 48], [nb + 15, fy - 47], [nb + 24, fy - 48]]) rect(g, x, y, 1, 1, '#c8402e');
+  // велопарковка: стойка и два велосипеда
+  const bx = rx0 + 98;
+  rect(g, bx - 2, fy - 8, 56, 2, '#7a7d84');
+  for (let x = bx; x < bx + 54; x += 9) rect(g, x, fy - 12, 1, 6, '#7a7d84');
+  const bikeAt = (x: number, frame: string) => {
+    for (const cx of [x, x + 18]) {
+      rect(g, cx - 5, fy - 11, 11, 1, '#2a2a2e');
+      rect(g, cx - 5, fy - 1, 11, 1, '#2a2a2e');
+      rect(g, cx - 6, fy - 10, 1, 9, '#2a2a2e');
+      rect(g, cx + 6, fy - 10, 1, 9, '#2a2a2e');
+      rect(g, cx, fy - 6, 1, 1, '#999');
+    }
+    rect(g, x, fy - 7, 18, 1, frame);
+    rect(g, x + 7, fy - 14, 1, 7, frame);
+    rect(g, x + 5, fy - 15, 5, 1, '#222');
+    rect(g, x + 16, fy - 16, 1, 9, frame);
+    rect(g, x + 14, fy - 17, 5, 1, '#444');
+  };
+  bikeAt(bx + 4, '#b03a3a');
+  bikeAt(bx + 30, '#3a7ab0');
+  // коляски
+  const st = rx0 + 162;
+  rect(g, st, fy - 16, 18, 9, '#5f7d95');
+  rect(g, st + 11, fy - 21, 7, 6, '#4a6580');
+  rect(g, st + 2, fy - 5, 4, 4, '#222');
+  rect(g, st + 12, fy - 5, 4, 4, '#222');
+  rect(g, st - 3, fy - 23, 1, 9, '#888');
+  rect(g, st - 4, fy - 23, 3, 1, '#888');
+  const st2 = st + 26;
+  rect(g, st2, fy - 13, 14, 6, '#c86a6a'); // прогулочная
+  rect(g, st2 + 1, fy - 18, 4, 5, '#c86a6a');
+  rect(g, st2 + 1, fy - 5, 3, 3, '#222');
+  rect(g, st2 + 10, fy - 5, 3, 3, '#222');
+  rect(g, st2 + 12, fy - 22, 1, 10, '#888');
+  // санки на стене
+  rect(g, st + 4, fy - 44, 18, 2, '#c8402e');
+  rect(g, st + 4, fy - 42, 1, 3, '#888');
+  rect(g, st + 21, fy - 42, 1, 3, '#888');
   // радиатор
-  rect(g, rx0 + 60, fy - 12, 18, 9, '#d8d4c8');
-  for (let x = rx0 + 61; x < rx0 + 77; x += 3) rect(g, x, fy - 12, 1, 9, '#bdb7a8');
-  // внутренняя тамбурная дверь
-  rect(g, rx1 - 50, lt, 3, h - 26, '#c8c1b4');
-  rect(g, rx1 - 50, fy - 26, 3, 1, '#7a6a5a');
+  rect(g, rx1 - 64, fy - 13, 18, 9, '#d8d4c8');
+  for (let x = rx1 - 63; x < rx1 - 47; x += 3) rect(g, x, fy - 13, 1, 9, '#bdb7a8');
+  // коврик и внутренняя тамбурная дверь
+  rect(g, rx1 - 30, fy - 1, 22, 1, '#5a4a3e');
+  rect(g, rx1 - 40, lt, 3, h - 30, '#c8c1b4');
+  rect(g, rx1 - 40, fy - 30, 3, 1, '#7a6a5a');
+  rect(g, rx1 - 42, fy - 29, 1, 29, '#7a6a5a'); // распахнутая створка
   // проём наружной двери
-  rect(g, L.buildingX1 - OUTER_WALL, fy - 26, OUTER_WALL, 26, '#3a2f2a');
+  rect(g, L.buildingX1 - OUTER_WALL, fy - 30, OUTER_WALL, 30, '#3a2f2a');
 }
 
 /** Наружная дверь подъезда и козырёк (поверх, со стороны двора) */

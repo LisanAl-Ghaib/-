@@ -15,6 +15,8 @@ import { drawSkyGradient, drawStars, drawSunMoon, makeCity, makeCloud, makeStars
 import { CELL_H, CELL_W, FRAME, generateCharacterSheet } from './sprites/character';
 import { screenRect } from './sprites/furniture';
 import { generateIcon } from './sprites/icons';
+import { hashString } from '../core/rng';
+import { LifeDetails } from './lifeDetails';
 import { ctx2d, makeCanvas, SpriteRegistry } from './sprites/registry';
 
 export interface Environment {
@@ -94,7 +96,10 @@ export class Renderer {
       speed: rng.range(0.4, 1),
     }));
     this.trees = makeTrees(defs);
+    this.life = new LifeDetails(defs, sim, this.sprites);
   }
+
+  private life: LifeDetails;
 
   async init(): Promise<void> {
     await this.sprites.loadOverrides();
@@ -121,7 +126,9 @@ export class Renderer {
   overview(now: number, animate = true): void {
     const L = this.defs.layout;
     const cam = this.camera;
-    const z = cam.fitZoom(L.buildingX1 - L.buildingX0 + 40, L.worldH - L.roofY + 24);
+    // дом по ширине целиком (можно чуть обрезать по краям), но не меньше ×1
+    const bw = L.buildingX1 - L.buildingX0;
+    const z = Math.max(1, Math.floor(Math.min(cam.viewW / (bw * 0.97), cam.visH / (L.worldH - L.roofY + 30))));
     const visW = cam.viewW / z;
     // дом целиком слева, остальное место — двору
     const x = visW >= this.W ? this.W / 2 : L.buildingX0 - 16 + visW / 2;
@@ -174,6 +181,8 @@ export class Renderer {
     // дом
     wg.drawImage(this.layers.back, 0, 0);
     this.drawDynamicFurniture(nowMs);
+    this.life.draw(wg);
+    this.life.drawWorkers(wg, nowMs);
     this.drawDoors();
     this.drawElevator();
     this.drawActors(alpha, prev, opts, nowMs);
@@ -364,7 +373,7 @@ export class Renderer {
       if (!apt) continue;
       const room = L.roomAt(apt, r.x);
       if (a.id === 'watch_tv' || a.id === 'work' || a.id === 'gaming') {
-        const wants = a.id === 'watch_tv' ? ['tv_stand', 'tv_old'] : ['computer_desk'];
+        const wants = a.id === 'watch_tv' ? ['tv_stand', 'tv_old', 'small_tv'] : ['computer_desk', 'concierge_desk'];
         for (const f of room.furniture) {
           if (!wants.includes(f.def.draw)) continue;
           const sr = screenRect(f.def.draw, f.w, f.h);
@@ -377,9 +386,10 @@ export class Renderer {
       }
       if (a.id === 'cook') {
         for (const f of room.furniture) {
-          if (f.def.draw !== 'stove') continue;
+          if (!f.slots.some((s) => s.use.includes('cook')) || f.def.draw === 'kitchen_counter') continue;
           const k = Math.floor(nowMs / 250) % 2;
-          rect(this.wg, f.x + 2, f.y - f.h - 1, 3, 1, k ? '#ff9a3c' : '#ffcf5a');
+          const top = f.def.draw === 'hotplate' ? f.y - 13 : f.y - f.h;
+          rect(this.wg, f.x + 2, top - 1, 3, 1, k ? '#ff9a3c' : '#ffcf5a');
           // пар
           const sx = f.x + 4 + (Math.floor(nowMs / 300) % 3);
           this.wg.globalAlpha = 0.6;
@@ -452,6 +462,8 @@ export class Renderer {
         rect(g, bx, iy - 3, H - 6, 4, color);
         rect(g, bx, iy - 3, H - 6, 1, mix(color, '#ffffff', 0.25));
       }
+      // в руках: пакеты из магазина, мусор
+      if (r.carrying && r.pose === 'stand') this.life.drawCarry(g, r.carrying, ix, iy, r.facing);
       // зонт
       if (this.env.rain > 0.1 && r.level === 0 && (r.x < L.buildingX0 || r.x > L.buildingX1)) {
         const u = this.sprites.get('icon:umbrella-big', () => makeUmbrella());
@@ -463,10 +475,29 @@ export class Renderer {
     }
   }
 
+  /**
+   * Проявления самочувствия: зевает, вздыхает, напевает. Только косметика рендера,
+   * изредка и ненадолго — по ним можно догадаться о состоянии, цифр не видно.
+   */
+  private moodIcon(r: ResidentState, nowMs: number): string | null {
+    const a = r.action;
+    if (!a || a.phase !== 'perform' || a.id === 'sleep' || a.id === 'nap' || r.interaction !== null) return null;
+    const cycle = (nowMs / 1000 + (hashString(r.id) % 40)) % 40;
+    if (cycle > 3) return null;
+    const n = r.needs;
+    if (n.energy < 22) return 'yawn';
+    if (n.mood < 30) return 'gloom';
+    if (n.food < 18) return 'hungry';
+    if (n.mood > 82) return 'music';
+    return null;
+  }
+
   private drawBubbles(nowMs: number) {
     for (const r of Object.values(this.sim.state.residents)) {
-      if (r.away || !r.bubble) continue;
-      const icon = this.sprites.get(`icon:${r.bubble.icon}`, () => generateIcon(r.bubble!.icon));
+      if (r.away) continue;
+      const name = r.bubble?.icon ?? this.moodIcon(r, nowMs);
+      if (!name) continue;
+      const icon = this.sprites.get(`icon:${name}`, () => generateIcon(name));
       const bob = Math.floor(nowMs / 500 + r.x) % 2;
       const yTop = r.pose === 'lie' ? r.y - 16 : r.pose === 'sit' ? r.y - 31 : r.y - 34;
       this.wg.drawImage(icon, Math.round(r.x) - 4, Math.round(yTop) - bob);
@@ -519,6 +550,7 @@ export class Renderer {
   private roomLit(apt: ApartmentModel, roomIndex: number, day: number): boolean {
     // в пасмурную погоду свет включают раньше
     if (day * (1 - this.env.overcast * 0.4) > 0.6 || apt.vacant) return false;
+    if (this.life.workersOn(apt)) return true; // мастера включили прожектор
     const room = apt.rooms[roomIndex];
     for (const r of Object.values(this.sim.state.residents)) {
       if (r.away || r.level !== apt.level || r.x < room.x0 || r.x >= room.x1) continue;

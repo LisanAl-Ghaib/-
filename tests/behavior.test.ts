@@ -3,11 +3,14 @@ import { DT } from '../src/config';
 import { calendar, DAY } from '../src/core/time';
 import { buildDefs } from '../src/data/defs';
 import { loadRawDataNode } from '../src/data/loadNode';
+
+/** тестовый дом с пятью жильцами (tests/fixtures/data) + общий каталог мебели */
+const FIXTURE = (): ReturnType<typeof loadRawDataNode> => loadRawDataNode('tests/fixtures/data', 'data');
 import { Simulation } from '../src/sim/simulation';
 import { createWorldState } from '../src/sim/state';
 
 function makeSim(seed = 11) {
-  const r = buildDefs(loadRawDataNode());
+  const r = buildDefs(FIXTURE());
   if (!r.defs) throw new Error(r.errors.join('\n'));
   return new Simulation(r.defs, createWorldState(r.defs, seed));
 }
@@ -58,5 +61,38 @@ describe('поведение', () => {
       expect(n.food).toBeGreaterThan(10);
       expect(n.energy).toBeGreaterThan(5);
     }
+  });
+});
+
+describe('следы жизни в квартирах', () => {
+  it('посуда копится после еды и потом моется, кровати заправляют', () => {
+    const sim = makeSim(21);
+    let maxDishes = 0;
+    let washed = false;
+    let madeBed = false;
+    for (let i = 0; i < (3 * 86400) / 10; i++) {
+      sim.step();
+      for (const st of Object.values(sim.state.apartments)) maxDishes = Math.max(maxDishes, st.dishes);
+      for (const r of Object.values(sim.state.residents)) {
+        if (r.action?.id === 'wash_dishes') washed = true;
+        if (r.action?.id === 'make_bed') madeBed = true;
+      }
+    }
+    expect(maxDishes).toBeGreaterThan(0);
+    expect(washed).toBe(true);
+    expect(madeBed).toBe(true);
+  });
+});
+
+describe('настоящий дом', () => {
+  it('двухэтажный, с консьержной и квартирой на ремонте', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const r = build(loadRawDataNode());
+    expect(r.errors).toEqual([]);
+    const L = r.defs!.layout;
+    expect(L.levels).toBe(2);
+    expect(L.aptById.get('apt-1-left')).toBeTruthy();
+    expect(L.aptById.get('apt-2-left')?.def?.renovation).toBe(true);
+    expect(L.aptById.get('apt-2-right')?.vacant).toBe(true);
   });
 });

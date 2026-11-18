@@ -84,6 +84,7 @@ export const dinnerTogether: EventDef = {
     if (st.meals >= 2) st.meals -= 2;
     else st.groceries = Math.max(0, st.groceries - 1);
     it.dinner = true;
+    st.dishes += 2;
     it.notes.push(`meal=${c.sim.calendar().hourOfDay >= 17 ? 'ужин' : 'обед'}`);
     for (const x of it.members) {
       const r = c.sim.state.residents[x];

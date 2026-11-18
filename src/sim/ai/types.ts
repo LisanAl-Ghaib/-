@@ -35,6 +35,8 @@ export interface ActionDef {
   /** значок над головой во время выполнения */
   icon?: string;
   plan(ctx: AgentCtx): ActionPlan | null;
+  /** вызывается сразу после выбора действия (до того как жилец пошёл) */
+  onStart?(ctx: AgentCtx, a: ActiveAction): void;
   /** вызывается при прибытии на место; false — отменить действие */
   onArrive?(ctx: AgentCtx, a: ActiveAction): boolean | void;
   /** каждый тик во время выполнения */

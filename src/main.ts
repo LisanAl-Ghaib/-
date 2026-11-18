@@ -248,6 +248,7 @@ async function boot() {
   new MutationObserver(syncInset).observe($('#panel'), { attributes: true, attributeFilter: ['class'] });
   window.addEventListener('resize', syncInset);
   syncInset();
+  renderer.overview(performance.now(), false);
 
   // ── сохранение
   let saving = false;

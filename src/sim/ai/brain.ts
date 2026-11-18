@@ -57,6 +57,7 @@ export function startAction(ctx: AgentCtx, def: ActionDef, plan: ActionPlan): vo
   });
   if (r.away && !plan.target.away) r.via = 'walk';
   if (plan.target.away && plan.via) r.via = plan.via;
+  def.onStart?.(ctx, a);
   r.pose = 'stand';
   r.front = false;
   sim.emit({ type: 'action.start', t: now, residentId: r.id, actionId: def.id, label: plan.label });

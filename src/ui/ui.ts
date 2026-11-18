@@ -64,7 +64,8 @@ export class Ui {
         btnNew.classList.remove('active');
       }, 3000);
     });
-    if (window.matchMedia('(max-width: 760px)').matches) $('#panel').classList.add('hidden');
+    // на телефоне в альбомной ориентации места мало — панель скрыта; в портретной — хроника снизу
+    if (window.matchMedia('(max-width: 760px) and (orientation: landscape), (max-height: 480px)').matches) $('#panel').classList.add('hidden');
     this.buildResidentList();
     this.refreshSpeed();
   }
@@ -122,7 +123,7 @@ export class Ui {
         'div',
         { class: 'res-row', onclick: () => this.host.select(def.id, { focus: true }) },
         portrait(def),
-        el('div', {}, el('div', { class: 'nm' }, `${def.name.first} ${def.name.last}`), el('div', { class: 'act' }, `кв. ${apt.number}, ${apt.level} этаж · ${def.occupation.title}`), act),
+        el('div', {}, el('div', { class: 'nm' }, `${def.name.first} ${def.name.last}`), el('div', { class: 'act' }, `${apt.level === 0 ? 'консьержная' : `кв. ${apt.number}`}, ${apt.level + 1} этаж · ${def.occupation.title}`), act),
       );
       this.resRows.set(def.id, { row, act });
       box.append(row);

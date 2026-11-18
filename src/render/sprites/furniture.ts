@@ -586,6 +586,373 @@ const drawers: Record<string, Drawer> = {
     R(c, 3, 3, w - 7, 2, shade(main, -0.15));
     R(c, 1, h - 1, w - 2, 1, shade(main, -0.3));
   },
+  // ───────── ремонт
+  ladder(c) {
+    const { w, h, main } = c;
+    for (let y = 0; y < h; y++) {
+      const k = y / h;
+      R(c, Math.round(w / 2 - 1 - k * (w / 2 - 1)), y, 1, 1, main);
+      R(c, Math.round(w / 2 + k * (w / 2 - 1)), y, 1, 1, shade(main, -0.2));
+    }
+    for (let y = 5; y < h - 2; y += 6) {
+      const k = y / h;
+      R(c, Math.round(w / 2 - k * (w / 2 - 1)), y, Math.max(2, Math.round(k * (w - 2))), 1, shade(main, -0.1));
+    }
+    R(c, w / 2 - 2, 0, 4, 1, '#d84a3a');
+    R(c, w / 2 + 1, 1, 3, 2, '#f0f0f0'); // валик на верхней ступени
+  },
+  paint_cans(c) {
+    const { h, main } = c;
+    R(c, 0, 1, 6, h - 1, '#e8e8e4');
+    R(c, 0, 1, 6, 2, main);
+    R(c, 7, 2, 6, h - 2, '#d8d8d2');
+    R(c, 7, 2, 6, 1, '#7aa0c8');
+    R(c, 2, h - 3, 3, 1, main);
+    R(c, 9, 0, 1, 2, '#555');
+  },
+  wallpaper_rolls(c) {
+    const { main } = c;
+    for (let i = 0; i < 3; i++) {
+      const x = i * 4;
+      R(c, x, 8 - 3 - (i % 2) * 3, 4, 3, shade(main, i * 0.05));
+      R(c, x, 8 - 3 - (i % 2) * 3, 1, 3, shade(main, -0.2));
+    }
+    R(c, 1, 5, 10, 3, shade(main, 0.1));
+  },
+  sawhorse(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, 2, main);
+    R(c, 0, 0, w, 1, shade(main, 0.2));
+    for (const x of [3, w - 5]) {
+      R(c, x, 2, 2, 2, shade(main, -0.25));
+      for (let y = 4; y < h; y++) {
+        R(c, x - Math.floor((y - 4) / 3), y, 1, 1, shade(main, -0.3));
+        R(c, x + 1 + Math.floor((y - 4) / 3), y, 1, 1, shade(main, -0.3));
+      }
+    }
+    R(c, w / 2 - 3, -2, 6, 2, '#888'); // рулетка
+    R(c, w - 9, -1, 4, 1, '#d84a3a');
+  },
+  covered_sofa(c) {
+    const { w, h, main } = c;
+    // силуэт дивана, затянутый плёнкой: блики по диагонали и складки снизу
+    R(c, 1, 1, w - 2, h - 7, shade(main, -0.12));
+    R(c, 0, h - 8, w, 6, main);
+    R(c, 0, 3, 4, h - 5, main);
+    R(c, w - 4, 3, 4, h - 5, main);
+    c.g.fillStyle = 'rgba(228,236,242,0.55)';
+    c.g.fillRect(-1, 0, w + 2, h - 1);
+    for (let i = 0; i < 6; i++) R(c, 4 + i, 2 + i, 1, 1, 'rgba(255,255,255,0.85)');
+    for (let i = 0; i < 5; i++) R(c, w - 12 + i, 3 + i, 1, 1, 'rgba(255,255,255,0.7)');
+    for (let x = 0; x < w; x += 3) R(c, x, h - 2 + (x % 2), 2, 1, 'rgba(210,222,232,0.95)');
+    R(c, w / 2 - 3, 1, 6, 2, '#c49a62'); // скотч
+  },
+  toolbox(c) {
+    const { w, h, main } = c;
+    R(c, 0, 2, w, h - 2, main);
+    R(c, 0, 2, w, 1, shade(main, 0.2));
+    R(c, 3, 0, w - 6, 1, '#333');
+    R(c, 3, 0, 1, 2, '#333');
+    R(c, w - 4, 0, 1, 2, '#333');
+    R(c, w / 2 - 1, 4, 2, 1, '#ddd');
+  },
+  bucket(c) {
+    const { w, h, main } = c;
+    R(c, 0, 2, w, h - 2, main);
+    R(c, 1, h - 1, w - 2, 1, shade(main, -0.2));
+    R(c, 0, 2, w, 1, '#f4f4f0');
+    R(c, 1, 0, w - 2, 1, '#777');
+    R(c, w - 3, -3, 1, 5, '#9aa0a8'); // шпатель
+    R(c, w - 5, -4, 4, 1, '#9aa0a8');
+  },
+  cement_bags(c) {
+    const { w, h, main } = c;
+    R(c, 0, 4, w, h - 4, main);
+    R(c, 2, 0, w - 6, 5, shade(main, 0.05));
+    R(c, 0, 4, w, 1, shade(main, -0.12));
+    R(c, 4, 6, 6, 2, '#5a7aa0');
+    R(c, 13, 6, 4, 2, '#5a7aa0');
+  },
+  work_lamp(c) {
+    const { w, h, main } = c;
+    R(c, 1, 0, w - 2, 6, main);
+    R(c, 2, 1, w - 4, 4, '#fff6c8');
+    R(c, w / 2, 6, 1, h - 10, '#333');
+    for (let i = 0; i < 4; i++) {
+      R(c, w / 2 - i, h - 4 + i, 1, 1, '#333');
+      R(c, w / 2 + i, h - 4 + i, 1, 1, '#333');
+    }
+  },
+  boxes(c) {
+    const { w, h, main } = c;
+    R(c, 0, 6, w, h - 6, main);
+    R(c, 3, 0, w - 7, 7, shade(main, 0.08));
+    R(c, 0, 6, w, 1, shade(main, -0.2));
+    R(c, w / 2, 6, 1, h - 6, '#e8d8a0');
+    R(c, 3, 3, w - 7, 1, '#e8d8a0');
+    R(c, 3, h - 5, 5, 2, '#333'); // надпись маркером
+  },
+  drop_cloth(c) {
+    const { w, main } = c;
+    R(c, 0, 0, w, 2, main);
+    for (let x = 3; x < w; x += 7) R(c, x, 0, 2, 1, '#ffffff');
+    R(c, 10, 1, 2, 1, '#9fb8d0');
+    R(c, 31, 1, 3, 1, '#9fb8d0');
+  },
+  // ───────── консьержная
+  concierge_desk(c) {
+    const { w, h, main } = c;
+    const top = h - 12;
+    R(c, 6, top, w - 6, 2, main);
+    R(c, 6, top, w - 6, 1, shade(main, 0.2));
+    R(c, w - 10, top + 2, 9, 10, shade(main, -0.1));
+    R(c, w - 8, top + 4, 5, 1, '#d6c38a');
+    R(c, w - 8, top + 8, 5, 1, '#d6c38a');
+    R(c, 7, top + 2, 1, 10, shade(main, -0.3));
+    // монитор камер
+    R(c, w - 14, top - 9, 11, 8, '#2e3036');
+    R(c, w - 13, top - 8, 4, 3, '#5a7a6a');
+    R(c, w - 8, top - 8, 4, 3, '#4a6a7a');
+    R(c, w - 13, top - 4, 4, 2, '#4a6a7a');
+    R(c, w - 8, top - 4, 4, 2, '#5a7a6a');
+    R(c, w - 10, top - 1, 2, 1, '#2e3036');
+    // журнал, телефон, лампа
+    R(c, 12, top - 1, 7, 1, '#f3f1ea');
+    R(c, 12, top - 2, 7, 1, '#3f6e9e');
+    R(c, 21, top - 2, 4, 2, '#7a1f2b');
+    R(c, 21, top - 3, 4, 1, '#5a1520');
+    R(c, 9, top - 8, 1, 7, '#555');
+    R(c, 8, top - 9, 4, 2, c.pal.accent);
+    // стул
+    R(c, 0, h - 13, 2, 9, shade(main, -0.25));
+    R(c, 0, h - 5, 8, 1, shade(main, -0.25));
+    R(c, 1, h - 4, 1, 4, shade(main, -0.25));
+    R(c, 6, h - 4, 1, 4, shade(main, -0.25));
+  },
+  keys_board(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, h, main);
+    R(c, 1, 1, w - 2, h - 2, shade(main, 0.3));
+    for (let y = 2; y < h - 2; y += 4) for (let x = 2; x < w - 2; x += 3) {
+      R(c, x, y, 1, 1, '#555');
+      if ((x * 7 + y) % 5 !== 0) R(c, x, y + 1, 1, 2, '#d6c38a');
+    }
+  },
+  hotplate(c) {
+    const { w, h, main } = c;
+    R(c, 0, h - 10, w, 2, main);
+    R(c, 1, h - 8, 1, 8, shade(main, -0.25));
+    R(c, w - 2, h - 8, 1, 8, shade(main, -0.25));
+    R(c, 2, h - 5, w - 4, 1, shade(main, -0.15));
+    R(c, 1, h - 13, 10, 3, '#e6e3da'); // плитка
+    R(c, 2, h - 13, 3, 1, '#333');
+    R(c, 7, h - 13, 3, 1, '#333');
+    R(c, 12, h - 15, 5, 5, '#c8402e'); // чайник
+    R(c, 11, h - 13, 1, 2, '#c8402e');
+    R(c, 13, h - 16, 3, 1, '#333');
+  },
+  mini_fridge(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, 7, '#d8d8d2'); // микроволновка
+    R(c, 1, 1, 7, 5, '#3a3d42');
+    R(c, 9, 2, 2, 1, '#5fd36a');
+    R(c, 0, 7, w, h - 7, main);
+    R(c, 0, 7, w, 1, shade(main, -0.1));
+    R(c, w - 2, 10, 1, 4, '#9aa4ad');
+    R(c, 2, 12, 3, 2, '#e8b040'); // магнит
+    R(c, 0, h - 1, w, 1, '#555');
+  },
+  sink_small(c) {
+    const { w, h, main } = c;
+    R(c, 2, 0, w - 4, 8, '#c9e7f2'); // зеркальце
+    R(c, 2, 0, w - 4, 1, '#9aa4ad');
+    R(c, w / 2, 9, 1, 3, '#9aa4ad');
+    R(c, w / 2, 9, 3, 1, '#9aa4ad');
+    R(c, 0, h - 12, w, 2, '#e8e8e4');
+    R(c, 2, h - 12, w - 4, 1, '#b8c0c6');
+    R(c, 0, h - 10, w, 10, main);
+    R(c, w / 2, h - 9, 1, 8, shade(main, -0.25));
+    R(c, 1, h - 1, w - 2, 1, shade(main, -0.35));
+    R(c, w - 3, h - 15, 2, 3, '#f0c040'); // губка
+  },
+  cot(c) {
+    const { w, h, main, pal } = c;
+    R(c, 0, h - 6, w, 3, pal.wood);
+    R(c, 0, h - 9, w, 4, main);
+    R(c, 0, h - 9, w, 1, shade(main, 0.2));
+    for (let x = 2; x < w - 2; x += 4) R(c, x, h - 8, 2, 2, shade(main, -0.15)); // клетчатый плед
+    R(c, w - 7, h - 11, 6, 2, '#fbfaf5');
+    R(c, 1, h - 3, 1, 3, shade(pal.wood, -0.3));
+    R(c, w - 2, h - 3, 1, 3, shade(pal.wood, -0.3));
+  },
+  heater(c) {
+    const { w, h, main } = c;
+    for (let x = 0; x < w; x += 2) R(c, x, 1, 1, h - 3, x % 4 ? main : shade(main, -0.12));
+    R(c, 0, h - 2, w, 1, '#777');
+    R(c, 1, h - 1, 1, 1, '#555');
+    R(c, w - 2, h - 1, 1, 1, '#555');
+    R(c, w - 2, 0, 1, 2, '#d84a3a');
+  },
+  wall_calendar(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, 3, main);
+    R(c, 0, 3, w, h - 3, '#f3f1ea');
+    R(c, 2, 5, w - 4, 3, '#c8402e');
+    R(c, 1, 1, 1, 1, '#333');
+  },
+  small_tv(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, h - 1, main);
+    R(c, 1, 1, w - 4, h - 3, '#1c2430');
+    R(c, w - 2, 2, 1, 1, '#d84a3a');
+    R(c, 3, h - 1, w - 6, 1, '#444');
+    R(c, 3, -3, 1, 3, '#888');
+    R(c, w - 4, -2, 1, 2, '#888');
+  },
+  // ───────── мелочи быта
+  microwave(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, h, main);
+    R(c, 1, 1, w - 5, h - 2, '#3a3d42');
+    R(c, w - 3, 2, 2, 1, '#5fd36a');
+    R(c, w - 3, 4, 2, 2, '#aaa');
+  },
+  coffee_machine(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, h, main);
+    R(c, 1, 3, w - 2, 3, '#55575c');
+    R(c, 2, 6, 3, 2, '#f3f1ea');
+    R(c, w - 2, 1, 1, 1, '#d84a3a');
+  },
+  dish_rack(c) {
+    const { w, h, main } = c;
+    R(c, 0, h - 2, w, 2, main);
+    for (let x = 1; x < w - 1; x += 2) R(c, x, h - 6, 1, 4, x % 4 ? '#f3f1ea' : '#cfe0ea');
+  },
+  spice_shelf(c) {
+    const { w, h, main } = c;
+    R(c, 0, h - 1, w, 1, main);
+    const cols = ['#c8402e', '#e8b040', '#5f9e52', '#f3f1ea', '#7a4a2a'];
+    for (let x = 1, i = 0; x < w - 2; x += 3, i++) R(c, x, h - 5, 2, 4, cols[i % cols.length]);
+  },
+  hanging_plant(c) {
+    const { w, h, rng } = c;
+    R(c, w / 2, 0, 1, 4, '#8a6a3a');
+    R(c, 2, 4, w - 4, 4, '#c49a5a');
+    for (let i = 0; i < 12; i++) R(c, rng.int(0, w - 2), rng.int(3, h - 1), 1, rng.int(1, 3), rng.pick(['#4f8a55', '#6aa35a', '#3d7a43']));
+  },
+  sconce(c) {
+    const { w, h, main } = c;
+    R(c, 1, 2, w - 2, h - 2, '#777');
+    R(c, 0, 0, w, 3, main);
+    R(c, 1, 3, w - 2, 1, '#fff2c0');
+  },
+  family_photos(c) {
+    const { main, rng } = c;
+    const frames: [number, number, number, number][] = [[0, 1, 5, 7], [6, 0, 6, 5], [13, 2, 5, 6], [6, 6, 5, 3]];
+    for (const [x, y, w, h] of frames) {
+      R(c, x, y, w, h, main);
+      R(c, x + 1, y + 1, w - 2, h - 2, rng.pick(['#c9b8a0', '#a8b8c8', '#d8c8a8']));
+      R(c, x + 2, y + 2, 1, 1, '#6a5040');
+    }
+  },
+  umbrella_stand(c) {
+    const { w, h, main } = c;
+    R(c, 0, h - 7, w, 7, '#5a5a62');
+    R(c, 1, 0, 1, h - 6, main);
+    R(c, 0, 0, 2, 1, main);
+    R(c, 3, 2, 1, h - 8, '#3a3a40');
+    R(c, 3, 1, 2, 1, '#3a3a40');
+  },
+  laundry_rack(c) {
+    const { w, h, main } = c;
+    R(c, 0, 4, w, 1, '#aaa');
+    R(c, 2, 5, 1, h - 5, '#aaa');
+    R(c, w - 3, 5, 1, h - 5, '#aaa');
+    R(c, 1, 5, 6, 7, main);
+    R(c, 8, 5, 5, 5, '#f3f1ea');
+    R(c, 14, 5, 5, 8, shade(main, 0.3));
+    R(c, 4, 0, 1, 4, '#aaa');
+  },
+  ironing_board(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w - 2, 2, main);
+    R(c, w - 3, 0, 3, 1, main);
+    R(c, 4, 2, 1, h - 2, '#999');
+    R(c, w - 7, 2, 1, h - 2, '#999');
+    R(c, 3, -3, 6, 3, '#e8e8e4'); // утюг
+    R(c, 3, -3, 6, 1, '#5a7aa0');
+  },
+  chair(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, 2, main);
+    R(c, 0, 0, 1, h - 6, shade(main, -0.15));
+    R(c, w - 1, 0, 1, h - 6, shade(main, -0.15));
+    R(c, 0, h - 7, w, 2, main);
+    R(c, 0, h - 5, 1, 5, shade(main, -0.25));
+    R(c, w - 1, h - 5, 1, 5, shade(main, -0.25));
+  },
+  stool(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, 2, main);
+    R(c, 1, 2, 1, h - 2, shade(main, -0.25));
+    R(c, w - 2, 2, 1, h - 2, shade(main, -0.25));
+    R(c, 1, h - 3, w - 2, 1, shade(main, -0.25));
+  },
+  round_table(c) {
+    const { w, h, main, pal } = c;
+    R(c, 0, h - 11, 1, 11, shade(main, -0.15));
+    R(c, 0, h - 5, 5, 1, shade(main, -0.15));
+    R(c, 4, h - 4, 1, 4, shade(main, -0.15));
+    R(c, w - 1, h - 11, 1, 11, shade(main, -0.15));
+    R(c, w - 5, h - 5, 5, 1, shade(main, -0.15));
+    R(c, w - 5, h - 4, 1, 4, shade(main, -0.15));
+    R(c, 7, h - 9, w - 14, 2, main);
+    R(c, 6, h - 8, w - 12, 1, pal.textile);
+    R(c, w / 2 - 1, h - 7, 2, 7, shade(main, -0.25));
+    R(c, w / 2 - 4, h - 1, 8, 1, shade(main, -0.25));
+    R(c, w / 2 - 2, h - 12, 4, 3, pal.accent); // ваза
+  },
+  laptop(c) {
+    const { w, h, main } = c;
+    R(c, 1, 0, w - 3, h - 1, main);
+    R(c, 2, 1, w - 5, h - 3, '#2a3a50');
+    R(c, 0, h - 1, w, 1, shade(main, -0.2));
+  },
+  books_stack(c) {
+    const { w, rng } = c;
+    for (let y = 0; y < 6; y += 2) R(c, rng.int(0, 1), y, w - 1, 2, rng.pick(BOOK_COLORS));
+  },
+  floor_vase(c) {
+    const { w, h, main } = c;
+    R(c, 1, h - 9, w - 2, 9, main);
+    R(c, 2, h - 11, w - 4, 2, shade(main, -0.15));
+    for (let i = 0; i < 5; i++) R(c, 1 + i, h - 11 - (5 - Math.abs(i - 2)) * 2, 1, (5 - Math.abs(i - 2)) * 2, '#b89a6a');
+    R(c, 0, 0, 2, 2, '#d8b880');
+    R(c, w - 2, 1, 2, 2, '#d8b880');
+  },
+  bike(c) {
+    const { w, h, main } = c;
+    for (const cx of [5, w - 6]) {
+      R(c, cx - 4, h - 9, 9, 1, '#333');
+      R(c, cx - 4, h - 1, 9, 1, '#333');
+      R(c, cx - 5, h - 8, 1, 7, '#333');
+      R(c, cx + 5, h - 8, 1, 7, '#333');
+      R(c, cx, h - 5, 1, 1, '#999');
+    }
+    R(c, 5, h - 6, w - 12, 1, main);
+    R(c, 10, h - 11, 1, 6, main);
+    R(c, 8, h - 12, 5, 1, '#222');
+    R(c, w - 8, h - 13, 1, 8, main);
+    R(c, w - 10, h - 14, 5, 1, '#444');
+  },
+  cat_bed(c) {
+    const { w, h, main } = c;
+    R(c, 0, 1, w, h - 1, main);
+    R(c, 2, 1, w - 4, 2, shade(main, 0.25));
+    R(c, 0, 0, 2, 2, main);
+    R(c, w - 2, 0, 2, 2, main);
+  },
 };
 
 export const FURNITURE_DRAWERS = drawers;
@@ -635,6 +1002,10 @@ export function screenRect(draw: string, w: number, h: number): [number, number,
       return [3, 7, w - 8, h - 15];
     case 'computer_desk':
       return [12, 1, 9, 5];
+    case 'small_tv':
+      return [1, 1, w - 4, h - 3];
+    case 'concierge_desk':
+      return [w - 13, h - 20, 9, 6];
     default:
       return null;
   }

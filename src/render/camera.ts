@@ -84,7 +84,8 @@ export class Camera {
     const halfW = this.viewW / 2 / this.zoom;
     const halfH = this.visH / 2 / this.zoom;
     this.cx = this.worldW <= halfW * 2 ? this.worldW / 2 : clamp(this.cx, halfW, this.worldW - halfW);
-    this.cy = this.worldH <= halfH * 2 ? this.worldH / 2 : clamp(this.cy, halfH, this.worldH - halfH);
+    // мир ниже экрана — прижимаем землю к низу, сверху остаётся небо
+    this.cy = this.worldH <= halfH * 2 ? this.worldH - halfH : clamp(this.cy, halfH, this.worldH - halfH);
   }
 
   /** Смещение мира на экране (в экранных пикселях, целое) */

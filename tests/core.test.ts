@@ -3,13 +3,16 @@ import { Rng } from '../src/core/rng';
 import { calendar, parseEpoch } from '../src/core/time';
 import { buildDefs } from '../src/data/defs';
 import { loadRawDataNode } from '../src/data/loadNode';
+
+/** тестовый дом с пятью жильцами (tests/fixtures/data) + общий каталог мебели */
+const FIXTURE = (): ReturnType<typeof loadRawDataNode> => loadRawDataNode('tests/fixtures/data', 'data');
 import { Simulation } from '../src/sim/simulation';
 import { createWorldState } from '../src/sim/state';
 import { DAY } from '../src/core/time';
 import { DT } from '../src/config';
 
 const defs = () => {
-  const r = buildDefs(loadRawDataNode());
+  const r = buildDefs(FIXTURE());
   if (!r.defs) throw new Error(r.errors.join('\n'));
   return r.defs;
 };
@@ -43,7 +46,7 @@ describe('календарь', () => {
 
 describe('данные', () => {
   it('валидны', () => {
-    const r = buildDefs(loadRawDataNode());
+    const r = buildDefs(FIXTURE());
     expect(r.errors).toEqual([]);
     expect(r.defs!.residents.length).toBeGreaterThan(0);
   });

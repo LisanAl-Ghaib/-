@@ -1,6 +1,9 @@
 {
-  "seed": 20260914,
-  "startDate": "2026-09-14T05:30",
+  "seed": 20261120,
+  "startDate": "2026-11-20T06:30",
   "address": "ул. Тополиная, 7",
-  "building": { "residentialFloors": 6, "apartmentWidthTiles": 12 }
+  "building": {
+    "minFloors": 2,
+    "apartmentWidthTiles": 16
+  }
 }

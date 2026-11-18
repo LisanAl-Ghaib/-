@@ -14,15 +14,21 @@ if (res.errors.length) {
   process.exit(1);
 }
 const defs = res.defs!;
-console.log(`✅ Данные корректны: жильцов ${defs.residents.length}, квартир описано ${defs.apartments.length}, предметов в каталоге ${defs.catalog.size}\n`);
-console.log('Занятость квартир:');
-for (let level = defs.layout.floors; level >= 1; level--) {
-  const row = (['left', 'right'] as const).map((side) => {
-    const id = `apt-${level}-${side}`;
-    const people = defs.residents.filter((r) => r.apartment === id).map((r) => r.name.short ?? r.name.first);
-    const described = defs.apartments.some((a) => a.id === id);
-    const label = people.length ? people.join(', ') : described ? '(описана, пустует)' : '— свободна —';
-    return `${id.padEnd(12)} ${label}`.padEnd(46);
-  });
-  console.log(`  ${level} этаж: ${row.join(' | ')}`);
+console.log(`✅ Данные корректны: жильцов ${defs.residents.length}, квартир описано ${defs.apartments.length}, предметов в каталоге ${defs.catalog.size}`);
+console.log(`   Этажей в доме: ${defs.layout.levels}\n`);
+const label = (id: string) => {
+  const people = defs.residents.filter((r) => r.apartment === id).map((r) => r.name.short ?? r.name.first);
+  const def = defs.apartments.find((a) => a.id === id);
+  if (people.length) return people.join(', ');
+  if (def?.renovation) return '(ремонт)';
+  return def ? '(описана, пустует)' : '— свободна —';
+};
+for (let level = defs.layout.floors; level >= 0; level--) {
+  const floor = level + 1;
+  const row =
+    level === 0
+      ? [`${'apt-1-left'.padEnd(12)} ${defs.layout.aptById.has('apt-1-left') ? `консьержная: ${label('apt-1-left')}` : '— колясочная —'}`.padEnd(46), 'колясочная, почта, выход во двор']
+      : (['left', 'right'] as const).map((side) => `${`apt-${floor}-${side}`.padEnd(12)} ${label(`apt-${floor}-${side}`)}`.padEnd(46));
+  console.log(`  ${floor} этаж: ${row.join(' | ')}`);
 }
+console.log('\nНовый этаж появится сам, как только будет описана квартира на нём (apt-<этаж>-<left|right>).');

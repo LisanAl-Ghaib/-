@@ -1,5 +1,6 @@
 import type { ActionDef } from '../types';
 import { cook, eat, shopping, snack } from './food';
+import { makeBed, takeOutTrash, unpack, washDishes } from './home';
 import { chores, computer, crafts, fitness, gaming, idle, lookOutside, music, phone, plants, read, watchTv } from './leisure';
 import { bench, goOut, jog, smoke, snowman, walkYard } from './outside';
 import { nap, sleep, wash } from './rest';
@@ -15,6 +16,8 @@ export const ACTIONS: readonly ActionDef[] = [
   sleep, nap, wash,
   // еда
   eat, cook, snack, shopping,
+  // домашние дела, которые видно со стороны
+  washDishes, makeBed, unpack, takeOutTrash,
   // работа
   goToWork, workFromHome,
   // досуг дома

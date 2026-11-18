@@ -19,10 +19,14 @@ function readDir(dir: string): RawFile[] {
     });
 }
 
-export function loadRawDataNode(root = resolve(process.cwd(), 'data')): RawData {
+/**
+ * Читает данные из папки root (по умолчанию data/). Каталог мебели можно взять
+ * из другой папки (тесты используют свои жильцов, но общий каталог).
+ */
+export function loadRawDataNode(root = resolve(process.cwd(), 'data'), catalogRoot = root): RawData {
   return {
     world: JSON.parse(readFileSync(join(root, 'world.json'), 'utf8')),
-    catalog: JSON.parse(readFileSync(join(root, 'catalog', 'furniture.json'), 'utf8')),
+    catalog: JSON.parse(readFileSync(join(catalogRoot, 'catalog', 'furniture.json'), 'utf8')),
     residents: readDir(join(root, 'residents')),
     apartments: readDir(join(root, 'apartments')),
   };

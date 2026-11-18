@@ -1,0 +1,96 @@
+{
+  "id": "apt-5-left",
+  "floor": 5,
+  "side": "left",
+  "style": "scandi",
+  "description": "Светлая квартира Ковалёвых: белые стены, рассада на подоконниках, коврик для йоги и большой телевизор для футбола.",
+  "palette": {
+    "wall": "#e9e6df",
+    "floor": "#c9a97c",
+    "wood": "#d2b48c",
+    "textile": "#5f7d95",
+    "accent": "#e0a458",
+    "metal": "#b9c1c7"
+  },
+  "wallpaper": "plain",
+  "flooring": "boards",
+  "rooms": [
+    {
+      "type": "bedroom",
+      "width": 3,
+      "furniture": [
+        {
+          "item": "bed_double",
+          "x": 2
+        },
+        {
+          "item": "exercise_mat",
+          "x": 26
+        },
+        {
+          "item": "window_plants",
+          "x": 16
+        }
+      ]
+    },
+    {
+      "type": "living",
+      "width": 4,
+      "furniture": [
+        {
+          "item": "plant_big",
+          "x": 1
+        },
+        {
+          "item": "sofa",
+          "x": 14
+        },
+        {
+          "item": "tv_stand",
+          "x": 46
+        },
+        {
+          "item": "picture",
+          "x": 22
+        }
+      ]
+    },
+    {
+      "type": "kitchen",
+      "width": 3,
+      "wallpaper": "tiles",
+      "furniture": [
+        {
+          "item": "kitchen_counter",
+          "x": 0
+        },
+        {
+          "item": "stove",
+          "x": 20
+        },
+        {
+          "item": "fridge",
+          "x": 35
+        }
+      ]
+    },
+    {
+      "type": "hall",
+      "width": 2,
+      "furniture": [
+        {
+          "item": "shoe_rack",
+          "x": 2
+        },
+        {
+          "item": "coat_rack",
+          "x": 22
+        },
+        {
+          "item": "mirror",
+          "x": 12
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "id": "apt-6-right",
+  "floor": 6,
+  "side": "right",
+  "style": "loft",
+  "description": "Съёмная квартира Марка: голый кирпич, провода, гитара и вечно включённый монитор.",
+  "palette": {
+    "wall": "#9b6b5a",
+    "floor": "#5b5550",
+    "wood": "#4a3a30",
+    "textile": "#46607a",
+    "accent": "#d6a03c",
+    "metal": "#7d868e"
+  },
+  "wallpaper": "brick",
+  "flooring": "concrete",
+  "rooms": [
+    {
+      "type": "hall",
+      "width": 2,
+      "furniture": [
+        {
+          "item": "shoe_rack",
+          "x": 3
+        },
+        {
+          "item": "coat_rack",
+          "x": 20
+        }
+      ]
+    },
+    {
+      "type": "kitchen",
+      "width": 3,
+      "wallpaper": "tiles",
+      "furniture": [
+        {
+          "item": "kitchen_counter",
+          "x": 1
+        },
+        {
+          "item": "stove",
+          "x": 21
+        },
+        {
+          "item": "fridge",
+          "x": 35
+        }
+      ]
+    },
+    {
+      "type": "living",
+      "width": 4,
+      "furniture": [
+        {
+          "item": "computer_desk",
+          "x": 2
+        },
+        {
+          "item": "poster",
+          "x": 8
+        },
+        {
+          "item": "sofa",
+          "x": 30
+        },
+        {
+          "item": "guitar",
+          "x": 26
+        }
+      ]
+    },
+    {
+      "type": "bedroom",
+      "width": 3,
+      "furniture": [
+        {
+          "item": "plant",
+          "x": 3
+        },
+        {
+          "item": "bed_single",
+          "x": 22,
+          "flip": true
+        },
+        {
+          "item": "bookshelf",
+          "x": 3
+        }
+      ]
+    }
+  ]
+}

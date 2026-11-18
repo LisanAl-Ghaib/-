@@ -42,6 +42,9 @@ export const eat: ActionDef = {
     if (meal === 'breakfast' || meal === 'lunch' || meal === 'dinner') ctx.r.today[meal] = true;
     if (!a.data.ate) return;
     if (ctx.r.needs.food > 85) addMoodlet(ctx, 'fed', 'Сытно поел(а)', 3, 3);
+    const st = aptState(ctx);
+    st.dishes += 1;
+    st.trash += 0.2;
   },
 };
 
@@ -84,6 +87,12 @@ export const cook: ActionDef = {
     const st = aptState(ctx);
     st.groceries = Math.max(0, st.groceries - (a.data.baking ? 1.5 : 1));
     st.meals += Number(a.data.portions ?? 2);
+    st.dishes += 1;
+    st.trash += 0.6;
+    if (st.bags > 0) {
+      st.bags = 0; // заодно разобрала пакеты
+      st.trash += 0.4;
+    }
     if (habit(ctx, 'cooking') > 0.5) addMoodlet(ctx, 'cooked', 'Приготовил(а) что-то вкусное', 5, 5);
     ctx.sim.emit({ type: 'cooked', t: ctx.now, residentId: ctx.r.id, baking: !!a.data.baking, portions: Number(a.data.portions ?? 2) });
   },
@@ -142,6 +151,7 @@ export const shopping: ActionDef = {
   onEnd(ctx, _a, interrupted) {
     if (interrupted) return;
     aptState(ctx).groceries += 6;
+    ctx.r.carrying = 'bags';
     ctx.sim.emit({ type: 'shopped', t: ctx.now, residentId: ctx.r.id });
   },
 };

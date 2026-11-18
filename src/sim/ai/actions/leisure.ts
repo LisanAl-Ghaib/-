@@ -36,11 +36,11 @@ function leisure(s: LeisureSpec): ActionDef {
         let spot = homeSlot(ctx, s.use, s.rooms);
         if (spot && s.needsTv) {
           const room = ctx.home.rooms[spot.slot.roomIndex];
-          if (!room.furniture.some((f) => f.def.draw.startsWith('tv'))) {
+          if (!room.furniture.some((f) => f.def.draw.includes('tv'))) {
             // поищем место у телевизора
             spot = null;
             for (const room2 of ctx.home.rooms) {
-              if (!room2.furniture.some((f) => f.def.draw.startsWith('tv'))) continue;
+              if (!room2.furniture.some((f) => f.def.draw.includes('tv'))) continue;
               const sl = ctx.sim.findSlot(ctx.home, s.use, r.id, room2.index);
               if (sl && sl.roomIndex === room2.index) spot = { target: { level: ctx.home.level, x: sl.x, slot: sl.key }, slot: sl };
             }
@@ -128,7 +128,7 @@ export const lookOutside = leisure({
 
 export const chores = leisure({
   id: 'chores', icon: 'wash', use: null,
-  base: 1.6, label: (ctx) => ctx.sim.rng.pick(['наводит порядок', 'протирает пыль', 'разбирает вещи', 'моет посуду']),
+  base: 1.6, label: (ctx) => ctx.sim.rng.pick(['наводит порядок', 'протирает пыль', 'разбирает вещи', 'моет пол', 'складывает бельё']),
   rates: { mood: 1.5, energy: -1.5 }, minutes: [15, 40], cooldown: 6 * 3600,
   bonus: (ctx) => (ctx.def.traits.tags.some((t) => /аккурат|педант|чистопл/i.test(t)) ? 2 : 0),
 });

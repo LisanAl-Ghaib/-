@@ -7,7 +7,7 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -89,6 +89,8 @@ export interface ResidentState {
   interaction: number | null;
   /** намерение навестить кого-то (подарок, извинение…) */
   intents: { target: string; kind: string; until: number }[];
+  /** что несёт в руках — видно на улице и в подъезде */
+  carrying: 'bags' | 'trash' | null;
 }
 
 /** Отношение жильца A к жильцу B (направленное) */
@@ -143,6 +145,14 @@ export interface ApartmentState {
   groceries: number;
   /** готовая еда (порции) */
   meals: number;
+  /** грязная посуда (тарелки/кастрюли) — видно на кухне */
+  dishes: number;
+  /** незаправленные кровати (ключи слотов) */
+  unmade: string[];
+  /** мусор: 0 — пусто, 1+ — пакет у двери */
+  trash: number;
+  /** пакеты из магазина, ещё не разобранные */
+  bags: number;
 }
 
 export interface WorldState {
@@ -207,6 +217,7 @@ export function createResidentState(defs: WorldDefs, id: string, rngNext: () => 
     via: 'walk',
     interaction: null,
     intents: [],
+    carrying: null,
   };
 }
 

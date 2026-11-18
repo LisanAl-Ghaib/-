@@ -41,8 +41,12 @@ export const sleep: ActionDef = {
     if (r.needs.energy >= 72) return true;
     return ctx.now >= r.plan.wakeAt + 2.5 * 3600;
   },
-  onEnd(ctx) {
+  onEnd(ctx, a) {
     ctx.r.wokeAt = ctx.now;
+    // встал — кровать осталась незаправленной
+    const st = ctx.sim.aptState(ctx.home.id);
+    const slot = a.target.slot;
+    if (slot && ctx.sim.slotIndex.get(slot)?.pose === 'lie' && !st.unmade.includes(slot)) st.unmade.push(slot);
     if (ctx.r.needs.energy < 45) addMoodlet(ctx, 'not-slept', gv(ctx.def, 'Не выспался', 'Не выспалась'), -7, 8);
   },
 };
