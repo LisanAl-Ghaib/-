@@ -129,6 +129,13 @@ const drawers: Record<string, Drawer> = {
     R(c, 1, h - 5, w - 2, 1, shade(main, -0.3)); // ножки
     R(c, 2, h - 4, 1, 4, OUT);
     R(c, w - 3, h - 4, 1, 4, OUT);
+    if (c.style === 'soviet') {
+      // кружевная салфетка на крышке и фарфоровая статуэтка
+      R(c, 1, 3, w - 2, 1, '#f4f0e4');
+      for (let x = 1; x < w - 1; x += 2) R(c, x, 4, 1, 1, '#f4f0e4');
+      R(c, Math.floor(w / 2) + 1, 0, 2, 3, '#f2efe8');
+      R(c, Math.floor(w / 2) + 1, 0, 1, 1, '#4a6aa8');
+    }
   },
   bookshelf(c) {
     const { w, h, main, rng } = c;
@@ -214,8 +221,16 @@ const drawers: Record<string, Drawer> = {
     R(c, w - 1, h - 10, 1, 10, shade(main, -0.15));
     R(c, w - 4, h - 5, 4, 1, shade(main, -0.15));
     R(c, w - 4, h - 4, 1, 4, shade(main, -0.15));
-    R(c, 5, h - 9, w - 10, 2, pal.textile);
-    R(c, 5, h - 9, w - 10, 1, shade(pal.textile, 0.25));
+    if (c.style === 'soviet') {
+      // клеёнка в клетку, свисает краями
+      R(c, 0, h - 10, w, 1, '#e8e2d0');
+      for (let x = 0; x < w; x += 2) R(c, x, h - 9, 1, 2, x % 4 ? '#e8e2d0' : pal.textile);
+      R(c, 0, h - 9, 1, 3, '#e8e2d0');
+      R(c, w - 1, h - 9, 1, 3, '#e8e2d0');
+    } else {
+      R(c, 5, h - 9, w - 10, 2, pal.textile);
+      R(c, 5, h - 9, w - 10, 1, shade(pal.textile, 0.25));
+    }
     R(c, 7, h - 7, 1, 7, shade(main, -0.25));
     R(c, w - 8, h - 7, 1, 7, shade(main, -0.25));
   },
@@ -563,6 +578,16 @@ const drawers: Record<string, Drawer> = {
       R(c, x, 14, 2, 3, x % 2 ? '#e8d8a0' : '#f4f1ea');
     }
     R(c, 3, 3, 1, 3, '#ffffff');
+    if (c.style === 'soviet') {
+      // хрусталь и выставленные тарелки сервиза
+      R(c, 2, 11, 2, 3, '#e4f2f8');
+      R(c, w - 5, 10, 3, 4, '#dfe9f0');
+      R(c, w - 4, 11, 1, 1, '#ffffff');
+      R(c, 5, 2, 3, 3, '#f4f1ea');
+      R(c, 6, 3, 1, 1, '#c8402e');
+      R(c, 1, 0, w - 2, 1, '#f4f0e4'); // салфетка сверху
+      R(c, 3, -2, 2, 2, '#c8a040'); // ваза
+    }
     R(c, 1, 19, w - 2, 4, shade(main, -0.12));
     R(c, 1, 24, w - 2, 4, shade(main, -0.12));
     R(c, w / 2 - 1, 20, 2, 1, '#d6c38a');

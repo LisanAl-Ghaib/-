@@ -39,8 +39,19 @@ export const FRAME = {
   standHandUp: 18,
   /** стоит боком, рука поднята вперёд-вверх (мешает, трёт, красит) */
   workUp: 19,
+  /** стоит спиной к зрителю (у плиты, у окна) */
+  backStand: 20,
+  /** сидит спиной к зрителю (за столом) */
+  backSit: 21,
+  /** стоит спиной, руки впереди (готовит, моет) */
+  backWork: 22,
+  /** сидит спиной, локти в стороны (ест, пишет, печатает) */
+  backSitWork: 23,
+  /** сидит лицом, нога на ногу */
+  frontSitCross: 24,
 } as const;
-export const FRAME_COUNT = 20;
+export const FRAME_COUNT = 25;
+export const BACK_FRAMES = new Set<number>([20, 21, 22, 23]);
 
 /** Пропорции фигуры (для реквизита в руках) */
 export function figureOf(app: ResidentDef['appearance']): { H: number; legLen: number; torsoLen: number } {
@@ -136,8 +147,9 @@ function drawFrame(
     return;
   }
 
-  const FRONT: number[] = [FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.standHandUp];
-  const SITTING: number[] = [FRAME.sit, FRAME.frontSit, FRAME.sitArm, FRAME.sitArmUp, FRAME.frontSitHands, FRAME.frontSitHandUp];
+  const FRONT: number[] = [FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.standHandUp, FRAME.backStand, FRAME.backSit, FRAME.backWork, FRAME.backSitWork, FRAME.frontSitCross];
+  const SITTING: number[] = [FRAME.sit, FRAME.frontSit, FRAME.sitArm, FRAME.sitArmUp, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.backSit, FRAME.backSitWork, FRAME.frontSitCross];
+  const back = BACK_FRAMES.has(f);
   const front = FRONT.includes(f);
   const sitting = SITTING.includes(f);
   const dy = sitting ? Math.max(0, legLen - 4) : 0; // садится — верх опускается
@@ -245,7 +257,17 @@ function drawFrame(
   const tw1 = build === 'heavy' ? C + 3 : build === 'slim' ? C + 1 : C + 2;
   const ty = torsoY + dy;
   // ноги
-  if (sitting) {
+  if (back && sitting) {
+    // со спины ноги скрыты стулом и телом
+    px(g, C - 3, legY + dy, 6, 1, p.bottomS);
+  } else if (f === FRAME.frontSitCross) {
+    // нога на ногу: одна голень лежит поперёк колена
+    px(g, C - 3, legY + dy, 6, 2, p.bottom);
+    px(g, C + 1, legY + dy + 2, 2, CELL_H - legY - dy - 3, p.bottomS);
+    px(g, C + 1, CELL_H - 1, 2, 1, p.shoes);
+    px(g, C - 5, legY + dy + 1, 6, 2, p.bottomS);
+    px(g, C - 6, legY + dy + 1, 2, 2, p.shoes);
+  } else if (sitting) {
     px(g, C - 3, legY + dy, 6, 2, p.bottom);
     px(g, C - 3, legY + dy + 2, 2, CELL_H - legY - dy - 3, p.bottomS);
     px(g, C + 1, legY + dy + 2, 2, CELL_H - legY - dy - 3, p.bottomS);
@@ -285,7 +307,13 @@ function drawFrame(
   // руки
   const armL = tw0 - 1;
   const armR = tw1 + 1;
-  if (f === FRAME.frontSitHands) {
+  if (f === FRAME.backWork || f === FRAME.backSitWork) {
+    // руки впереди: со спины видны только плечи и локти
+    px(g, armL, ty + 1, 1, torsoLen - 3, p.topS);
+    px(g, armL - 1, ty + torsoLen - 3, 1, 1, p.topS);
+    px(g, armR, ty + 1, 1, torsoLen - 3, p.topS);
+    px(g, armR + 1, ty + torsoLen - 3, 1, 1, p.topS);
+  } else if (f === FRAME.frontSitHands) {
     // обе руки сведены перед собой
     px(g, armL, ty + 1, 1, torsoLen - 3, p.topS);
     px(g, armL + 1, ty + torsoLen - 2, 2, 1, p.topS);
@@ -297,7 +325,7 @@ function drawFrame(
     px(g, armL, ty + 1, 1, torsoLen - 1, p.topS);
     px(g, armL, ty + torsoLen, 1, 1, p.skin);
   }
-  if (f === FRAME.frontSitHands) {
+  if (f === FRAME.frontSitHands || f === FRAME.backWork || f === FRAME.backSitWork) {
     /* уже нарисовано */
   } else if (f === FRAME.frontSitHandUp || f === FRAME.standHandUp) {
     px(g, armR, ty, 1, 2, p.topS);
@@ -315,6 +343,18 @@ function drawFrame(
   if (acc.has('bag')) px(g, armR, ty + 3, 2, 3, '#6b4a2a');
   // голова
   const hy = headY + dy;
+  if (back) {
+    px(g, C - 1, ty, 2, 1, p.topS); // ворот/позвоночник
+    px(g, C - 3, hy, 6, 5, p.skin);
+    px(g, C - 1, hy + 4, 2, 1, p.skinS); // шея
+    if (acc.has('earrings')) {
+      px(g, C - 4, hy + 3, 1, 1, '#e8c547');
+      px(g, C + 3, hy + 3, 1, 1, '#e8c547');
+    }
+    drawHairBack(g, app.hair.style, p, y0 + dy);
+    drawHeadwearFront(g, acc, y0 + dy);
+    return;
+  }
   px(g, C - 3, hy, 6, 5, p.skin);
   px(g, C - 3, hy + 4, 6, 1, p.skinS);
   px(g, C - 2, hy + 2, 1, 1, p.eye);
@@ -473,6 +513,68 @@ function drawHairFront(g: CanvasRenderingContext2D, style: string, p: Pal, y0: n
       px(g, C - 5, hy + 1, 2, 3, p.hair);
       px(g, C + 3, hy + 1, 2, 3, p.hair);
       break;
+  }
+}
+
+/** Причёска со спины: затылок закрыт волосами */
+function drawHairBack(g: CanvasRenderingContext2D, style: string, p: Pal, y0: number) {
+  const hy = y0 + 1;
+  const crown = () => {
+    px(g, C - 3, y0, 6, 1, p.hair);
+    px(g, C - 3, hy, 6, 3, p.hair);
+    px(g, C - 3, hy + 3, 1, 1, p.hairS);
+    px(g, C + 2, hy + 3, 1, 1, p.hairS);
+    px(g, C - 1, hy + 1, 2, 1, p.hairS);
+  };
+  switch (style) {
+    case 'buzz':
+      px(g, C - 3, hy, 6, 3, p.hairS);
+      break;
+    case 'long':
+      crown();
+      px(g, C - 3, hy + 3, 6, 8, p.hair);
+      px(g, C - 1, hy + 4, 1, 6, p.hairS);
+      break;
+    case 'bob':
+      crown();
+      px(g, C - 4, hy + 1, 8, 4, p.hair);
+      px(g, C - 4, hy + 4, 8, 1, p.hairS);
+      break;
+    case 'ponytail':
+      crown();
+      px(g, C - 1, hy + 3, 2, 6, p.hair);
+      px(g, C - 1, hy + 8, 2, 1, p.hairS);
+      break;
+    case 'braid':
+      crown();
+      px(g, C - 1, hy + 3, 2, 9, p.hairS);
+      for (let y = hy + 4; y < hy + 12; y += 2) px(g, C - 1, y, 1, 1, p.hair);
+      break;
+    case 'bun':
+      crown();
+      px(g, C - 2, y0 - 2, 4, 3, p.hair);
+      px(g, C - 1, y0 - 1, 2, 1, p.hairS);
+      break;
+    case 'curly':
+      px(g, C - 4, y0 - 1, 8, 6, p.hair);
+      for (let x = C - 4; x < C + 4; x += 2) px(g, x, y0 + (x % 3), 1, 1, p.hairS);
+      break;
+    case 'bald':
+      px(g, C - 2, hy + 1, 1, 1, shade(p.skin, 0.1));
+      break;
+    case 'balding':
+      px(g, C - 3, hy + 2, 6, 2, p.hair);
+      break;
+    case 'mohawk':
+      px(g, C - 1, y0 - 2, 2, 6, p.hair);
+      break;
+    case 'pigtails':
+      crown();
+      px(g, C - 5, hy + 2, 2, 4, p.hair);
+      px(g, C + 3, hy + 2, 2, 4, p.hair);
+      break;
+    default:
+      crown();
   }
 }
 

@@ -4,15 +4,20 @@ import type { ResidentState } from '../sim/state';
 import { FRAME } from './sprites/character';
 
 /**
- * Мини-анимации занятий. Чисто косметика рендера (симуляцию не трогает):
- * за долгим занятием человек меняет позу каждые несколько минут, берёт в руки
- * чашку или телефон, перелистывает книгу, печатает, мешает в кастрюле.
+ * Живые позы (чистая косметика рендера, симуляцию не трогает).
+ *
+ * Три уровня движения:
+ *  1. Поза занятия меняется каждые несколько игровых минут: откинулся, закинул ногу на ногу,
+ *     взял чашку, уткнулся в телефон.
+ *  2. Ракурс: человек сидит лицом, боком (к телевизору, к собеседнику) или спиной
+ *     (за столом, у плиты, у окна) — мир не плоский.
+ *  3. Мелкие движения каждые пару секунд: дышит, моргает, поворачивает голову,
+ *     поправляет очки, ёрзает на месте.
  */
 export type PropKind =
   | 'phone' | 'cup' | 'book' | 'remote' | 'fork' | 'pen' | 'knitting' | 'guitar'
   | 'spoon' | 'rag' | 'can' | 'sponge' | 'paper' | 'hoop';
 
-/** где реквизит: в руках перед собой, у уха, у рта, в вытянутой руке, в поднятой руке, в опущенной */
 export type PropAt = 'hands' | 'ear' | 'mouth' | 'fwd' | 'up' | 'low';
 
 export interface Pose {
@@ -20,19 +25,48 @@ export interface Pose {
   prop?: { kind: PropKind; at: PropAt };
   /** перевернуться во сне */
   turn?: boolean;
-  /** подпрыгивание (спорт) */
+  /** приподнять спрайт (дыхание, подпрыгивание) */
   bob?: number;
+  /** сдвиг по горизонтали — поёрзал на месте */
+  dx?: number;
+  /** куда смотрит в боковом ракурсе (переопределяет facing жильца) */
+  facing?: 1 | -1;
+  /** моргнул */
+  blink?: boolean;
 }
+
+/** Что известно об окружении (считает рендер) */
+export interface AnimEnv {
+  /** на что смотреть боком: телевизор, собеседник */
+  faceToX?: number;
+  /** сидит за столом лицом к стене — со спины */
+  tableBack?: boolean;
+  /** окно/плита/мойка перед ним у стены — стоит спиной */
+  wallWork?: boolean;
+}
+
+type Orient = 'front' | 'side' | 'back';
+type Gesture = 'rest' | 'slouch' | 'hands' | 'handUp' | 'cross' | 'stand' | 'work' | 'workUp' | 'phoneStand' | 'talk' | 'wave';
 
 interface Variant {
-  front?: number;
-  side?: number;
+  g: Gesture;
+  o?: Orient;
   prop?: { kind: PropKind; at: PropAt };
-  /** чередовать с этим кадром (печатает, мешает, жестикулирует) */
-  alt?: { front?: number; side?: number; ms: number };
+  alt?: { g: Gesture; ms: number };
 }
 
-const SEG_MIN = 6; // поза меняется каждые ~6 игровых минут (≈ 6 секунд на ×1)
+const SIT_FRAMES: Record<Orient, Partial<Record<Gesture, number>>> = {
+  front: { rest: FRAME.frontSit, slouch: FRAME.frontSitSlouch, hands: FRAME.frontSitHands, handUp: FRAME.frontSitHandUp, cross: FRAME.frontSitCross },
+  side: { rest: FRAME.sit, slouch: FRAME.sitLean, hands: FRAME.sitArm, handUp: FRAME.sitArmUp, cross: FRAME.sitLean },
+  back: { rest: FRAME.backSit, slouch: FRAME.backSit, hands: FRAME.backSitWork, handUp: FRAME.backSitWork, cross: FRAME.backSit },
+};
+const STAND_FRAMES: Record<Orient, Partial<Record<Gesture, number>>> = {
+  front: { stand: FRAME.frontStand, work: FRAME.frontStand, workUp: FRAME.frontWave, phoneStand: FRAME.standHandUp, talk: FRAME.frontTalk, wave: FRAME.frontWave },
+  side: { stand: FRAME.stand, work: FRAME.work, workUp: FRAME.workUp, phoneStand: FRAME.standHandUp, talk: FRAME.frontTalk, wave: FRAME.workUp },
+  back: { stand: FRAME.backStand, work: FRAME.backWork, workUp: FRAME.backWork, phoneStand: FRAME.backStand, talk: FRAME.backStand, wave: FRAME.backWork },
+};
+
+const SEG_MIN = 5; // поза меняется каждые ~5 игровых минут (≈ 5 секунд)
 
 function mixHash(a: number, b: number): number {
   let h = (a ^ Math.imul(b + 0x9e3779b9, 0x85ebca6b)) >>> 0;
@@ -40,149 +74,188 @@ function mixHash(a: number, b: number): number {
   return (h ^ (h >>> 16)) >>> 0;
 }
 
+const CUP = { kind: 'cup', at: 'mouth' } as const;
 const SIT_IDLE: Variant[] = [
-  { front: FRAME.frontSit, side: FRAME.sit },
-  { front: FRAME.frontSitSlouch, side: FRAME.sitLean },
-  { front: FRAME.frontSitHandUp, side: FRAME.sitArmUp, prop: { kind: 'cup', at: 'mouth' } },
-  { front: FRAME.frontSitHands, side: FRAME.sitArm, prop: { kind: 'phone', at: 'hands' } },
+  { g: 'rest' },
+  { g: 'slouch' },
+  { g: 'cross' },
+  { g: 'handUp', prop: CUP },
+  { g: 'hands', prop: { kind: 'phone', at: 'hands' } },
+  { g: 'rest', o: 'side' },
 ];
 
-const BY_ACTION: Record<string, Variant[]> = {
+const SIT: Record<string, Variant[]> = {
   watch_tv: [
-    { front: FRAME.frontSit, side: FRAME.sit, prop: { kind: 'remote', at: 'low' } },
-    { front: FRAME.frontSitSlouch, side: FRAME.sitLean },
-    { front: FRAME.frontSitHandUp, side: FRAME.sitArmUp, prop: { kind: 'cup', at: 'mouth' } },
-    { front: FRAME.frontSitHands, side: FRAME.sitArm, prop: { kind: 'phone', at: 'hands' } },
-    { front: FRAME.frontSitSlouch, side: FRAME.sitLean, prop: { kind: 'remote', at: 'low' } },
+    { g: 'rest', prop: { kind: 'remote', at: 'low' } },
+    { g: 'slouch' },
+    { g: 'cross' },
+    { g: 'handUp', prop: CUP },
+    { g: 'hands', prop: { kind: 'phone', at: 'hands' } },
+    { g: 'slouch', prop: { kind: 'remote', at: 'low' } },
+    { g: 'rest', o: 'front' },
   ],
   read: [
-    { front: FRAME.frontSitHands, side: FRAME.sitArm, prop: { kind: 'book', at: 'hands' } },
-    { front: FRAME.frontSitHands, side: FRAME.sitArm, prop: { kind: 'book', at: 'hands' } },
-    { front: FRAME.frontSitSlouch, side: FRAME.sitLean, prop: { kind: 'book', at: 'low' } },
-    { front: FRAME.frontSitHandUp, side: FRAME.sitArmUp, prop: { kind: 'cup', at: 'mouth' } },
+    { g: 'hands', prop: { kind: 'book', at: 'hands' } },
+    { g: 'hands', prop: { kind: 'book', at: 'hands' }, o: 'side' },
+    { g: 'slouch', prop: { kind: 'book', at: 'low' } },
+    { g: 'handUp', prop: CUP },
+    { g: 'cross', prop: { kind: 'book', at: 'low' } },
   ],
   work: [
-    { side: FRAME.sitArm, front: FRAME.frontSitHands, alt: { side: FRAME.sit, front: FRAME.frontSit, ms: 260 } },
-    { side: FRAME.sitArm, front: FRAME.frontSitHands, alt: { side: FRAME.sit, front: FRAME.frontSit, ms: 300 } },
-    { side: FRAME.sitLean, front: FRAME.frontSitSlouch },
-    { side: FRAME.sitArmUp, front: FRAME.frontSitHandUp, prop: { kind: 'cup', at: 'mouth' } },
-    { side: FRAME.sitArmUp, front: FRAME.frontSitHandUp, prop: { kind: 'phone', at: 'ear' } },
-    { side: FRAME.sit, front: FRAME.frontSitHands, prop: { kind: 'phone', at: 'hands' } },
+    { g: 'hands', alt: { g: 'rest', ms: 260 } },
+    { g: 'hands', alt: { g: 'rest', ms: 320 } },
+    { g: 'slouch' },
+    { g: 'handUp', prop: CUP },
+    { g: 'handUp', prop: { kind: 'phone', at: 'ear' } },
+    { g: 'rest', prop: { kind: 'paper', at: 'hands' }, o: 'front' },
+    { g: 'hands', prop: { kind: 'pen', at: 'fwd' }, alt: { g: 'rest', ms: 700 } },
   ],
   gaming: [
-    { side: FRAME.sitArm, front: FRAME.frontSitHands, alt: { side: FRAME.sit, ms: 160 } },
-    { side: FRAME.sitArm, front: FRAME.frontSitHands, alt: { side: FRAME.sitLean, ms: 220 } },
-    { side: FRAME.sitLean, front: FRAME.frontSitSlouch },
-    { side: FRAME.sitArmUp, front: FRAME.frontSitHandUp, prop: { kind: 'cup', at: 'mouth' } },
+    { g: 'hands', alt: { g: 'rest', ms: 160 } },
+    { g: 'hands', alt: { g: 'slouch', ms: 220 } },
+    { g: 'slouch' },
+    { g: 'handUp', prop: CUP },
   ],
   computer: [
-    { side: FRAME.sitArm, front: FRAME.frontSitHands, alt: { side: FRAME.sit, ms: 700 } },
-    { side: FRAME.sitLean, front: FRAME.frontSitSlouch },
-    { side: FRAME.sit, front: FRAME.frontSitHands, prop: { kind: 'phone', at: 'hands' } },
+    { g: 'hands', alt: { g: 'rest', ms: 700 } },
+    { g: 'slouch' },
+    { g: 'rest', prop: { kind: 'phone', at: 'hands' } },
   ],
   phone: [
-    { front: FRAME.frontSitHandUp, side: FRAME.sitArmUp, prop: { kind: 'phone', at: 'ear' } },
-    { front: FRAME.frontSitHandUp, side: FRAME.sitArmUp, prop: { kind: 'phone', at: 'ear' }, alt: { front: FRAME.frontSitSlouch, ms: 2600 } },
-    { front: FRAME.frontSitHands, side: FRAME.sitArm, prop: { kind: 'phone', at: 'hands' } },
+    { g: 'handUp', prop: { kind: 'phone', at: 'ear' } },
+    { g: 'handUp', prop: { kind: 'phone', at: 'ear' }, o: 'side' },
+    { g: 'handUp', prop: { kind: 'phone', at: 'ear' }, alt: { g: 'slouch', ms: 2600 } },
+    { g: 'hands', prop: { kind: 'phone', at: 'hands' } },
   ],
   eat: [
-    { side: FRAME.sitArm, front: FRAME.frontSitHands, prop: { kind: 'fork', at: 'fwd' }, alt: { side: FRAME.sitArmUp, front: FRAME.frontSitHandUp, ms: 700 } },
-    { side: FRAME.sit, front: FRAME.frontSit },
-    { side: FRAME.sitArmUp, front: FRAME.frontSitHandUp, prop: { kind: 'cup', at: 'mouth' } },
+    { g: 'hands', prop: { kind: 'fork', at: 'fwd' }, alt: { g: 'handUp', ms: 700 } },
+    { g: 'hands', alt: { g: 'handUp', ms: 900 } },
+    { g: 'rest' },
+    { g: 'handUp', prop: CUP },
   ],
   tea: [
-    { side: FRAME.sitArmUp, front: FRAME.frontSitHandUp, prop: { kind: 'cup', at: 'mouth' }, alt: { side: FRAME.sit, front: FRAME.frontSit, ms: 2200 } },
-    { side: FRAME.sitLean, front: FRAME.frontSitSlouch, prop: { kind: 'cup', at: 'low' } },
-    { side: FRAME.sit, front: FRAME.frontSitHands, prop: { kind: 'paper', at: 'hands' } },
+    { g: 'handUp', prop: CUP, alt: { g: 'rest', ms: 2200 } },
+    { g: 'slouch', prop: { kind: 'cup', at: 'low' } },
+    { g: 'hands', prop: { kind: 'paper', at: 'hands' } },
+    { g: 'cross', prop: { kind: 'cup', at: 'low' } },
   ],
   crafts: [
-    { front: FRAME.frontSitHands, side: FRAME.sitArm, prop: { kind: 'knitting', at: 'hands' }, alt: { front: FRAME.frontSitHands, side: FRAME.sit, ms: 400 } },
-    { front: FRAME.frontSitHands, side: FRAME.sitArm, prop: { kind: 'knitting', at: 'hands' } },
-    { front: FRAME.frontSitHandUp, side: FRAME.sitArmUp, prop: { kind: 'cup', at: 'mouth' } },
+    { g: 'hands', prop: { kind: 'knitting', at: 'hands' }, alt: { g: 'hands', ms: 400 } },
+    { g: 'hands', prop: { kind: 'knitting', at: 'hands' }, o: 'side' },
+    { g: 'handUp', prop: CUP },
+    { g: 'slouch' },
   ],
   music: [
-    { front: FRAME.frontSitHands, side: FRAME.sitArm, prop: { kind: 'guitar', at: 'hands' }, alt: { front: FRAME.frontSit, side: FRAME.sit, ms: 330 } },
-    { front: FRAME.frontSitHands, side: FRAME.sitArm, prop: { kind: 'guitar', at: 'hands' }, alt: { front: FRAME.frontSitHandUp, side: FRAME.sitArmUp, ms: 500 } },
+    { g: 'hands', prop: { kind: 'guitar', at: 'hands' }, alt: { g: 'rest', ms: 330 } },
+    { g: 'hands', prop: { kind: 'guitar', at: 'hands' }, alt: { g: 'handUp', ms: 500 } },
   ],
-  bench: SIT_IDLE.concat([{ front: FRAME.frontSitHands, side: FRAME.sitArm, prop: { kind: 'paper', at: 'hands' } }]),
-  idle: SIT_IDLE,
+  bench: SIT_IDLE.concat([{ g: 'hands', prop: { kind: 'paper', at: 'hands' } }]),
   night_watch: [
-    { side: FRAME.sitLean, front: FRAME.frontSitSlouch },
-    { side: FRAME.sitArmUp, front: FRAME.frontSitHandUp, prop: { kind: 'cup', at: 'mouth' } },
-    { side: FRAME.sit, front: FRAME.frontSit },
-    { side: FRAME.sitArm, front: FRAME.frontSitHands, prop: { kind: 'paper', at: 'hands' } },
+    { g: 'slouch' },
+    { g: 'handUp', prop: CUP },
+    { g: 'rest' },
+    { g: 'hands', prop: { kind: 'paper', at: 'hands' } },
+    { g: 'rest', o: 'front' },
   ],
-  family_visit: SIT_IDLE,
+  idle: SIT_IDLE,
   host: SIT_IDLE,
   guest: SIT_IDLE,
+  family_visit: SIT_IDLE,
 };
 
-const STAND_WORK: Record<string, Variant[]> = {
+const STAND: Record<string, Variant[]> = {
   cook: [
-    { side: FRAME.workUp, prop: { kind: 'spoon', at: 'up' }, alt: { side: FRAME.work, ms: 350 } },
-    { side: FRAME.work, prop: { kind: 'spoon', at: 'fwd' }, alt: { side: FRAME.stand, ms: 600 } },
-    { side: FRAME.stand },
+    { g: 'workUp', o: 'back', alt: { g: 'work', ms: 350 } },
+    { g: 'work', o: 'back', alt: { g: 'stand', ms: 600 } },
+    { g: 'workUp', o: 'side', prop: { kind: 'spoon', at: 'up' }, alt: { g: 'work', ms: 400 } },
+    { g: 'stand', o: 'side' },
   ],
-  wash: [{ side: FRAME.work, prop: { kind: 'sponge', at: 'fwd' }, alt: { side: FRAME.workUp, ms: 280 } }],
-  wash_dishes: [{ side: FRAME.work, prop: { kind: 'sponge', at: 'fwd' }, alt: { side: FRAME.workUp, ms: 280 } }],
-  plants: [{ side: FRAME.workUp, prop: { kind: 'can', at: 'up' } }, { side: FRAME.work, prop: { kind: 'can', at: 'fwd' } }],
-  chores: [{ side: FRAME.work, prop: { kind: 'rag', at: 'fwd' }, alt: { side: FRAME.workUp, ms: 400 } }, { front: FRAME.frontStand, side: FRAME.stand }],
-  make_bed: [{ side: FRAME.workUp, alt: { side: FRAME.work, ms: 450 } }],
-  unpack: [{ side: FRAME.work, alt: { side: FRAME.stand, ms: 700 } }],
-  snack: [{ side: FRAME.work, alt: { side: FRAME.workUp, ms: 900 } }],
-  phone: [{ front: FRAME.standHandUp, side: FRAME.standHandUp, prop: { kind: 'phone', at: 'ear' } }],
+  wash: [{ g: 'work', o: 'back', alt: { g: 'workUp', ms: 280 } }, { g: 'work', o: 'side', prop: { kind: 'sponge', at: 'fwd' }, alt: { g: 'workUp', ms: 280 } }],
+  wash_dishes: [{ g: 'work', o: 'back', alt: { g: 'workUp', ms: 280 } }, { g: 'work', o: 'side', prop: { kind: 'sponge', at: 'fwd' }, alt: { g: 'workUp', ms: 280 } }],
+  plants: [{ g: 'workUp', o: 'side', prop: { kind: 'can', at: 'up' } }, { g: 'work', o: 'back' }],
+  chores: [{ g: 'work', o: 'side', prop: { kind: 'rag', at: 'fwd' }, alt: { g: 'workUp', ms: 400 } }, { g: 'work', o: 'back', alt: { g: 'workUp', ms: 380 } }, { g: 'stand', o: 'front' }],
+  make_bed: [{ g: 'workUp', o: 'side', alt: { g: 'work', ms: 450 } }, { g: 'work', o: 'back', alt: { g: 'workUp', ms: 450 } }],
+  unpack: [{ g: 'work', o: 'side', alt: { g: 'stand', ms: 700 } }, { g: 'work', o: 'back', alt: { g: 'workUp', ms: 600 } }],
+  snack: [{ g: 'work', o: 'back', alt: { g: 'workUp', ms: 900 } }],
+  feed_pets: [{ g: 'work', o: 'side', alt: { g: 'workUp', ms: 500 } }],
+  phone: [{ g: 'phoneStand', o: 'front', prop: { kind: 'phone', at: 'ear' } }, { g: 'phoneStand', o: 'side', prop: { kind: 'phone', at: 'ear' } }],
+  window: [{ g: 'stand', o: 'back' }, { g: 'stand', o: 'back' }, { g: 'stand', o: 'front' }],
+  look: [{ g: 'stand', o: 'back' }],
+  idle: [{ g: 'stand', o: 'front' }, { g: 'stand', o: 'side' }, { g: 'stand', o: 'back' }],
 };
 
 /** Поза жильца прямо сейчас */
-export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, nowMs: number): Pose {
+export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, nowMs: number, env: AnimEnv = {}): Pose {
   const h = hashString(r.id);
   const a = r.action;
   const id = a?.phase === 'perform' ? a.id : '';
   const seg = Math.floor((tGame / 60 + (h % 13)) / SEG_MIN);
   const pick = <T,>(list: T[]) => list[mixHash(seg, h) % list.length];
   const talking = a?.data.talking === true || r.interaction !== null;
+  // мелкие движения: окно ~2.6 с, активная часть — первые ~1.1 с
+  const win = Math.floor((nowMs + (h % 2600)) / 2600);
+  const inWin = (nowMs + (h % 2600)) % 2600;
+  const micro = inWin < 1100 ? mixHash(win, h ^ 0x55) % 12 : -1;
+  const blink = (nowMs + h * 53) % 3700 < 140;
+  const faceTo: 1 | -1 | undefined = env.faceToX !== undefined ? (env.faceToX >= r.x ? 1 : -1) : undefined;
 
   if (r.pose === 'lie') {
-    // во сне иногда переворачивается
+    // во сне иногда переворачивается, одеяло поднимается от дыхания
     const turn = id === 'sleep' && mixHash(Math.floor(seg / 4), h) % 3 === 0;
-    return { frame: FRAME.lie, turn };
+    return { frame: FRAME.lie, turn, bob: Math.floor((nowMs + h) / 2200) % 2 };
   }
 
   if (r.pose === 'sit') {
-    if (talking) {
-      const gesture = Math.floor(nowMs / 900 + h) % 4 === 0;
-      const v = pick(SIT_IDLE.slice(0, 3));
-      if (gesture) return { frame: r.front ? FRAME.frontSitHandUp : FRAME.sitArmUp };
-      return { frame: (r.front ? v.front : v.side) ?? FRAME.frontSit, prop: v.prop?.kind === 'cup' ? v.prop : undefined };
-    }
-    if (id === 'sleep' || id === 'nap') return { frame: r.front ? FRAME.frontSitSlouch : FRAME.sitLean };
+    let base: Orient = env.tableBack ? 'back' : r.front ? 'front' : 'side';
+    if (faceTo !== undefined && !env.tableBack) base = 'side';
+    const breathe = Math.floor((nowMs + h) / 1900) % 2;
+    const dx = (mixHash(seg, h ^ 0x33) % 3) - 1; // поёрзал
+    if (id === 'sleep' || id === 'nap') return { frame: SIT_FRAMES[base].slouch!, bob: breathe };
     if (id === 'fitness') return { frame: FRAME.sit, bob: Math.floor(nowMs / 250) % 2 };
-    const list = BY_ACTION[id] ?? SIT_IDLE;
+    const list = talking ? SIT_IDLE.slice(0, 4) : SIT[id] ?? SIT_IDLE;
     const v = pick(list);
-    let frame = (r.front ? v.front : v.side) ?? (r.front ? FRAME.frontSit : FRAME.sit);
-    if (v.alt && Math.floor(nowMs / v.alt.ms + h) % 2 === 1) frame = (r.front ? v.alt.front : v.alt.side) ?? frame;
-    // рукоделие: вышивальщица держит пяльцы, а не спицы
-    if (v.prop?.kind === 'knitting' && def.habits.some((hb) => hb.kind === 'crafts' && /выши/i.test(hb.note))) return { frame, prop: { kind: 'hoop', at: v.prop.at } };
-    return { frame, prop: v.prop };
+    let o: Orient = v.o && !env.tableBack ? v.o : base;
+    let g: Gesture = v.g;
+    if (v.alt && Math.floor(nowMs / v.alt.ms + h) % 2 === 1) g = v.alt.g;
+    // в разговоре — жестикулирует
+    if (talking && Math.floor(nowMs / 900 + h) % 4 === 0) g = 'handUp';
+    // мелкие движения
+    if (micro === 0 || micro === 1) o = o === 'front' ? 'side' : o === 'side' ? 'front' : 'side'; // повернул голову
+    else if (micro === 2 && o !== 'back') g = 'handUp'; // поправил очки, почесал затылок
+    else if (micro === 3) g = 'slouch';
+    let frame = SIT_FRAMES[o][g] ?? SIT_FRAMES[o].rest!;
+    let prop = v.prop;
+    if (g !== v.g && !(v.alt && g === v.alt.g)) prop = undefined;
+    if (o === 'back') prop = undefined;
+    // вышивальщица держит пяльцы, а не спицы
+    if (prop?.kind === 'knitting' && def.habits.some((hb) => hb.kind === 'crafts' && /выши/i.test(hb.note))) prop = { kind: 'hoop', at: prop.at };
+    if (frame === FRAME.frontSitCross && prop?.at === 'hands') frame = FRAME.frontSitHands;
+    const facing = o === 'side' ? faceTo ?? (micro === 0 ? (-r.facing as 1 | -1) : undefined) : undefined;
+    return { frame, prop, bob: breathe, dx, facing, blink: blink && o !== 'back' };
   }
 
   // стоит
   if (r.path.length > 0) return { frame: FRAME.stand };
-  if (talking) return { frame: Math.floor(nowMs / 700 + h) % 3 === 0 ? FRAME.frontTalk : FRAME.frontStand };
+  if (talking) {
+    const g: Gesture = Math.floor(nowMs / 700 + h) % 3 === 0 ? 'talk' : 'stand';
+    const o: Orient = micro === 0 ? 'side' : 'front';
+    return { frame: STAND_FRAMES[o][g]!, facing: faceTo, blink };
+  }
   if (id === 'fitness') {
     const k = Math.floor(nowMs / 300) % 2;
     return { frame: k ? FRAME.frontWave : FRAME.frontStand, bob: k };
   }
-  const list = STAND_WORK[id];
-  if (list) {
-    const v = pick(list);
-    let frame = (r.front ? v.front : v.side) ?? (r.front ? FRAME.frontStand : FRAME.stand);
-    if (v.alt && Math.floor(nowMs / v.alt.ms + h) % 2 === 1) frame = (r.front ? v.alt.front : v.alt.side) ?? frame;
-    return { frame, prop: v.prop };
-  }
-  if (id === 'window' || id === 'look') return { frame: FRAME.frontStand };
-  // просто стоит: изредка поворачивается к зрителю
-  if (!a || a.phase === 'perform') return { frame: mixHash(seg, h) % 3 === 0 ? FRAME.frontStand : r.front ? FRAME.frontStand : FRAME.stand };
-  void def;
-  return { frame: r.front ? FRAME.frontStand : FRAME.stand };
+  const list = STAND[id] ?? STAND.idle;
+  const v = pick(list);
+  let o: Orient = v.o ?? (r.front ? 'front' : 'side');
+  if (env.wallWork && (id === 'cook' || id === 'wash' || id === 'wash_dishes') && v.o === 'side' && mixHash(seg, h) % 2) o = 'back';
+  let g: Gesture = v.g;
+  if (v.alt && Math.floor(nowMs / v.alt.ms + h) % 2 === 1) g = v.alt.g;
+  // постоял — переступил, обернулся
+  if (micro === 0 && !id) o = o === 'back' ? 'side' : 'back';
+  else if (micro === 1 && o === 'back') o = 'side';
+  else if (micro === 2 && (!id || id === 'window')) g = 'wave'; // потянулся
+  const frame = STAND_FRAMES[o][g] ?? STAND_FRAMES[o].stand!;
+  const prop = o === 'back' ? undefined : v.prop;
+  return { frame, prop, blink: blink && o !== 'back' };
 }

@@ -143,6 +143,40 @@ function drawWallpaper(g: CanvasRenderingContext2D, x0: number, y0: number, w: n
         rect(g, x, y + 2, 1, 1, p2);
       }
       break;
+    case 'soviet': {
+      // советские обои: широкие полосы с ромбиком-цветком и тонкими линиями по краям
+      const dark = shade(base, -0.2);
+      const band = mix(base, '#8a4a2a', 0.18);
+      const flower = mix(base, '#7a2a20', 0.45);
+      const leaf = mix(base, '#4a5a2a', 0.4);
+      for (let x = x0; x < x0 + w; x += 12) {
+        rect(g, x, y0, 6, h, band);
+        rect(g, x, y0, 1, h, dark);
+        rect(g, x + 5, y0, 1, h, dark);
+        for (let y = y0 + 2 + ((x - x0) / 12 % 2) * 5; y < y0 + h - 3; y += 10) {
+          rect(g, x + 2, y, 2, 1, flower);
+          rect(g, x + 1, y + 1, 4, 1, flower);
+          rect(g, x + 2, y + 2, 2, 1, flower);
+          rect(g, x + 2, y + 4, 1, 1, leaf);
+          rect(g, x + 3, y + 5, 1, 1, leaf);
+        }
+        for (let y = y0 + 5; y < y0 + h - 2; y += 10) rect(g, x + 9, y, 1, 1, p);
+      }
+      // выцвело у потолка, протёрлось у пола
+      rect(g, x0, y0, w, 1, shade(base, 0.1));
+      break;
+    }
+    case 'oilpaint': {
+      // крашеная масляной краской панель, сверху — побелка, между ними — бордюр
+      const top = Math.round(h * 0.42);
+      rect(g, x0, y0, w, top, '#e6e1d2');
+      for (let i = 0; i < w * top * 0.02; i++) rect(g, x0 + rng.int(0, w - 1), y0 + rng.int(0, top - 1), 1, 1, '#d8d2c0');
+      rect(g, x0, y0 + top, w, 1, shade(base, -0.35));
+      // блики глянцевой краски и потёки
+      for (let x = x0 + 3; x < x0 + w; x += 11) rect(g, x, y0 + top + 3, 1, h - top - 6, p2);
+      for (let i = 0; i < w / 14; i++) rect(g, x0 + rng.int(0, w - 1), y0 + top + 1, 1, rng.int(2, 4), shade(base, -0.06));
+      break;
+    }
     default:
       for (let i = 0; i < w * h * 0.01; i++) rect(g, x0 + rng.int(0, w - 1), y0 + rng.int(0, h - 1), 1, 1, p);
   }

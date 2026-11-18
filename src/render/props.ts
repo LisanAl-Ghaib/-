@@ -4,8 +4,18 @@ import { rect } from './pixel';
 import { CELL_H, CELL_W, FRAME, figureOf } from './sprites/character';
 
 const C = 12;
-const FRONT_FRAMES = new Set<number>([FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch, FRAME.standHandUp]);
-const SIT_FRAMES = new Set<number>([FRAME.sit, FRAME.frontSit, FRAME.sitArm, FRAME.sitArmUp, FRAME.sitLean, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch]);
+const FRONT_FRAMES = new Set<number>([FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch, FRAME.standHandUp, FRAME.backStand, FRAME.backSit, FRAME.backWork, FRAME.backSitWork, FRAME.frontSitCross]);
+const SIT_FRAMES = new Set<number>([FRAME.sit, FRAME.frontSit, FRAME.sitArm, FRAME.sitArmUp, FRAME.sitLean, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch, FRAME.backSit, FRAME.backSitWork, FRAME.frontSitCross]);
+
+/** Где глаза в этом кадре (для моргания); со спины — нет */
+export function eyesOf(app: ResidentDef['appearance'], frame: number): [number, number][] {
+  if (frame === FRAME.lie || frame === FRAME.backStand || frame === FRAME.backSit || frame === FRAME.backWork || frame === FRAME.backSitWork) return [];
+  const { H, legLen } = figureOf(app);
+  const dy = SIT_FRAMES.has(frame) ? Math.max(0, legLen - 4) : 0;
+  const hy = CELL_H - H + 1 + dy + (frame === FRAME.frontSitSlouch ? 1 : 0);
+  if (FRONT_FRAMES.has(frame)) return [[C - 2, hy + 2], [C + 1, hy + 2]];
+  return [[C + 1 + (frame === FRAME.sitLean ? -1 : 0), hy + 2]];
+}
 
 /** Где в ячейке спрайта находится рука для этого кадра */
 function anchor(app: ResidentDef['appearance'], frame: number, at: PropAt): [number, number] {

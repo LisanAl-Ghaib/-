@@ -1,12 +1,12 @@
 import { CORE_W, SLAB } from '../config';
-import { clamp01, mix } from '../core/math';
+import { clamp01, mix, shade } from '../core/math';
 import { Rng } from '../core/rng';
 import type { WorldDefs } from '../data/defs';
 import { daylight } from '../sim/env/sun';
 import type { ResidentState } from '../sim/state';
 import type { Simulation } from '../sim/simulation';
 import type { ApartmentModel } from '../world/layout';
-import { drawApartmentDoor, drawEntrance, renderBuilding, residentsBoardRect, type BuildingLayers } from './building';
+import { drawApartmentDoor, drawEntrance, renderBuilding, residentsBoardRect, windowRect, type BuildingLayers } from './building';
 import { Camera } from './camera';
 import { DEFAULT_LOOK, drawGround, drawTrees, drawYardProps, makeTrees, type OutdoorLook, type TreeShape } from './outdoor';
 import { busPhase } from '../world/transport';
@@ -19,11 +19,13 @@ import { hashString } from '../core/rng';
 import { LifeDetails } from './lifeDetails';
 import { generatePetSheet, PET_FRAME, PET_H, PET_W } from './sprites/pet';
 import { visitorAppearance } from './visitorLook';
-import { animatePose, type Pose } from './animation';
-import { drawProp } from './props';
+import { animatePose, type AnimEnv, type Pose } from './animation';
+import { drawProp, eyesOf } from './props';
+import type { FurnitureInstance } from '../world/layout';
 import { drawScreen, type ScreenKind } from './screens';
 
-const PROP_FRONT = new Set<number>([FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch, FRAME.standHandUp]);
+/** кадры анфас и со спины — не отражаются по направлению взгляда */
+const PROP_FRONT = new Set<number>([FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch, FRAME.standHandUp, FRAME.backStand, FRAME.backSit, FRAME.backWork, FRAME.backSitWork, FRAME.frontSitCross]);
 import { ctx2d, makeCanvas, SpriteRegistry } from './sprites/registry';
 
 export interface Environment {
@@ -204,6 +206,7 @@ export class Renderer {
 
     // освещение
     this.drawLighting(day);
+    this.drawGlow(nowMs, day);
     // осадки перед всем, кроме дома
     this.drawPrecip(nowMs, false);
     if (env.fog > 0) this.drawFog(day);
@@ -370,8 +373,11 @@ export class Renderer {
       const x = Math.round(p.x);
       const feet = L.floorY(p.level) - Math.round(p.h) + (p.mode === 'sleep' && f === PET_FRAME.curl && anim % 4 === 0 ? 0 : 0);
       const g = this.wg;
+      // сидящая кошка оглядывается по сторонам
+      let facing = p.facing;
+      if ((p.mode === 'window' || p.mode === 'watch' || p.mode === 'tray') && Math.floor((nowMs + p.idx * 2900) / 3100) % 3 === 0) facing = -facing as 1 | -1;
       g.save();
-      if (p.facing < 0) {
+      if (facing < 0) {
         g.translate(x + PET_W / 2, feet - PET_H);
         g.scale(-1, 1);
         g.drawImage(sheet, f * PET_W, 0, PET_W, PET_H, 0, 0, PET_W, PET_H);
@@ -401,7 +407,11 @@ export class Renderer {
       if (v.path.length) frame = FRAME.walk0 + (Math.floor(v.walkDist / 3) % 4);
       else if (v.phase === 'visiting' && v.seat) {
         const talk = Math.floor(nowMs / 900 + ix) % 4 === 0;
-        frame = v.seat.front ? (talk ? FRAME.frontSitHandUp : FRAME.frontSit) : talk ? FRAME.sitArmUp : FRAME.sit;
+        const seg = Math.floor(this.sim.time / 300 + ix) % 4; // пересаживается поудобнее
+        const front = [FRAME.frontSit, FRAME.frontSitCross, FRAME.frontSitSlouch, FRAME.frontSitHands];
+        const side = [FRAME.sit, FRAME.sitLean, FRAME.sit, FRAME.sitArm];
+        frame = v.seat.front ? (talk ? FRAME.frontSitHandUp : front[seg]) : talk ? FRAME.sitArmUp : side[seg];
+        top -= Math.floor((nowMs + ix * 37) / 1900) % 2;
         top = iy - 21;
         if (v.seat.front) flip = false;
       } else if (v.phase === 'waiting') frame = Math.floor(nowMs / 2000) % 3 === 0 ? FRAME.standHandUp : FRAME.stand;
@@ -457,6 +467,8 @@ export class Renderer {
 
   private drawDynamicFurniture(nowMs: number) {
     const L = this.defs.layout;
+    this.screensOn = [];
+    this.drawAmbient(nowMs);
     // «вечно включённые» экраны: работают, пока хозяин дома и не спит
     for (const apt of L.apartments) {
       for (const room of apt.rooms) {
@@ -471,6 +483,7 @@ export class Renderer {
           if (!sr) continue;
           const x = f.flip ? f.x + f.w - sr[0] - sr[2] : f.x + sr[0];
           drawScreen(this.wg, 'tv', x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, f.uid, f.channel);
+          this.screensOn.push([x + sr[2] / 2, f.y - f.h + sr[1], apt.id, room.index]);
         }
       }
     }
@@ -489,6 +502,23 @@ export class Renderer {
           const x = f.flip ? f.x + f.w - sr[0] - sr[2] : f.x + sr[0];
           const kind: ScreenKind = a.id === 'watch_tv' ? 'tv' : f.def.draw === 'concierge_desk' ? 'cctv' : a.id === 'gaming' ? 'game' : a.id === 'computer' ? 'browser' : (Math.floor(this.sim.time / 1500) + f.x) % 3 === 0 ? 'browser' : 'code';
           drawScreen(this.wg, kind, x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, f.uid);
+          if (kind === 'tv') this.screensOn.push([x + sr[2] / 2, f.y - f.h + sr[1], apt.id, room.index]);
+        }
+      }
+      if (a.id === 'tea' || a.id === 'snack') {
+        // чайник на плите посвистывает паром
+        const st = room.furniture.find((f) => f.def.draw === 'stove' || f.def.draw === 'hotplate');
+        if (st && a.id === 'tea') {
+          const kx = st.x + st.w - 7;
+          const ky = (st.def.draw === 'hotplate' ? st.y - 13 : st.y - st.h) - 4;
+          rect(this.wg, kx, ky, 5, 4, '#d8d4cc');
+          rect(this.wg, kx + 1, ky - 1, 3, 1, '#a8a49c');
+          rect(this.wg, kx + 5, ky + 1, 1, 1, '#d8d4cc');
+          const t = Math.floor(nowMs / 180) % 6;
+          this.wg.globalAlpha = 0.65;
+          rect(this.wg, kx + 6 + (t >> 1), ky - t, 1, 1, '#ffffff');
+          rect(this.wg, kx + 7 + ((t + 3) % 6 >> 1), ky - ((t + 3) % 6), 1, 1, '#ffffff');
+          this.wg.globalAlpha = 1;
         }
       }
       if (a.id === 'cook') {
@@ -505,6 +535,182 @@ export class Renderer {
         }
       }
     }
+  }
+
+  private screensOn: [number, number, string, number][] = [];
+
+  private awakeHome(apt: ApartmentModel): boolean {
+    return this.defs.residents.some((d) => {
+      const r = this.sim.state.residents[d.id];
+      return d.apartment === apt.id && r && !r.away && r.level === apt.level && !(r.action?.id === 'sleep' && r.action.phase === 'perform');
+    });
+  }
+
+  /** Вещи, которые живут сами: часы идут, радио играет, обогреватель щёлкает */
+  private drawAmbient(nowMs: number) {
+    const g = this.wg;
+    const cal = this.sim.calendar();
+    for (const apt of this.defs.layout.apartments) {
+      if (apt.vacant || apt.def?.renovation) continue;
+      const awake = this.awakeHome(apt);
+      for (const room of apt.rooms) {
+        for (const f of room.furniture) {
+          const top = f.y - f.h;
+          switch (f.def.draw) {
+            case 'wall_clock': {
+              // часы показывают настоящее (игровое) время
+              const D = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
+              const cx = f.x + Math.floor(f.w / 2);
+              const cy = top + Math.floor(f.h / 2);
+              rect(g, f.x + 1, top + 1, f.w - 2, f.h - 2, '#f3f1ea');
+              const m = D[Math.round(cal.minute / 7.5) % 8];
+              const hh = D[Math.round(((cal.hour % 12) + cal.minute / 60) / 1.5) % 8];
+              rect(g, cx + m[0], cy + m[1], 1, 1, '#222');
+              rect(g, cx + m[0] * 2, cy + m[1] * 2, 1, 1, '#222');
+              rect(g, cx + hh[0], cy + hh[1], 1, 1, '#7a2a20');
+              rect(g, cx, cy, 1, 1, '#222');
+              // секундная стрелка — тикает
+              const sd = D[Math.floor(nowMs / 1000) % 8];
+              if (Math.floor(nowMs / 1000) % 2) rect(g, cx + sd[0] * 2, cy + sd[1] * 2, 1, 1, '#c8402e');
+              break;
+            }
+            case 'radio': {
+              if (!awake || cal.hour < 6 || cal.hour >= 23) break;
+              const ph = (nowMs / 1000 + f.x) % 7;
+              rect(g, f.x + 6, top + 2, 3, 1, Math.floor(nowMs / 600) % 2 ? '#ffe9a0' : '#e8d8a0');
+              if (ph < 3) {
+                const k = Math.floor(ph * 3);
+                const nx = f.x + 3 + (k % 3);
+                const ny = top - 3 - k;
+                g.globalAlpha = 1 - ph / 3;
+                rect(g, nx, ny, 1, 3, '#4a3a30');
+                rect(g, nx - 1, ny + 2, 1, 1, '#4a3a30');
+                rect(g, nx + 1, ny, 1, 1, '#4a3a30');
+                g.globalAlpha = 1;
+              }
+              break;
+            }
+            case 'heater': {
+              if (!awake || !this.env.coats) break;
+              const on = Math.floor((nowMs + f.x * 97) / 7000) % 3 !== 0;
+              rect(g, f.x + f.w - 2, top, 1, 2, on ? '#ff5a3a' : '#5a2a22');
+              if (on) {
+                // марево над обогревателем
+                g.globalAlpha = 0.25;
+                for (let i = 0; i < 3; i++) {
+                  const yy = top - 2 - ((Math.floor(nowMs / 220) + i * 3) % 7);
+                  rect(g, f.x + 2 + i * 3 + (Math.floor(nowMs / 300 + i) % 2), yy, 1, 1, '#fff4e0');
+                }
+                g.globalAlpha = 1;
+              }
+              break;
+            }
+            case 'plant':
+            case 'plant_big':
+            case 'hanging_plant': {
+              // листья чуть колышутся от сквозняка
+              if (Math.floor((nowMs + f.x * 131) / 900) % 5 === 0) rect(g, f.x + 1 + (Math.floor(nowMs / 450) % 2), top + 1, 1, 1, shade('#4f8a3a', 0.15));
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /** Поверх освещения: мерцание телевизора в темноте, солнечные лучи с пылинками */
+  private drawGlow(nowMs: number, day: number) {
+    const g = this.wg;
+    const L = this.defs.layout;
+    if (day < 0.55) {
+      const k = (0.55 - day) / 0.55;
+      for (const [x, y, aptId, ri] of this.screensOn) {
+        const apt = L.aptById.get(aptId);
+        if (!apt) continue;
+        const room = apt.rooms[ri];
+        const flick = 0.6 + 0.4 * (((Math.floor(nowMs / 170) * 2654435761) >>> 0) % 100) / 100;
+        const cols = ['#9ec4ff', '#c8d8ff', '#a8f0ff', '#ffd8b0'];
+        const col = cols[Math.floor(nowMs / 2300 + x) % cols.length];
+        const fy = L.floorY(apt.level);
+        for (let i = 3; i >= 1; i--) {
+          g.globalAlpha = 0.05 * k * flick;
+          const r = i * 9;
+          const x0 = Math.max(room.x0, Math.round(x - r));
+          const x1 = Math.min(room.x1, Math.round(x + r));
+          rect(g, x0, Math.round(y - r / 2), x1 - x0, fy - Math.round(y - r / 2), col);
+        }
+      }
+      g.globalAlpha = 1;
+    }
+    // солнечные лучи из окна
+    const env = this.env;
+    if (day > 0.6 && env.overcast < 0.35 && env.rain < 0.05 && env.fog < 0.2) {
+      const cal = this.sim.calendar();
+      const h = cal.hourOfDay;
+      const slant = h < 13 ? 1 : -1; // утром солнце с одной стороны, вечером — с другой
+      const strength = Math.min(1, (day - 0.6) / 0.2) * (1 - env.overcast * 2);
+      for (const apt of L.apartments) {
+        if (apt.vacant) continue;
+        const lt = L.levelTop(apt.level);
+        const fy = L.floorY(apt.level);
+        for (const room of apt.rooms) {
+          const wr = windowRect(room, lt);
+          if (!wr) continue;
+          const [wx, wy, ww, wh] = wr;
+          const y0 = wy + wh + 3;
+          const len = fy - y0;
+          g.globalAlpha = 0.17 * strength;
+          for (let yy = 0; yy < len; yy++) {
+            const off = Math.round(yy * 0.6 * slant);
+            const xa = Math.max(room.x0, wx + off);
+            const xb = Math.min(room.x1, wx + ww + off);
+            if (xb > xa) rect(g, xa, y0 + yy, xb - xa, 1, '#fff0b8');
+          }
+          // пылинки в луче
+          g.globalAlpha = 0.17 * strength;
+          for (let i = 0; i < 4; i++) {
+            const seed = (room.x0 * 31 + i * 977) % 1000;
+            const t = (nowMs / 9000 + seed / 1000) % 1;
+            const yy = Math.floor(t * len);
+            const xx = wx + Math.round(yy * 0.6 * slant) + ((seed + Math.floor(nowMs / 1400)) % ww);
+            if (xx > room.x0 && xx < room.x1) rect(g, xx, y0 + yy, 1, 1, '#fff8e0');
+          }
+          g.globalAlpha = 1;
+        }
+      }
+    }
+  }
+
+  private furnByUid: Map<string, FurnitureInstance> | null = null;
+
+  private furniture(uid: string): FurnitureInstance | undefined {
+    if (!this.furnByUid) {
+      this.furnByUid = new Map();
+      for (const apt of this.defs.layout.apartments) for (const room of apt.rooms) for (const f of room.furniture) this.furnByUid.set(f.uid, f);
+    }
+    return this.furnByUid.get(uid);
+  }
+
+  /** Что вокруг жильца: телевизор, собеседник, стол (для ракурса позы) */
+  private animEnv(r: ResidentState, all: ResidentState[]): AnimEnv {
+    const env: AnimEnv = {};
+    const a = r.action;
+    const slot = a?.target.slot ? this.sim.slotIndex.get(a.target.slot) : undefined;
+    const f = slot ? this.furniture(slot.furnitureUid) : undefined;
+    if (r.interaction !== null || a?.data.talking === true) {
+      let best: ResidentState | null = null;
+      for (const o of all) if (o !== r && o.level === r.level && Math.abs(o.x - r.x) < 48 && (!best || Math.abs(o.x - r.x) < Math.abs(best.x - r.x))) best = o;
+      if (best) env.faceToX = best.x;
+    } else if (a?.id === 'watch_tv' && a.phase === 'perform' && slot) {
+      const apt = this.defs.layout.aptById.get(slot.aptId);
+      const room = apt?.rooms[slot.roomIndex];
+      const tv = room?.furniture.find((x) => x.def.draw.startsWith('tv'));
+      if (tv) env.faceToX = tv.x + tv.w / 2;
+    }
+    if (f && r.pose === 'sit' && /table/.test(f.def.draw) && (a?.id === 'eat' || a?.id === 'tea' || a?.id === 'idle' || a?.id === 'host' || a?.id === 'guest'))
+      env.tableBack = hashString(slot!.key) % 2 === 0;
+    if (f && /stove|sink|window/.test(f.def.draw)) env.wallWork = true;
+    return env;
   }
 
   private sheet(r: ResidentState): HTMLCanvasElement | HTMLImageElement {
@@ -542,24 +748,34 @@ export class Renderer {
       let pose: Pose | null = null;
       if (moving) frame = FRAME.walk0 + (Math.floor(r.walkDist / 3) % 4);
       else {
-        pose = animatePose(r, def, this.sim.time, nowMs);
+        pose = animatePose(r, def, this.sim.time, nowMs, this.animEnv(r, list));
         frame = pose.frame;
         if (r.pose === 'lie') top = iy - CELL_H + 1;
         else if (r.pose === 'sit') top = iy - 21;
         top -= pose.bob ?? 0;
       }
+      const dx = pose?.dx ?? 0;
+      const sx = ix + dx;
       const sheet = this.sheet(r);
-      let flip = r.facing < 0 && !(r.front && frame !== FRAME.lie);
+      const facing = pose?.facing ?? r.facing;
+      let flip = frame === FRAME.lie ? r.facing < 0 : facing < 0 && !PROP_FRONT.has(frame);
       if (pose?.turn) flip = !flip;
       g.save();
       if (flip) {
-        g.translate(ix + CELL_W / 2, top);
+        g.translate(sx + CELL_W / 2, top);
         g.scale(-1, 1);
         g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, 0, 0, CELL_W, CELL_H);
-      } else g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, ix - CELL_W / 2, top, CELL_W, CELL_H);
+      } else g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, sx - CELL_W / 2, top, CELL_W, CELL_H);
       g.restore();
+      // моргнул
+      if (pose?.blink && !def.sprite) {
+        for (const [ex, ey] of eyesOf(def.appearance, frame)) {
+          const x = flip ? sx + CELL_W / 2 - 1 - ex : sx - CELL_W / 2 + ex;
+          rect(g, x, top + ey, 1, 1, def.appearance.skin);
+        }
+      }
       // реквизит в руках
-      if (pose?.prop) drawProp(g, def.appearance, frame, pose.prop.kind, pose.prop.at, ix, top, flip && !PROP_FRONT.has(frame), nowMs, hashString(r.id));
+      if (pose?.prop) drawProp(g, def.appearance, frame, pose.prop.kind, pose.prop.at, sx, top, flip && !PROP_FRONT.has(frame), nowMs, hashString(r.id));
       // одеяло / вода в ванне
       if (r.pose === 'lie' && r.action?.phase === 'perform') {
         const apt = L.apartmentAt(r.level, r.x);

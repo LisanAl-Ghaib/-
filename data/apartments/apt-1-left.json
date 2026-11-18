@@ -4,8 +4,8 @@
   "side": "left",
   "style": "soviet",
   "description": "Старая советская квартира консьержки: ковёр на стене над кроватью, сервант с сервизом, вечно включённый телевизор с новостями, календарь 2012 года с драконом, который никто не перевешивает. Две кошки, когтеточка, вышивки на стенах.",
-  "palette": { "wall": "#d6c69a", "floor": "#7a4f2f", "wood": "#6b3f26", "textile": "#9c3b35", "accent": "#7a8f4a", "metal": "#c7c3b8" },
-  "wallpaper": "damask",
+  "palette": { "wall": "#c9a862", "floor": "#7a3e24", "wood": "#4e2a18", "textile": "#8a2424", "accent": "#3f6f63", "metal": "#c7c3b8" },
+  "wallpaper": "soviet",
   "flooring": "herringbone",
   "rooms": [
     { "type": "living", "name": "комната", "width": 7, "furniture": [
@@ -23,7 +23,7 @@
       { "item": "sideboard", "x": 82 },
       { "item": "cat_tree", "x": 98 }
     ] },
-    { "type": "kitchen", "name": "кухонька", "width": 4, "wallpaper": "tiles", "furniture": [
+    { "type": "kitchen", "name": "кухонька", "width": 4, "wall": "#7fa89a", "wallpaper": "oilpaint", "furniture": [
       { "item": "spice_shelf", "x": 16 },
       { "item": "wall_clock", "x": 34 },
       { "item": "fridge_old", "x": 1 },
@@ -33,7 +33,7 @@
       { "item": "radio", "x": 36, "elevation": 10 },
       { "item": "sink_small", "x": 50 }
     ] },
-    { "type": "study", "name": "дежурка", "width": 5, "furniture": [
+    { "type": "study", "name": "дежурка", "width": 5, "wall": "#93a9bb", "wallpaper": "oilpaint", "furniture": [
       { "item": "coat_rack", "x": 2 },
       { "item": "cat_tray", "x": 11 },
       { "item": "heater", "x": 26 },

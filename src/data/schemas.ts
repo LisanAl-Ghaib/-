@@ -78,7 +78,7 @@ export const ApartmentStyleSchema = z.enum([
   'soviet', 'scandi', 'loft', 'boho', 'classic', 'minimal', 'student', 'cozy', 'retro',
 ]);
 
-export const WallpaperSchema = z.enum(['plain', 'stripes', 'dots', 'diamonds', 'brick', 'tiles', 'damask', 'panels', 'flowers']);
+export const WallpaperSchema = z.enum(['plain', 'stripes', 'dots', 'diamonds', 'brick', 'tiles', 'damask', 'panels', 'flowers', 'soviet', 'oilpaint']);
 export const FlooringSchema = z.enum(['parquet', 'boards', 'linoleum', 'tiles', 'carpet', 'concrete', 'herringbone']);
 
 export const PaletteSchema = z.object({
