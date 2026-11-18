@@ -35,7 +35,7 @@ export const walkYard: ActionDef = {
     gain(ctx.r, 'energy', -1, dt);
     // неспешно бродит туда-сюда
     const r = ctx.r;
-    if (a.data.stroll && r.path.length === 0 && ctx.sim.rng.chance(dt / 240)) {
+    if (a.data.stroll && r.interaction === null && r.path.length === 0 && ctx.sim.rng.chance(dt / 240)) {
       const Y = ctx.sim.defs.layout.yard;
       const nx = Math.round(ctx.sim.rng.range(Y.x0 + 24, Y.busStop - 30));
       r.path = [{ k: 'walk', x: nx, y: r.y, level: 0 }];

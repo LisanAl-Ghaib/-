@@ -3,6 +3,7 @@ import type { ResidentState } from '../sim/state';
 import { bar, el } from './dom';
 import { portrait } from './portrait';
 import type { Ui, UiHost } from './ui';
+import { chronicleView } from './chronicleView';
 
 const NEED_LABELS: [keyof ResidentState['needs'], string][] = [
   ['energy', 'Энергия'],
@@ -13,13 +14,7 @@ const NEED_LABELS: [keyof ResidentState['needs'], string][] = [
 
 /** Вкладка «Подробно»: потребности и распорядок выбранного жильца. */
 export function installViews(ui: Ui, host: UiHost): void {
-  ui.registerView({
-    tab: 'chronicle',
-    render(box) {
-      box.innerHTML = '';
-      box.append(el('div', { class: 'empty' }, 'Хроника дома появится на этапе 3.'));
-    },
-  });
+  ui.registerView(chronicleView(host));
   ui.registerView({
     tab: 'details',
     render(box) {

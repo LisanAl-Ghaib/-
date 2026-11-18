@@ -77,11 +77,12 @@ export function makePlan(ctx: AgentCtx, day: number): DailyPlan {
   };
 }
 
-/** Обновляет распорядок при смене логических суток */
-export function ensurePlan(ctx: AgentCtx): void {
+/** Обновляет распорядок при смене логических суток. true — начались новые сутки */
+export function ensurePlan(ctx: AgentCtx): boolean {
   const day = logicalDay(ctx.sim.defs.epochMs, ctx.now);
   const r = ctx.r;
-  if (r.plan?.day === day) return;
+  if (r.plan?.day === day) return false;
   r.plan = makePlan(ctx, day);
   r.today = { day, breakfast: false, lunch: false, dinner: false, worked: 0, washed: false };
+  return true;
 }

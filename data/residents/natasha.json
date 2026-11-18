@@ -1,0 +1,37 @@
+{
+  "id": "natasha",
+  "name": {
+    "first": "Наталья", "last": "Ковалёва", "patronymic": "Викторовна", "short": "Наташа",
+    "cases": { "gen": "Наташи", "dat": "Наташе", "acc": "Наташу", "ins": "Наташей", "pre": "Наташе" }
+  },
+  "gender": "f",
+  "birthday": "1987-09-20",
+  "apartment": "apt-4-left",
+  "occupation": {
+    "kind": "freelance", "title": "бухгалтер на удалёнке", "workplace": "ведёт отчётность трёх маленьких фирм",
+    "commuteMinutes": 0, "commute": "walk"
+  },
+  "traits": {
+    "chronotype": "neutral", "sociability": "outgoing", "temper": "hot", "outlook": "cheerful", "activity": "active",
+    "tags": ["энергичная", "вспыльчивая, но отходчивая", "мечтает о ремонте"]
+  },
+  "habits": [
+    { "kind": "plants", "strength": 0.6, "note": "рассада на подоконнике" },
+    { "kind": "fitness", "strength": 0.5, "note": "йога по утрам" },
+    { "kind": "phone", "strength": 0.7, "note": "подолгу говорит с мамой" },
+    { "kind": "cooking", "strength": 0.5, "note": "готовит по видеорецептам" }
+  ],
+  "backstory": "Переехала к Игорю после свадьбы. Работает из дома, поэтому знает всё, что происходит в подъезде днём. С Ольгой дружит с тех пор, как та помогла ей с больной спиной.",
+  "appearance": {
+    "skin": "#f0c8a8",
+    "hair": { "style": "bob", "color": "#2a1a14" },
+    "height": "average", "build": "average",
+    "outfit": { "top": "#c0553a", "bottom": "#3a3550", "shoes": "#5a2a2a", "style": "casual", "coat": "#7a2f3a" },
+    "accessories": ["earrings"]
+  },
+  "relationships": [
+    { "with": "igor", "kind": "spouse", "affinity": 50, "familiarity": 95, "note": "считает, что он слишком много смотрит футбол" },
+    { "with": "olga", "kind": "friend", "affinity": 55, "familiarity": 60, "note": "подруги, вместе ходят на рынок" },
+    { "with": "vera", "kind": "neighbor", "affinity": 20, "familiarity": 45, "note": "немного побаивается её строгости" }
+  ]
+}

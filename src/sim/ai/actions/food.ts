@@ -60,7 +60,7 @@ export const cook: ActionDef = {
     const hungry = urgency(r.needs.food, 70);
     if (!soon && hungry < 2) {
       // любители готовить иногда возятся на кухне просто так (пироги!)
-      if (love < 0.6 || !daytime(ctx, 10, 20) || st.meals > 0) return null;
+      if (love < 0.6 || !daytime(ctx, 10, 20) || st.meals > 0 || r.sick) return null;
     }
     const spot = homeSlot(ctx, 'cook', ['kitchen', 'studio']);
     if (!spot) return null;

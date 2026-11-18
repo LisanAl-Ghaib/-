@@ -12,9 +12,14 @@ export interface ScoredPlan {
 
 export function evaluate(ctx: AgentCtx, actions: readonly ActionDef[]): ScoredPlan[] {
   const out: ScoredPlan[] = [];
+  const sick = !!(ctx.r.sick && ctx.r.sick.until > ctx.now);
+  const L = ctx.sim.defs.layout;
   for (const def of actions) {
     const plan = def.plan(ctx);
-    if (plan && plan.score > 0 && Number.isFinite(plan.score)) out.push({ def, plan });
+    if (!plan || !(plan.score > 0) || !Number.isFinite(plan.score)) continue;
+    // больные не выходят из дома
+    if (sick && (plan.target.away || (plan.target.level === 0 && plan.target.x >= L.buildingX1))) continue;
+    out.push({ def, plan });
   }
   out.sort((a, b) => b.plan.score - a.plan.score || (a.def.id < b.def.id ? -1 : 1));
   return out;

@@ -3,6 +3,7 @@ import { cook, eat, shopping, snack } from './food';
 import { chores, computer, crafts, fitness, gaming, idle, lookOutside, music, phone, plants, read, watchTv } from './leisure';
 import { bench, goOut, jog, smoke, walkYard } from './outside';
 import { nap, sleep, wash } from './rest';
+import { chat, guest, host, visit } from './social';
 import { goToWork, workFromHome } from './work';
 
 /**
@@ -20,4 +21,6 @@ export const ACTIONS: readonly ActionDef[] = [
   watchTv, read, music, gaming, computer, crafts, plants, fitness, phone, lookOutside, chores, idle,
   // на улице
   walkYard, bench, smoke, jog, goOut,
+  // общение
+  visit, host, guest, chat,
 ];

@@ -1,12 +1,12 @@
 import type { RngState } from '../core/rng';
 import { seedState } from '../core/rng';
 import type { WorldDefs } from '../data/defs';
-import type { Pose } from '../data/schemas';
+import type { Pose, RelationKind } from '../data/schemas';
 import { createElevator, type ElevatorState } from '../world/elevator';
 import type { Step, Target } from '../world/navigation';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -84,6 +84,57 @@ export interface ResidentState {
   wokeAt: number;
   /** как ушёл «за кадр» (автобусом — вернётся с остановки) */
   via: 'bus' | 'walk';
+  /** участвует во взаимодействии (визит, разговор) */
+  interaction: number | null;
+  /** намерение навестить кого-то (подарок, извинение…) */
+  intents: { target: string; kind: string; until: number }[];
+}
+
+/** Отношение жильца A к жильцу B (направленное) */
+export interface Relation {
+  /** симпатия −100..100 */
+  affinity: number;
+  /** насколько хорошо знакомы 0..100 */
+  familiarity: number;
+  /** роль из данных: семья, друг, сосед… */
+  kind: RelationKind;
+  /** текущая ссора */
+  conflict: { since: number; cause: string; severity: number } | null;
+  lastMet: number;
+  /** последние встречи и события */
+  history: { t: number; type: string }[];
+}
+
+/** Совместное занятие: визит, разговор, ужин */
+export interface Interaction {
+  id: number;
+  kind: 'visit' | 'chat';
+  /** хозяин (для визита) */
+  host: string | null;
+  members: string[];
+  aptId: string | null;
+  /** где происходит: для хроники */
+  place: string;
+  intent: string;
+  startedAt: number;
+  endsAt: number;
+  nextTalk: number;
+  /** итоги разговора для хроники */
+  notes: string[];
+  quarrel: boolean;
+  dinner: boolean;
+  ended: boolean;
+}
+
+export interface ChronicleEntry {
+  id: number;
+  t: number;
+  kind: string;
+  actors: string[];
+  /** 1 — мелочь, 2 — обычное, 3 — важное */
+  importance: 1 | 2 | 3;
+  text: string;
+  data: Record<string, string | number | boolean | null>;
 }
 
 export interface ApartmentState {
@@ -106,6 +157,16 @@ export interface WorldState {
   /** занятые слоты мебели: ключ слота → id жильца */
   slots: Record<string, string>;
   lastDay: number;
+  lastHour: number;
+  /** relations[a][b] — как a относится к b */
+  relations: Record<string, Record<string, Relation>>;
+  interactions: Interaction[];
+  chronicle: ChronicleEntry[];
+  nextId: number;
+  /** время, до которого пара не «замечает» друг друга повторно */
+  pairCooldown: Record<string, number>;
+  /** флаги «уже было» (дни рождения и т. п.) */
+  flags: Record<string, number>;
 }
 
 export function createResidentState(defs: WorldDefs, id: string, rngNext: () => number): ResidentState {
@@ -140,6 +201,8 @@ export function createResidentState(defs: WorldDefs, id: string, rngNext: () => 
     sick: null,
     wokeAt: -1e9,
     via: 'walk',
+    interaction: null,
+    intents: [],
   };
 }
 
@@ -156,5 +219,12 @@ export function createWorldState(defs: WorldDefs, seedOverride?: number | string
     elevator: createElevator(defs.layout),
     slots: {},
     lastDay: -1,
+    lastHour: -1,
+    relations: {},
+    interactions: [],
+    chronicle: [],
+    nextId: 1,
+    pairCooldown: {},
+    flags: {},
   };
 }

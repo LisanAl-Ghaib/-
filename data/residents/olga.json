@@ -1,36 +1,108 @@
 {
   "id": "olga",
   "name": {
-    "first": "Ольга", "last": "Смирнова", "patronymic": "Андреевна", "short": "Ольга",
-    "cases": { "gen": "Ольги", "dat": "Ольге", "acc": "Ольгу", "ins": "Ольгой", "pre": "Ольге" }
+    "first": "Ольга",
+    "last": "Смирнова",
+    "patronymic": "Андреевна",
+    "short": "Ольга",
+    "cases": {
+      "gen": "Ольги",
+      "dat": "Ольге",
+      "acc": "Ольгу",
+      "ins": "Ольгой",
+      "pre": "Ольге"
+    }
   },
   "gender": "f",
   "birthday": "1992-03-14",
   "apartment": "apt-3-left",
   "occupation": {
-    "kind": "shift", "title": "медсестра", "workplace": "городская больница №2",
-    "schedule": { "days": [1, 2, 4, 5], "start": "08:00", "end": "18:00" },
-    "commuteMinutes": 35, "commute": "bus"
+    "kind": "shift",
+    "title": "медсестра",
+    "workplace": "городская больница №2",
+    "schedule": {
+      "days": [
+        1,
+        2,
+        4,
+        5
+      ],
+      "start": "08:00",
+      "end": "18:00"
+    },
+    "commuteMinutes": 35,
+    "commute": "bus"
   },
   "traits": {
-    "chronotype": "lark", "sociability": "outgoing", "temper": "hot", "outlook": "cheerful", "activity": "active",
-    "tags": ["заботливая", "прямолинейная", "не умеет долго молчать"]
+    "chronotype": "lark",
+    "sociability": "outgoing",
+    "temper": "hot",
+    "outlook": "cheerful",
+    "activity": "active",
+    "tags": [
+      "заботливая",
+      "прямолинейная",
+      "не умеет долго молчать"
+    ]
   },
   "habits": [
-    { "kind": "cooking", "strength": 0.8, "note": "по выходным печёт пироги и угощает соседей" },
-    { "kind": "phone", "strength": 0.6, "note": "по вечерам подолгу говорит с сестрой из Самары" },
-    { "kind": "walking", "strength": 0.5, "note": "любит пройтись по двору после смены" }
+    {
+      "kind": "cooking",
+      "strength": 0.8,
+      "note": "по выходным печёт пироги и угощает соседей"
+    },
+    {
+      "kind": "phone",
+      "strength": 0.6,
+      "note": "по вечерам подолгу говорит с сестрой из Самары"
+    },
+    {
+      "kind": "walking",
+      "strength": 0.5,
+      "note": "любит пройтись по двору после смены"
+    }
   ],
   "backstory": "Переехала в дом пять лет назад после развода. Работает в приёмном отделении, поэтому привыкла всё делать быстро и говорить прямо. Знает всех соседей по имени и первой приходит, если кому-то плохо.",
   "appearance": {
     "skin": "#eac1a0",
-    "hair": { "style": "ponytail", "color": "#7a3e1d" },
-    "height": "average", "build": "slim",
-    "outfit": { "top": "#3f7fc9", "bottom": "#2d2f3d", "shoes": "#f1f1f1", "style": "casual", "coat": "#8a4a63" },
-    "accessories": ["earrings"]
+    "hair": {
+      "style": "ponytail",
+      "color": "#7a3e1d"
+    },
+    "height": "average",
+    "build": "slim",
+    "outfit": {
+      "top": "#3f7fc9",
+      "bottom": "#2d2f3d",
+      "shoes": "#f1f1f1",
+      "style": "casual",
+      "coat": "#8a4a63"
+    },
+    "accessories": [
+      "earrings"
+    ]
   },
   "relationships": [
-    { "with": "vera", "kind": "neighbor", "affinity": 45, "familiarity": 70, "note": "заходит измерить давление" },
-    { "with": "mark", "kind": "neighbor", "affinity": 20, "familiarity": 35, "note": "считает, что он слишком мало ест" }
+    {
+      "with": "vera",
+      "kind": "neighbor",
+      "affinity": 45,
+      "familiarity": 70,
+      "note": "заходит измерить давление"
+    },
+    {
+      "with": "mark",
+      "kind": "neighbor",
+      "affinity": 20,
+      "familiarity": 35,
+      "note": "считает, что он слишком мало ест"
+    },
+    {
+      "with": "natasha",
+      "kind": "friend",
+      "affinity": 50,
+      "familiarity": 60,
+      "note": "подруги, Наташа часто зовёт её на чай"
+    }
   ]
 }

@@ -1,8 +1,11 @@
 /**
- * npm run sim -- --days 3 --seed 42 [--actions] [--quiet]
+ * npm run sim -- --days 3 --seed 42 [--actions] [--quiet] [--min 2]
+ *   --actions  печатать каждое начатое действие
+ *   --quiet    не печатать сводку потребностей каждые 6 часов
+ *   --min N    минимальная важность записей хроники (1..3)
  * Безголовая симуляция: та же логика, что в браузере, без рендера.
  */
-import { DAY, HOUR, hhmm, formatDate } from '../src/core/time';
+import { calendar, DAY, HOUR, hhmm, formatDate } from '../src/core/time';
 import { DT } from '../src/config';
 import { buildDefs } from '../src/data/defs';
 import { loadRawDataNode } from '../src/data/loadNode';
@@ -40,8 +43,13 @@ if (showActions) {
 sim.bus.onAny((e) => {
   if (e.type === 'day.start') console.log(`\n══════ ${stamp()} ══════`);
 });
-// @ts-expect-error — событие хроники появится на этапе 3
-sim.bus.on('chronicle', (e: { entry: { text: string } }) => console.log(`${stamp()}  ${e.entry.text}`));
+const minImportance = Number(opt('min', '1'));
+sim.bus.on('chronicle', (e) => {
+  if (e.entry.importance < minImportance) return;
+  const c = calendar(defs.epochMs, e.entry.t);
+  const mark = e.entry.importance === 3 ? '★' : e.entry.importance === 2 ? '·' : ' ';
+  console.log(`${mark} ${hhmm(c.minuteOfDay)} — ${e.entry.text}`);
+});
 
 const steps = Math.round((days * DAY) / DT);
 for (let i = 0; i < steps; i++) {
