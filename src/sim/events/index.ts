@@ -1,6 +1,6 @@
 import { apologyIntent, birthday, illness } from './defs/daily';
 import { convQuarrel, deepTalk, dinnerTogether, gossip, playMusic, talk } from './defs/conversation';
-import { avoid, chatEvent, elevatorMeet, greet, quarrelMeet, reconcileMeet } from './defs/encounter';
+import { avoid, chatEvent, conciergeRemark, elevatorMeet, greet, quarrelMeet, reconcileMeet } from './defs/encounter';
 import { familyChat, familyQuarrel, familyReconcile } from './defs/household';
 import { recovery } from './defs/hourly';
 import type { EventDef } from './types';
@@ -11,7 +11,7 @@ import type { EventDef } from './types';
  */
 export const EVENTS: readonly EventDef[] = [
   // встречи в подъезде и во дворе
-  greet, chatEvent, avoid, reconcileMeet, quarrelMeet, elevatorMeet,
+  greet, chatEvent, avoid, reconcileMeet, quarrelMeet, elevatorMeet, conciergeRemark,
   // темы разговоров в гостях и на лавочке
   talk, deepTalk, gossip, convQuarrel, dinnerTogether, playMusic,
   // жизнь семьи

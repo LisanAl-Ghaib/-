@@ -105,3 +105,41 @@ export const elevatorMeet: EventDef = {
     chronicle(sim, 'elevator', [a!, b!], 2);
   },
 };
+
+/** Консьерж на посту: кто из двоих сидит у окошка в холл */
+function concierge(c: Parameters<NonNullable<EventDef['weight']>>[0]): { duty: string; other: string } | null {
+  if (c.placeKind !== 'lobby' && c.placeKind !== 'entrance') return null;
+  for (const [x, y] of [[c.a!, c.b!], [c.b!, c.a!]]) {
+    const r = c.sim.state.residents[x];
+    const d = c.sim.defs.residentById.get(x)!;
+    if (d.occupation.kind === 'onsite' && r.level === 0 && (r.action?.id === 'work' || r.action?.id === 'night_watch') && r.action.phase === 'perform') return { duty: x, other: y };
+  }
+  return null;
+}
+
+/** Консьерж замечает проходящего: кивнёт, проворчит, придержит дверь, угостит ребёнка конфетой */
+export const conciergeRemark: EventDef = {
+  id: 'concierge-remark',
+  trigger: 'encounter',
+  weight: (c) => (concierge(c) ? 7 : 0),
+  apply(c) {
+    const { duty, other } = concierge(c)!;
+    const sim = c.sim;
+    const r = sim.state.residents[other];
+    const od = sim.defs.residentById.get(other)!;
+    const dd = sim.defs.residentById.get(duty)!;
+    const h = sim.calendar().hourOfDay;
+    const w = sim.weather;
+    let flavor = 'nod';
+    if (sim.age(od) < 14) flavor = dd.traits.tags.some((t) => /дет|конфет/i.test(t)) ? 'candy' : 'kid';
+    else if (r.carrying === 'bags') flavor = 'bags';
+    else if (h >= 22.5 || h < 5.5) flavor = 'late';
+    else if ((w.kind === 'rain' || w.kind === 'snow') && r.action?.target.away !== true) flavor = 'wet';
+    else if (w.temp < -5 && r.action?.target.away === true) flavor = 'cold';
+    else if (sim.rng.chance(0.3)) flavor = 'chat';
+    adjust(sim, duty, other, 0.8, 3);
+    remember(sim, duty, other, 'greet');
+    const important = flavor === 'candy' || flavor === 'kid';
+    if (important || sim.rng.chance(0.45)) chronicle(sim, 'concierge', [duty, other], important ? 2 : 1, { flavor });
+  },
+};

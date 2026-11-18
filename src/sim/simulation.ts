@@ -25,6 +25,8 @@ import { updateInteractions } from './social/interactions';
 import { adjust, initRelations, inConflict } from './social/relations';
 import { warmth } from './social/social';
 import { addMoodlet } from './needs';
+import { petNotes, syncPets, updatePets } from './pets';
+import { scheduleVisits, updateVisitors } from './visitors';
 
 export type SimEvent =
   | { type: 'action.start'; t: number; residentId: string; actionId: string; label: string }
@@ -35,7 +37,8 @@ export type SimEvent =
   | { type: 'resident.moved-in'; t: number; residentId: string }
   | { type: 'resident.moved-out'; t: number; residentId: string }
   | { type: 'day.start'; t: number; dayIndex: number }
-  | { type: 'chronicle'; entry: ChronicleEntry };
+  | { type: 'chronicle'; entry: ChronicleEntry }
+  | { type: 'action.end'; t: number; residentId: string; actionId: string; interrupted: boolean };
 
 export class Simulation {
   readonly defs: WorldDefs;
@@ -57,10 +60,13 @@ export class Simulation {
     state.weather ??= createWeather(this.calendar(), this.rng, state.time);
     state.yard ??= { snowman: null };
     state.pendingChronicle ??= [];
+    state.visitors ??= [];
     this.syncResidents();
     initRelations(this);
     if (fresh) chronicle(this, 'world.start', [], 3);
     this.bus.on('cooked', (e) => this.onCooked(e.residentId, e.baking));
+    this.bus.on('action.end', (e) => this.onActionEnd(e.residentId, e.actionId, e.interrupted));
+    syncPets(this);
   }
 
   private onCooked(id: string, baking: boolean): void {
@@ -75,6 +81,17 @@ export class Simulation {
     if (friends.length && this.rng.chance(0.75)) {
       this.state.residents[id].intents.push({ target: friends[0].id, kind: 'treat', until: this.time + 8 * 3600 });
     }
+  }
+
+  /** Телефонный разговор с кем-то вне дома — иногда слышно через стену */
+  private onActionEnd(id: string, actionId: string, interrupted: boolean): void {
+    if (actionId !== 'phone' || interrupted) return;
+    const def = this.defs.residentById.get(id);
+    const friends = def?.contacts.filter((c) => c.phone) ?? [];
+    if (!def || !friends.length || !this.rng.chance(0.3)) return;
+    const c = this.rng.pick(friends);
+    const topic = this.rng.pick(['цены на рынке', 'давление и погоду', 'новых соседей', 'вчерашний сериал', 'рецепт засолки', 'общих знакомых', 'внуков']);
+    chronicle(this, 'phone-call', [id], 1, { name: c.name ?? null, gender: c.gender, kind: c.kind, topic });
   }
 
   /** Принудительно сменить действие жильца (визит, разговор) */
@@ -288,6 +305,7 @@ export class Simulation {
       const ctx = this.ctx(r);
       if (ensurePlan(ctx)) {
         runIndependent('daily', { sim: this, now: s.time, who: id });
+        scheduleVisits(this, id);
         if (r.sick && r.plan) r.plan.workday = false;
       }
       updateNeeds(ctx, DT);
@@ -300,6 +318,9 @@ export class Simulation {
       if (r.bubble && r.bubble.until <= s.time) r.bubble = null;
     }
     updateInteractions(this, DT);
+    updatePets(this, DT);
+    updateVisitors(this, DT);
+    if (s.time % 600 === 0) petNotes(this);
     flushPendingChronicle(this);
     if (s.time % 60 === 0) detectEncounters(this);
     if (s.time % 300 === 0) this.familyDinners();

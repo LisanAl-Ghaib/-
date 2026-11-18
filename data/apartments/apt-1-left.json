@@ -3,38 +3,42 @@
   "floor": 1,
   "side": "left",
   "style": "soviet",
-  "description": "Комнатка консьержки при дежурке: тахта с клетчатым пледом, маленький телевизор на комоде, плитка с вечно горячим чайником и окошко в холл, из которого видно каждого, кто входит.",
-  "palette": { "wall": "#d8cfa8", "floor": "#8a5a3a", "wood": "#7a4a2a", "textile": "#9c4a3a", "accent": "#5f8a5a", "metal": "#b8b4a8" },
-  "wallpaper": "stripes",
-  "flooring": "linoleum",
+  "description": "Старая советская квартира консьержки: ковёр на стене над кроватью, сервант с сервизом, вечно включённый телевизор с новостями, календарь 2012 года с драконом, который никто не перевешивает. Две кошки, когтеточка, вышивки на стенах.",
+  "palette": { "wall": "#d6c69a", "floor": "#7a4f2f", "wood": "#6b3f26", "textile": "#9c3b35", "accent": "#7a8f4a", "metal": "#c7c3b8" },
+  "wallpaper": "damask",
+  "flooring": "herringbone",
   "rooms": [
-    { "type": "bedroom", "name": "комнатка", "width": 6, "furniture": [
-      { "item": "rug", "x": 22 },
-      { "item": "cot", "x": 3 },
-      { "item": "family_photos", "x": 8 },
-      { "item": "nightstand", "x": 32 },
-      { "item": "armchair", "x": 42 },
-      { "item": "chest", "x": 58 },
-      { "item": "small_tv", "x": 60, "elevation": 13 },
-      { "item": "wall_clock", "x": 62 },
-      { "item": "wardrobe", "x": 76 },
-      { "item": "window_plants", "x": 40 }
+    { "type": "living", "name": "комната", "width": 7, "furniture": [
+      { "item": "rug", "x": 30 },
+      { "item": "wall_carpet", "x": 1, "elevation": 14 },
+      { "item": "old_calendar", "x": 4, "elevation": 36 },
+      { "item": "bed_single", "x": 2, "flip": true },
+      { "item": "embroidery", "x": 28, "elevation": 32 },
+      { "item": "nightstand", "x": 28 },
+      { "item": "armchair", "x": 38 },
+      { "item": "embroidery_basket", "x": 53 },
+      { "item": "tv_old", "x": 64, "alwaysOn": true, "channel": "news" },
+      { "item": "embroidery", "x": 69, "elevation": 32 },
+      { "item": "family_photos", "x": 82, "elevation": 34 },
+      { "item": "sideboard", "x": 82 },
+      { "item": "cat_tree", "x": 98 }
     ] },
     { "type": "kitchen", "name": "кухонька", "width": 4, "wallpaper": "tiles", "furniture": [
-      { "item": "mini_fridge", "x": 1 },
-      { "item": "hotplate", "x": 14 },
-      { "item": "spice_shelf", "x": 14 },
-      { "item": "sink_small", "x": 33 },
-      { "item": "chair", "x": 53 },
-      { "item": "wall_calendar", "x": 52 }
+      { "item": "spice_shelf", "x": 16 },
+      { "item": "wall_clock", "x": 34 },
+      { "item": "fridge_old", "x": 1 },
+      { "item": "stove", "x": 15 },
+      { "item": "cat_bowls", "x": 17 },
+      { "item": "kitchen_table", "x": 31 },
+      { "item": "radio", "x": 36, "elevation": 10 },
+      { "item": "sink_small", "x": 50 }
     ] },
-    { "type": "study", "name": "дежурка", "width": 6, "furniture": [
-      { "item": "coat_rack", "x": 3 },
-      { "item": "plant_big", "x": 13 },
-      { "item": "heater", "x": 27 },
-      { "item": "radio", "x": 41, "elevation": 0 },
-      { "item": "keys_board", "x": 78 },
-      { "item": "concierge_desk", "x": 60 }
+    { "type": "study", "name": "дежурка", "width": 5, "furniture": [
+      { "item": "coat_rack", "x": 2 },
+      { "item": "cat_tray", "x": 11 },
+      { "item": "heater", "x": 26 },
+      { "item": "keys_board", "x": 60, "elevation": 36 },
+      { "item": "concierge_desk", "x": 46 }
     ] }
   ]
 }

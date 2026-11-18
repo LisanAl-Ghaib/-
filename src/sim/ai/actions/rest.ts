@@ -1,4 +1,5 @@
 import { addMoodlet, gain } from '../../needs';
+import { hasTag, INSOMNIA } from './personal';
 import { gv, homeSlot, minutesToLeave, roomOfType, roomPoint, sleepTime, urgency } from '../helpers';
 import type { ActionDef } from '../types';
 
@@ -10,6 +11,8 @@ export const sleep: ActionDef = {
     const { r } = ctx;
     const night = sleepTime(ctx);
     const exhausted = r.needs.energy < 10;
+    // проснулась среди ночи от бессонницы — не сразу уснёт снова
+    if (r.recent.insomnia !== undefined && ctx.now - r.recent.insomnia < 45 * 60 && !exhausted) return null;
     const sick = !!(r.sick && r.sick.until > ctx.now) && r.needs.energy < 50;
     if (!night && !exhausted && !sick) return null;
     const bed = homeSlot(ctx, 'sleep', ['bedroom', 'studio', 'living']) ?? homeSlot(ctx, 'nap');
@@ -24,12 +27,18 @@ export const sleep: ActionDef = {
       interruptible: false,
     };
   },
-  perform(ctx, _a, dt) {
+  perform(ctx, a, dt) {
     const sick = ctx.r.sick && ctx.r.sick.until > ctx.now;
     gain(ctx.r, 'energy', sick ? 8 : 12.5, dt);
+    // бессонница: примерно каждую вторую ночь просыпается и долго не может уснуть
+    if (sleepTime(ctx) && !a.data.wokeOnce && hasTag(ctx, INSOMNIA) && ctx.now - a.performStart > 90 * 60 && ctx.sim.rng.chance(dt / (5 * 3600))) {
+      a.data.wokeOnce = true;
+      a.data.insomnia = true;
+    }
   },
   shouldEnd(ctx, a) {
     const { r } = ctx;
+    if (a.data.insomnia) return true;
     if (!r.plan) return r.needs.energy >= 95;
     if (sleepTime(ctx)) {
       a.data.night = true; // ночной сон — до будильника/утра
@@ -42,6 +51,10 @@ export const sleep: ActionDef = {
     return ctx.now >= r.plan.wakeAt + 2.5 * 3600;
   },
   onEnd(ctx, a) {
+    if (a.data.insomnia) {
+      ctx.r.recent.insomnia = ctx.now;
+      return;
+    }
     ctx.r.wokeAt = ctx.now;
     // встал — кровать осталась незаправленной
     const st = ctx.sim.aptState(ctx.home.id);

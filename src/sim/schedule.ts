@@ -46,6 +46,8 @@ export function makePlan(ctx: AgentCtx, day: number): DailyPlan {
 
   let wake = ch.wake + rng.gauss(0, 12) + (workday ? 0 : weekend ? 50 : 25) - (age >= 65 ? 30 : 0);
   let bed = ch.bed + rng.gauss(0, 18) + (weekday === 5 || weekday === 6 ? 40 : 0) - (age >= 70 ? 30 : 0);
+  // бессонница: многие ночи ложится сильно позже
+  if (def.traits.tags.some((t) => /бессонн|не спится|плохо спит/i.test(t)) && rng.chance(0.65)) bed += rng.range(60, 200);
 
   let leave: number | null = null;
   let ws: number | null = null;

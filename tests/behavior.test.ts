@@ -96,3 +96,25 @@ describe('настоящий дом', () => {
     expect(L.aptById.get('apt-2-right')?.vacant).toBe(true);
   });
 });
+
+describe('Ольга Дмитриевна (настоящий дом)', () => {
+  it('кошки живут, дочь приезжает, бессонница видна по ночам', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const { Simulation: Sim } = await import('../src/sim/simulation');
+    const { createWorldState: create } = await import('../src/sim/state');
+    const d = build(loadRawDataNode()).defs!;
+    const sim = new Sim(d, create(d, 77));
+    expect(Object.keys(sim.state.pets)).toHaveLength(2);
+    const xs = new Set<number>();
+    for (let i = 0; i < (150 * 86400) / 10; i++) {
+      sim.step();
+      if (i % 360 === 0) xs.add(Math.round(Object.values(sim.state.pets)[0].x));
+    }
+    expect(xs.size).toBeGreaterThan(5); // кошка не стоит на месте
+    const kinds = new Set(sim.state.chronicle.map((e) => e.kind));
+    expect(kinds.has('relative.arrive')).toBe(true);
+    expect(kinds.has('insomnia')).toBe(true);
+    expect(kinds.has('pet')).toBe(true);
+    expect(kinds.has('phone-call')).toBe(true);
+  });
+});

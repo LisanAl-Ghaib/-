@@ -182,6 +182,11 @@ function drawFrame(
       if (acc.has('tie')) px(g, tw1, ty + 1, 1, 3, '#7a1f2b');
     }
     if (acc.has('scarf') || coat) px(g, C - 2, ty, 5, 1, coat ? shade(p.top, 0.25) : '#b8423a');
+    if (acc.has('shawl')) {
+      px(g, tw0 - 1, ty, tw1 - tw0 + 3, 3, '#7a3a4a');
+      px(g, tw0 - 1, ty + 3, 1, 2, '#7a3a4a');
+      for (let x = tw0; x <= tw1 + 1; x += 2) px(g, x, ty + 1, 1, 1, '#a85a6a');
+    }
     if (acc.has('bag')) px(g, tw0 - 1, ty + 2, 2, 3, '#6b4a2a');
     // рука
     if (f === FRAME.work || f === FRAME.sitArm) {
@@ -222,6 +227,10 @@ function drawFrame(
     else if (acc.has('stubble')) px(g, C, hy + 4, 3, 1, shade(p.skin, -0.3));
     if (acc.has('mustache')) px(g, C + 1, hy + 3, 2, 1, p.hair);
     if (acc.has('earrings')) px(g, C - 1, hy + 3, 1, 1, '#e8c547');
+    if (acc.has('frown')) {
+      px(g, C, hy + 1, 3, 1, shade(p.hair, -0.45)); // сведённые брови
+      px(g, C + 2, hy + 4, 1, 1, shade(p.skin, -0.35)); // опущенный уголок рта
+    }
     drawHairSide(g, app.hair.style, p, y0 + dy);
     drawHeadwearSide(g, acc, y0 + dy);
     if (acc.has('headphones')) {
@@ -268,6 +277,11 @@ function drawFrame(
     px(g, C, ty, 1, 1, p.white);
   }
   if (acc.has('scarf') || coat) px(g, C - 3, ty, 6, 1, coat ? shade(p.top, 0.25) : '#b8423a');
+  if (acc.has('shawl')) {
+    px(g, tw0 - 1, ty, tw1 - tw0 + 3, 3, '#7a3a4a');
+    px(g, C - 1, ty + 3, 2, 2, '#7a3a4a'); // узел
+    for (let x = tw0; x <= tw1; x += 2) px(g, x, ty + 1, 1, 1, '#a85a6a');
+  }
   // руки
   const armL = tw0 - 1;
   const armR = tw1 + 1;
@@ -312,6 +326,14 @@ function drawFrame(
       px(g, C - 2, hy + 2, 1, 1, '#bfe0f0');
       px(g, C + 1, hy + 2, 1, 1, '#bfe0f0');
     }
+  }
+  if (acc.has('frown')) {
+    const brow = shade(p.hair, -0.45);
+    px(g, C - 3, hy + 1, 1, 1, brow);
+    px(g, C - 2, hy + 1, 1, 1, shade(brow, -0.2));
+    px(g, C + 1, hy + 1, 1, 1, shade(brow, -0.2));
+    px(g, C + 2, hy + 1, 1, 1, brow);
+    px(g, C - 1, hy + 3, 2, 1, shade(p.skin, -0.35)); // поджатые губы
   }
   if (acc.has('beard')) px(g, C - 3, hy + 3, 6, 2, p.hair);
   else if (acc.has('stubble')) px(g, C - 2, hy + 4, 4, 1, shade(p.skin, -0.3));

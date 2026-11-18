@@ -1,0 +1,47 @@
+{
+  "id": "olga-shpak",
+  "name": {
+    "first": "Ольга", "last": "Шпак", "patronymic": "Дмитриевна", "short": "Ольга Дмитриевна",
+    "cases": { "gen": "Ольги Дмитриевны", "dat": "Ольге Дмитриевне", "acc": "Ольгу Дмитриевну", "ins": "Ольгой Дмитриевной", "pre": "Ольге Дмитриевне" }
+  },
+  "gender": "f",
+  "birthday": "1953-03-17",
+  "apartment": "apt-1-left",
+  "occupation": {
+    "kind": "onsite", "title": "консьержка", "workplace": "подъезд дома",
+    "schedule": { "days": [1, 2, 3, 4, 5, 6, 7], "start": "08:00", "end": "20:00" },
+    "commuteMinutes": 0, "commute": "walk"
+  },
+  "traits": {
+    "chronotype": "lark", "sociability": "balanced", "temper": "calm", "outlook": "neutral", "activity": "normal",
+    "tags": [
+      "выглядит хмурой", "на самом деле добрая", "любит свою работу",
+      "знает всех жильцов и кто чем занят", "любит детей", "угощает детей конфетами",
+      "считает, что родителям стоит строже следить за детьми", "уверена, что в её время воспитание было лучше",
+      "бессонница", "вдова", "живёт одна"
+    ]
+  },
+  "habits": [
+    { "kind": "crafts", "strength": 0.8, "note": "вышивает в свободное время" },
+    { "kind": "phone", "strength": 0.8, "note": "часто разговаривает с подругами по телефону" },
+    { "kind": "tv", "strength": 0.7, "note": "телевизор с новостями включён всегда" }
+  ],
+  "backstory": "Муж умер 10 лет назад. Есть дочь, которая навещает её раз в пару месяцев, но по большей части она живёт одна. Есть подруга Катя, с которой они дружат уже столько лет, что она и сама не помнит.",
+  "appearance": {
+    "skin": "#ead0b8",
+    "hair": { "style": "bun", "color": "#bcb6ae" },
+    "height": "short", "build": "heavy",
+    "outfit": { "top": "#5a5468", "bottom": "#3a3540", "shoes": "#6a4a3a", "style": "dress", "coat": "#4a4246" },
+    "accessories": ["glasses", "frown", "shawl"]
+  },
+  "pets": [
+    { "species": "cat", "born": 2021, "color": "#8a8a92", "pattern": "tabby", "color2": "#55555c" },
+    { "species": "cat", "born": 2023, "color": "#d8893a", "pattern": "tabby", "color2": "#f2c58a" }
+  ],
+  "contacts": [
+    { "kind": "child", "gender": "f", "age": 47, "visitEveryDays": 60, "note": "дочь, навещает раз в пару месяцев" },
+    { "name": "Катя", "kind": "friend", "gender": "f", "age": 72, "phone": true, "note": "подруга много лет; позже переедет в наш дом" },
+    { "kind": "friend", "gender": "f", "phone": true, "note": "другие подруги, с которыми она говорит по телефону" }
+  ],
+  "relationships": []
+}

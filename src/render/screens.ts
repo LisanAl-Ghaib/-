@@ -10,9 +10,16 @@ export type ScreenKind = 'tv' | 'code' | 'browser' | 'game' | 'cctv';
 
 const CHANNEL_MIN = 7; // примерно раз в 7 игровых минут кто-то щёлкает пультом
 
-export function drawScreen(g: CanvasRenderingContext2D, kind: ScreenKind, x: number, y: number, w: number, h: number, tGame: number, nowMs: number, seed: string): void {
+const CHANNEL_INDEX: Record<string, number> = { news: 0, football: 1, cartoons: 2, nature: 3, weather: 4, concert: 5, series: 6 };
+
+export function drawScreen(g: CanvasRenderingContext2D, kind: ScreenKind, x: number, y: number, w: number, h: number, tGame: number, nowMs: number, seed: string, channel?: string): void {
   const s = hashString(seed);
   const t = nowMs / 1000;
+  if (kind === 'tv' && channel && CHANNEL_INDEX[channel] !== undefined) {
+    // постоянный канал: новости идут всегда (иногда — прогноз погоды между выпусками)
+    const k = Math.floor(tGame / 60 / 25 + (s % 7)) % 6 === 0 ? 4 : CHANNEL_INDEX[channel];
+    return CHANNELS[k](g, x, y, w, h, t);
+  }
   if (kind === 'tv') {
     const slot = Math.floor((tGame / 60 + (s % 11)) / CHANNEL_MIN);
     const sinceSwitch = (tGame / 60 + (s % 11)) % CHANNEL_MIN;

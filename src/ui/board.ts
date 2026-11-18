@@ -35,6 +35,15 @@ export function openBoard(defs: WorldDefs, sim: Simulation): void {
         const full = [p.name.last, p.name.first, p.name.patronymic].filter(Boolean).join(' ');
         right.append(el('div', { class: 'who' }, portrait(p, 24), `${full}, ${years(sim.age(p))}`));
       }
+      const pets = people.flatMap((p) => p.pets);
+      if (pets.length) {
+        const year = sim.calendar().year;
+        const cats = pets.filter((x) => x.species === 'cat');
+        const dogs = pets.filter((x) => x.species === 'dog');
+        const list = (arr: typeof pets, one: string, many: string) =>
+          arr.length ? `${arr.length === 1 ? one : `${arr.length} ${many}`} (${arr.map((x) => `${x.name ? `${x.name}, ` : ''}${years(year - x.born)}`).join('; ')})` : '';
+        right.append(el('div', { class: 'muted' }, ['и ' + [list(cats, 'кошка', cats.length < 5 ? 'кошки' : 'кошек'), list(dogs, 'собака', dogs.length < 5 ? 'собаки' : 'собак')].filter(Boolean).join(', ')].join('')));
+      }
       sheet.append(el('div', { class: 'apt' }, el('span', { class: 'no' }, label), right));
     }
   }

@@ -10,7 +10,7 @@ import { FRAME } from './sprites/character';
  */
 export type PropKind =
   | 'phone' | 'cup' | 'book' | 'remote' | 'fork' | 'pen' | 'knitting' | 'guitar'
-  | 'spoon' | 'rag' | 'can' | 'sponge' | 'paper';
+  | 'spoon' | 'rag' | 'can' | 'sponge' | 'paper' | 'hoop';
 
 /** где реквизит: в руках перед собой, у уха, у рта, в вытянутой руке, в поднятой руке, в опущенной */
 export type PropAt = 'hands' | 'ear' | 'mouth' | 'fwd' | 'up' | 'low';
@@ -106,6 +106,13 @@ const BY_ACTION: Record<string, Variant[]> = {
   ],
   bench: SIT_IDLE.concat([{ front: FRAME.frontSitHands, side: FRAME.sitArm, prop: { kind: 'paper', at: 'hands' } }]),
   idle: SIT_IDLE,
+  night_watch: [
+    { side: FRAME.sitLean, front: FRAME.frontSitSlouch },
+    { side: FRAME.sitArmUp, front: FRAME.frontSitHandUp, prop: { kind: 'cup', at: 'mouth' } },
+    { side: FRAME.sit, front: FRAME.frontSit },
+    { side: FRAME.sitArm, front: FRAME.frontSitHands, prop: { kind: 'paper', at: 'hands' } },
+  ],
+  family_visit: SIT_IDLE,
   host: SIT_IDLE,
   guest: SIT_IDLE,
 };
@@ -154,7 +161,8 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
     const v = pick(list);
     let frame = (r.front ? v.front : v.side) ?? (r.front ? FRAME.frontSit : FRAME.sit);
     if (v.alt && Math.floor(nowMs / v.alt.ms + h) % 2 === 1) frame = (r.front ? v.alt.front : v.alt.side) ?? frame;
-    // книгу иногда перелистывает
+    // рукоделие: вышивальщица держит пяльцы, а не спицы
+    if (v.prop?.kind === 'knitting' && def.habits.some((hb) => hb.kind === 'crafts' && /выши/i.test(hb.note))) return { frame, prop: { kind: 'hoop', at: v.prop.at } };
     return { frame, prop: v.prop };
   }
 

@@ -25,6 +25,8 @@ export type WorldConfig = z.infer<typeof WorldConfigSchema>;
 export const SlotUseSchema = z.enum([
   'sleep', 'nap', 'sit', 'eat', 'cook', 'tv', 'read', 'work', 'music', 'wash',
   'fridge', 'plants', 'exercise', 'crafts', 'gaming', 'look',
+  /** миски для животных */
+  'pets',
 ]);
 export type SlotUse = z.infer<typeof SlotUseSchema>;
 
@@ -94,6 +96,10 @@ export const FurniturePlacementSchema = z.object({
   item: z.string(),
   /** пиксели от левого края комнаты */
   x: z.number().int().min(0),
+  /** экран не выключается, пока хозяин дома и не спит («вечно включённый телевизор») */
+  alwaysOn: z.boolean().optional(),
+  /** что обычно показывает этот экран */
+  channel: z.enum(['news', 'football', 'cartoons', 'nature', 'weather', 'concert', 'series']).optional(),
   flip: z.boolean().default(false),
   color: hexColor.optional(),
   /** поднять над полом (радио на столе, телевизор на комоде) */
@@ -158,7 +164,43 @@ export const HairStyleSchema = z.enum([
 
 export const AccessorySchema = z.enum([
   'glasses', 'sunglasses', 'beard', 'mustache', 'stubble', 'hat', 'cap', 'beret', 'scarf', 'earrings', 'headphones', 'bag', 'tie', 'apron',
+  /** сведённые брови — выглядит хмурым */
+  'frown',
+  /** шаль/платок на плечах */
+  'shawl',
 ]);
+
+/** Домашнее животное (живёт в квартире хозяина) */
+export const PetSchema = z.object({
+  /** имя (если пользователь назвал); без имени хроника пишет «старшая кошка» и т. п. */
+  name: z.string().optional(),
+  species: z.enum(['cat', 'dog']),
+  /** год рождения — возраст считается от игровой даты */
+  born: z.number().int(),
+  color: hexColor,
+  pattern: z.enum(['solid', 'tabby', 'tuxedo', 'calico', 'spotted']).default('solid'),
+  /** вторая краска (полосы, пятна, грудка) */
+  color2: hexColor.optional(),
+});
+export type PetDef = z.infer<typeof PetSchema>;
+
+/** Человек, который в доме не живёт: родня, друзья (приезжает в гости, звонит) */
+export const ContactSchema = z.object({
+  /** как его называет хроника, если имя известно; иначе — по роли */
+  name: z.string().optional(),
+  kind: z.enum(['child', 'parent', 'sibling', 'grandchild', 'relative', 'friend', 'ex', 'colleague']),
+  gender: z.enum(['m', 'f']),
+  /** примерный возраст (для облика) */
+  age: z.number().int().min(1).max(110).optional(),
+  /** приезжает в гости примерно раз в N дней (нет — не приезжает) */
+  visitEveryDays: z.number().int().min(1).optional(),
+  /** созваниваются */
+  phone: z.boolean().default(false),
+  note: z.string().default(''),
+  /** id жильца, если этот человек потом поселится в доме (тогда контакт переносится в relationships) */
+  futureResident: z.string().optional(),
+});
+export type ContactDef = z.infer<typeof ContactSchema>;
 
 export const ResidentSchema = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/, 'id — латиница, цифры, дефис'),
@@ -243,6 +285,10 @@ export const ResidentSchema = z.object({
     .default([]),
   /** путь к PNG-спрайту в public/sprites (необязательно) */
   sprite: z.string().optional(),
+  /** домашние животные */
+  pets: z.array(PetSchema).default([]),
+  /** родня и друзья вне дома */
+  contacts: z.array(ContactSchema).default([]),
 });
 export type ResidentDef = z.infer<typeof ResidentSchema>;
 export type ResidentInput = z.input<typeof ResidentSchema>;

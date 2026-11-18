@@ -7,7 +7,7 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -155,6 +155,49 @@ export interface ApartmentState {
   bags: number;
 }
 
+/** Кошка или собака: живёт в квартире хозяина */
+export interface PetState {
+  id: string;
+  owner: string;
+  aptId: string;
+  /** порядковый номер в списке питомцев хозяина */
+  idx: number;
+  x: number;
+  /** высота над полом (подоконник, кровать, когтеточка) */
+  h: number;
+  level: number;
+  facing: 1 | -1;
+  mode: 'walk' | 'sleep' | 'sit' | 'eat' | 'play' | 'groom' | 'window' | 'lap' | 'tray' | 'watch';
+  /** куда идёт и что будет делать там */
+  tx: number;
+  th: number;
+  next: PetState['mode'];
+  until: number;
+  /** сытость 0..100 */
+  food: number;
+  walkDist: number;
+}
+
+/** Гость «из города»: родня или друг жильца, приезжает и уезжает */
+export interface VisitorState {
+  id: string;
+  owner: string;
+  contact: number;
+  phase: 'scheduled' | 'arriving' | 'waiting' | 'visiting' | 'leaving' | 'gone';
+  startAt: number;
+  until: number;
+  x: number;
+  y: number;
+  level: number;
+  away: boolean;
+  facing: 1 | -1;
+  path: Step[];
+  walkDist: number;
+  /** сидит (в гостях) */
+  seat: { x: number; dy: number; front: boolean } | null;
+  carrying: boolean;
+}
+
 export interface WorldState {
   version: number;
   seed: number | string;
@@ -179,6 +222,10 @@ export interface WorldState {
   /** флаги «уже было» (дни рождения и т. п.) */
   flags: Record<string, number>;
   weather: WeatherState | null;
+  pets: Record<string, PetState>;
+  visitors: VisitorState[];
+  /** еда в мисках по квартирам */
+  petFood: Record<string, number>;
   /** записи хроники, которые станут заметны позже (болезнь видно днём, а не в 4 утра) */
   pendingChronicle: { at: number; kind: string; actors: string[]; importance: 1 | 2 | 3; data: ChronicleEntry['data'] }[];
   /** предметы во дворе, которые появляются сами (снеговик) */
@@ -245,6 +292,9 @@ export function createWorldState(defs: WorldDefs, seedOverride?: number | string
     flags: {},
     weather: null,
     pendingChronicle: [],
+    pets: {},
+    visitors: [],
+    petFood: {},
     yard: { snowman: null },
   };
 }

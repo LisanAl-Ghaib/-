@@ -30,6 +30,9 @@ export interface FurnitureInstance {
   color?: string;
   slots: SlotInstance[];
   roomIndex: number;
+  /** экран включён, пока хозяин дома и не спит */
+  alwaysOn?: boolean;
+  channel?: string;
 }
 
 export interface RoomModel {
@@ -244,6 +247,8 @@ export class BuildingLayout {
           color: fp.color,
           slots: [],
           roomIndex: index,
+          alwaysOn: fp.alwaysOn,
+          channel: fp.channel,
         };
         fd.slots.forEach((s, si) => {
           const sx = fp.flip ? fx + fd.w - s.dx : fx + s.dx;

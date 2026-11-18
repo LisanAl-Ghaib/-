@@ -127,6 +127,13 @@ export function drawProp(
       rect(g, x + 3 * d, y + 4, 3, 3, yarn); // клубок рядом
       break;
     }
+    case 'hoop':
+      rect(g, x - 2, y - 2, 5, 5, '#b8742e'); // деревянные пяльцы
+      rect(g, x - 1, y - 1, 3, 3, '#f4efe0');
+      rect(g, x - 1 + (tick % 3), y, 1, 1, '#c8402e'); // стежок
+      rect(g, x + 1, y - 1, 1, 1, '#3f8a4a');
+      rect(g, x + 2 + (tick % 2), y - 3, 1, 2, '#c8c8c8'); // игла с ниткой
+      break;
     case 'guitar':
       rect(g, x - 2, y - 1, 5, 4, '#b8742e');
       rect(g, x - 1, y, 1, 1, '#3a2010');

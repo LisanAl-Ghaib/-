@@ -137,6 +137,61 @@ export class TemplateNarrator implements Narrator {
         return `${s(d.family)} ${pick(['ужинали вместе', 'собрались за ужином', 'поужинали всей семьёй'])}.`;
       case 'gossip':
         return `${n(a)} и ${n(b)} о чём-то шепчутся, поглядывая в сторону квартиры ${n(s(d.about), 'gen')}.`;
+      case 'pet': {
+        const pet = s(d.pet);
+        const Pet = pet.charAt(0).toUpperCase() + pet.slice(1);
+        const owner = n(a, 'gen');
+        switch (d.what) {
+          case 'window':
+            return pick([`${Pet} ${owner} полчаса сидит на подоконнике и следит за голубями во дворе.`, `В окне у ${owner} — ${pet}: смотрит на улицу и подёргивает хвостом.`]);
+          case 'lap':
+            return `${Pet} устроилась у ${owner} на коленях и, кажется, никуда не собирается.`;
+          case 'night-run':
+            return `Ночью из квартиры ${owner} слышен топот: ${pet} устроила гонки по коридору.`;
+          default:
+            return `${Pet} ходит за ${n(a, 'ins')} хвостом и требовательно мяукает.`;
+        }
+      }
+      case 'relative.arrive': {
+        const who = relWord(String(d.kind), String(d.gender));
+        const age = Number(d.age ?? 40);
+        const looks = `${d.gender === 'f' ? 'женщина' : 'мужчина'} лет ${Math.round(age / 5) * 5}`;
+        if (d.first)
+          return `К ${n(a, 'dat')} приехала ${looks}, очень на неё похожая, — с сумками и тортом. Похоже, ${who}.`.replace('приехала мужчина', 'приехал мужчина').replace('похожая, —', d.gender === 'f' ? 'похожая, —' : 'похожий, —');
+        return `К ${n(a, 'dat')} снова ${d.gender === 'f' ? 'приехала' : 'приехал'} ${who}${d.name ? ` (${s(d.name)})` : ''} — с полными сумками.`;
+      }
+      case 'relative.leave':
+        return pick([`Гости ${n(a, 'gen')} уехали ближе к вечеру; ${n(a)} проводила их до остановки взглядом из окна.`, `${relWord(String(d.kind), String(d.gender)).replace(/^./, (c) => c.toUpperCase())} ${n(a, 'gen')} уехала. В квартире снова тихо.`.replace('уехала', d.gender === 'f' ? 'уехала' : 'уехал')]);
+      case 'relative.missed':
+        return `К ${n(a, 'dat')} кто-то приезжал — постоял у двери, не дождался и уехал.`;
+      case 'phone-call': {
+        const nm = d.name ? `с какой-то ${s(d.name).replace(/я$/, 'ей').replace(/а$/, 'ой')}` : d.gender === 'f' ? 'с подругой' : 'с кем-то';
+        return pick([`Слышно, как ${n(a)} обсуждает по телефону ${nm} ${s(d.topic)}.`, `${n(a)} долго говорит по телефону ${nm} — кажется, про ${s(d.topic)}.`]);
+      }
+      case 'insomnia':
+        return d.onsite ? pick(['Далеко за полночь, а в окошке консьержки всё ещё горит свет.', `Три часа ночи. ${n(a)} сидит в своём окошке, рядом остывший чай.`]) : `Ночь, а у ${n(a, 'gen')} на кухне горит свет.`;
+      case 'concierge': {
+        const D = n(a);
+        const O = n(b, 'dat');
+        switch (d.flavor) {
+          case 'candy':
+            return pick([`${D} вышла из-за стойки и сунула ${O} конфету: «Только маме не говори». И тут же строго велела застегнуть куртку.`, `${D} угостила ${n(b, 'acc')} конфетой — и проворчала вслед, что в её время дети так не носились.`]);
+          case 'kid':
+            return `${D} проводила ${n(b, 'acc')} взглядом из окошка и покачала головой.`;
+          case 'bags':
+            return `${D} придержала ${O} дверь: «Опять полные сумки тащите».`;
+          case 'late':
+            return `«Что-то вы поздно», — заметила из окошка ${D}, когда мимо прошёл${v(B, '', 'а')} ${n(b)}.`;
+          case 'wet':
+            return `«Ноги вытирайте!» — донеслось из окошка консьержки, когда ${n(b)} ${v(B, 'вошёл', 'вошла')} с мокрой улицы.`;
+          case 'cold':
+            return `«Шапку бы надели, мороз-то какой», — сказала ${D} вслед ${O}.`;
+          case 'chat':
+            return `${n(b)} ${v(B, 'задержался', 'задержалась')} у окошка консьержки: ${D} рассказала последние новости подъезда.`;
+          default:
+            return `${D} кивнула ${O} из своего окошка, не отрываясь от телевизора.`;
+        }
+      }
       case 'first-snow':
         return pick(['Выпал первый снег. Двор за полчаса стал белым.', 'Пошёл первый снег — крупными хлопьями, медленно.', 'Первый снег: на лавочке и качелях белые шапки.']);
       case 'downpour':
@@ -160,3 +215,16 @@ export class TemplateNarrator implements Narrator {
 }
 
 export { familyName };
+
+function relWord(kind: string, gender: string): string {
+  const f = gender === 'f';
+  switch (kind) {
+    case 'child': return f ? 'дочь' : 'сын';
+    case 'parent': return f ? 'мать' : 'отец';
+    case 'sibling': return f ? 'сестра' : 'брат';
+    case 'grandchild': return f ? 'внучка' : 'внук';
+    case 'friend': return f ? 'подруга' : 'друг';
+    case 'colleague': return 'коллега';
+    default: return f ? 'родственница' : 'родственник';
+  }
+}

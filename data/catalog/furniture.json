@@ -1350,6 +1350,73 @@
    "h": 5,
    "paletteKey": "textile",
    "slots": []
+  },
+  {
+   "id": "old_calendar",
+   "name": "Календарь 2012 года с драконом",
+   "draw": "old_calendar",
+   "w": 12,
+   "h": 16,
+   "elevation": 30,
+   "paletteKey": "accent",
+   "slots": []
+  },
+  {
+   "id": "cat_bowls",
+   "name": "Кошачьи миски",
+   "draw": "cat_bowls",
+   "w": 11,
+   "h": 3,
+   "paletteKey": "accent",
+   "slots": [
+    {
+     "use": [
+      "pets"
+     ],
+     "dx": 5,
+     "pose": "stand",
+     "face": 1
+    }
+   ]
+  },
+  {
+   "id": "cat_tray",
+   "name": "Кошачий лоток",
+   "draw": "cat_tray",
+   "w": 13,
+   "h": 5,
+   "paletteKey": "metal",
+   "color": "#7a9ab8",
+   "slots": []
+  },
+  {
+   "id": "cat_tree",
+   "name": "Когтеточка-домик",
+   "draw": "cat_tree",
+   "w": 13,
+   "h": 30,
+   "paletteKey": "textile",
+   "color": "#b8a68a",
+   "slots": []
+  },
+  {
+   "id": "embroidery",
+   "name": "Вышивка в рамке",
+   "draw": "embroidery",
+   "w": 12,
+   "h": 12,
+   "elevation": 30,
+   "paletteKey": "wood",
+   "slots": []
+  },
+  {
+   "id": "embroidery_basket",
+   "name": "Корзинка с нитками и пяльцами",
+   "draw": "embroidery_basket",
+   "w": 10,
+   "h": 7,
+   "paletteKey": "wood",
+   "slots": []
   }
  ]
 }

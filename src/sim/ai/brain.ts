@@ -71,6 +71,7 @@ export function endAction(ctx: AgentCtx, interrupted: boolean): void {
   def?.onEnd?.(ctx, a, interrupted);
   if (a.target.slot) sim.releaseSlot(a.target.slot, r.id);
   r.recent[a.id] = ctx.now;
+  sim.emit({ type: 'action.end', t: ctx.now, residentId: r.id, actionId: a.id, interrupted });
   r.action = null;
   if (r.pose !== 'stand') {
     r.pose = 'stand';

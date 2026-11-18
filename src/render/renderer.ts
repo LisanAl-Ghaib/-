@@ -17,6 +17,8 @@ import { screenRect } from './sprites/furniture';
 import { generateIcon } from './sprites/icons';
 import { hashString } from '../core/rng';
 import { LifeDetails } from './lifeDetails';
+import { generatePetSheet, PET_FRAME, PET_H, PET_W } from './sprites/pet';
+import { visitorAppearance } from './visitorLook';
 import { animatePose, type Pose } from './animation';
 import { drawProp } from './props';
 import { drawScreen, type ScreenKind } from './screens';
@@ -195,6 +197,8 @@ export class Renderer {
     this.drawDoors();
     this.drawElevator();
     this.drawActors(alpha, prev, opts, nowMs);
+    this.drawVisitors(nowMs);
+    this.drawPets(nowMs);
     wg.drawImage(this.layers.front, 0, 0);
     this.drawBus(tGame);
 
@@ -321,7 +325,7 @@ export class Renderer {
 
   private drawDoors() {
     const L = this.defs.layout;
-    const residents = Object.values(this.sim.state.residents);
+    const residents: { x: number; y: number; level: number; away: boolean }[] = [...Object.values(this.sim.state.residents), ...this.sim.state.visitors];
     for (const apt of L.apartments) {
       const fy = L.floorY(apt.level);
       const open = residents.some((r) => !r.away && r.level === apt.level && Math.abs(r.x - apt.doorX) < 7 && Math.abs(r.y - fy) < 4);
@@ -331,6 +335,85 @@ export class Renderer {
     const ex = L.buildingX1 - 2;
     const open = residents.some((r) => !r.away && Math.abs(r.x - ex) < 8 && Math.abs(r.y - fy0) < 4);
     drawEntrance(this.wg, this.defs, open);
+  }
+
+  /** Кошки (и будущие собаки) */
+  private drawPets(nowMs: number) {
+    const L = this.defs.layout;
+    for (const p of Object.values(this.sim.state.pets)) {
+      const def = this.defs.residentById.get(p.owner);
+      const pet = def?.pets[p.idx];
+      if (!pet) continue;
+      const sheet = this.sprites.get(`pet:${p.id}`, () => generatePetSheet(pet));
+      let f: number = PET_FRAME.sit;
+      const anim = Math.floor(nowMs / 600 + p.idx * 3);
+      switch (p.mode) {
+        case 'walk':
+        case 'play':
+          f = p.mode === 'walk' || Math.floor(p.walkDist / 3) % 2 ? PET_FRAME.walk0 + (Math.floor(p.walkDist / 3) % 2) : PET_FRAME.stretch;
+          break;
+        case 'sleep':
+          f = PET_FRAME.curl;
+          break;
+        case 'lap':
+          f = PET_FRAME.loaf;
+          break;
+        case 'groom':
+          f = anim % 2 ? PET_FRAME.groom : PET_FRAME.sit;
+          break;
+        case 'eat':
+          f = PET_FRAME.stretch;
+          break;
+        default:
+          f = anim % 9 === 0 ? PET_FRAME.groom : PET_FRAME.sit;
+      }
+      const x = Math.round(p.x);
+      const feet = L.floorY(p.level) - Math.round(p.h) + (p.mode === 'sleep' && f === PET_FRAME.curl && anim % 4 === 0 ? 0 : 0);
+      const g = this.wg;
+      g.save();
+      if (p.facing < 0) {
+        g.translate(x + PET_W / 2, feet - PET_H);
+        g.scale(-1, 1);
+        g.drawImage(sheet, f * PET_W, 0, PET_W, PET_H, 0, 0, PET_W, PET_H);
+      } else g.drawImage(sheet, f * PET_W, 0, PET_W, PET_H, x - PET_W / 2, feet - PET_H, PET_W, PET_H);
+      g.restore();
+      if (p.mode === 'sleep' && anim % 6 === 0) rect(g, x + 3, feet - 14, 2, 1, '#cfe2ff'); // посапывает
+    }
+  }
+
+  /** Гости «из города» */
+  private drawVisitors(nowMs: number) {
+    const g = this.wg;
+    for (const v of this.sim.state.visitors) {
+      if (v.away) continue;
+      const owner = this.defs.residentById.get(v.owner);
+      const c = owner?.contacts[v.contact];
+      if (!owner || !c) continue;
+      const key = `visitor:${v.owner}:${v.contact}`;
+      const app = visitorAppearance(owner, c, key);
+      const coat = this.env.coats && (v.phase === 'arriving' || v.phase === 'leaving');
+      const sheet = this.sprites.get(`${key}${coat ? ':coat' : ''}`, () => generateCharacterSheet(app, { coat }));
+      const ix = Math.round(v.x);
+      const iy = Math.round(v.y);
+      let frame: number = FRAME.frontStand;
+      let top = iy - CELL_H;
+      let flip = v.facing < 0;
+      if (v.path.length) frame = FRAME.walk0 + (Math.floor(v.walkDist / 3) % 4);
+      else if (v.phase === 'visiting' && v.seat) {
+        const talk = Math.floor(nowMs / 900 + ix) % 4 === 0;
+        frame = v.seat.front ? (talk ? FRAME.frontSitHandUp : FRAME.frontSit) : talk ? FRAME.sitArmUp : FRAME.sit;
+        top = iy - 21;
+        if (v.seat.front) flip = false;
+      } else if (v.phase === 'waiting') frame = Math.floor(nowMs / 2000) % 3 === 0 ? FRAME.standHandUp : FRAME.stand;
+      g.save();
+      if (flip) {
+        g.translate(ix + CELL_W / 2, top);
+        g.scale(-1, 1);
+        g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, 0, 0, CELL_W, CELL_H);
+      } else g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, ix - CELL_W / 2, top, CELL_W, CELL_H);
+      g.restore();
+      if (v.carrying && v.path.length) this.life.drawCarry(g, 'bags', ix, iy, v.facing);
+    }
   }
 
   private drawBus(t: number) {
@@ -374,6 +457,23 @@ export class Renderer {
 
   private drawDynamicFurniture(nowMs: number) {
     const L = this.defs.layout;
+    // «вечно включённые» экраны: работают, пока хозяин дома и не спит
+    for (const apt of L.apartments) {
+      for (const room of apt.rooms) {
+        for (const f of room.furniture) {
+          if (!f.alwaysOn) continue;
+          const awakeHome = this.defs.residents.some((d) => {
+            const r = this.sim.state.residents[d.id];
+            return d.apartment === apt.id && r && !r.away && r.level === apt.level && !(r.action?.id === 'sleep' && r.action.phase === 'perform');
+          });
+          if (!awakeHome) continue;
+          const sr = screenRect(f.def.draw, f.w, f.h);
+          if (!sr) continue;
+          const x = f.flip ? f.x + f.w - sr[0] - sr[2] : f.x + sr[0];
+          drawScreen(this.wg, 'tv', x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, f.uid, f.channel);
+        }
+      }
+    }
     for (const r of Object.values(this.sim.state.residents)) {
       const a = r.action;
       if (!a || a.phase !== 'perform' || r.away) continue;
@@ -604,7 +704,7 @@ export class Renderer {
       const fy = L.floorY(level);
       region(L.coreX, lt, CORE_W, fy - lt + 2, 0.08 + overcastDim + (1 - day) * 0.32);
       if (level === 0) {
-        region(L.buildingX0 + 4, lt, L.coreX - L.buildingX0 - 4, fy - lt + 2, 0.15 + (1 - day) * 0.6);
+        if (!L.aptById.has('apt-1-left')) region(L.buildingX0 + 4, lt, L.coreX - L.buildingX0 - 4, fy - lt + 2, 0.15 + (1 - day) * 0.6);
         region(L.coreX + CORE_W, lt, L.buildingX1 - L.coreX - CORE_W - 4, fy - lt + 2, 0.08 + (1 - day) * 0.34);
       }
     }

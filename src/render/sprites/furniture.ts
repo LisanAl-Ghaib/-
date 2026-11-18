@@ -953,6 +953,66 @@ const drawers: Record<string, Drawer> = {
     R(c, 0, 0, 2, 2, main);
     R(c, w - 2, 0, 2, 2, main);
   },
+  old_calendar(c) {
+    const { w, h } = c;
+    R(c, w / 2, -1, 1, 1, '#555'); // гвоздик
+    R(c, 0, 0, w, h, '#f1ead6');
+    R(c, 0, 0, w, 1, '#b8ab88');
+    // зелёный дракон на картинке
+    R(c, 1, 1, w - 2, 8, '#d8c8a0');
+    R(c, 3, 3, 6, 3, '#3f8a4a');
+    R(c, 8, 2, 2, 2, '#3f8a4a');
+    R(c, 9, 2, 1, 1, '#c8402e');
+    R(c, 2, 5, 2, 1, '#3f8a4a');
+    R(c, 4, 6, 1, 2, '#2f6a3a');
+    R(c, 7, 6, 1, 2, '#2f6a3a');
+    R(c, 5, 2, 2, 1, '#e8b040'); // гребень
+    // «2012» и сетка дней
+    R(c, 2, 10, 8, 1, '#c8402e');
+    for (let y = 12; y < h - 1; y += 2) for (let x = 1; x < w - 1; x += 2) R(c, x, y, 1, 1, '#8a8478');
+  },
+  cat_bowls(c) {
+    const { main } = c;
+    R(c, 0, 1, 5, 2, main);
+    R(c, 1, 0, 3, 1, '#8a6a3a'); // корм
+    R(c, 6, 1, 5, 2, shade(main, -0.2));
+    R(c, 7, 0, 3, 1, '#9fd3ef'); // вода
+  },
+  cat_tray(c) {
+    const { w, h, main } = c;
+    R(c, 0, 1, w, h - 1, main);
+    R(c, 0, 1, w, 1, shade(main, 0.2));
+    R(c, 1, 2, w - 2, 1, '#d8ccb0'); // наполнитель
+  },
+  cat_tree(c) {
+    const { w, h, main } = c;
+    R(c, 0, h - 3, w, 3, main); // основание
+    R(c, w / 2 - 1, 4, 3, h - 7, '#d8c8a0'); // столбик из каната
+    for (let y = 5; y < h - 3; y += 2) R(c, w / 2 - 1, y, 3, 1, '#c4b088');
+    R(c, 0, Math.round(h / 2) - 1, w, 2, main); // средняя полка
+    R(c, 0, 0, w, 3, main); // верхняя лежанка
+    R(c, 1, 0, w - 2, 1, shade(main, 0.15));
+    R(c, 1, Math.round(h / 2) + 1, 2, 3, '#e85050'); // мячик на верёвочке
+  },
+  embroidery(c) {
+    const { w, h, main } = c;
+    R(c, 0, 0, w, h, main);
+    R(c, 1, 1, w - 2, h - 2, '#f4efe0');
+    // вышитые цветы крестиком
+    for (const [x, y, col] of [[3, 3, '#c8402e'], [6, 4, '#c8402e'], [4, 6, '#3f8a4a'], [7, 7, '#e8b040'], [3, 8, '#3f8a4a']] as const) {
+      R(c, x, y, 1, 1, col);
+      R(c, x + 1, y + 1, 1, 1, col);
+    }
+  },
+  embroidery_basket(c) {
+    const { w, h, main } = c;
+    R(c, 0, 2, w, h - 2, main);
+    for (let x = 1; x < w; x += 2) R(c, x, 3, 1, h - 3, shade(main, -0.2));
+    R(c, 1, 0, 3, 2, '#c8402e'); // клубки ниток
+    R(c, 4, 1, 2, 1, '#3f8a4a');
+    R(c, 6, -2, 4, 4, '#b8742e'); // пяльцы
+    R(c, 7, -1, 2, 2, '#f4efe0');
+  },
 };
 
 export const FURNITURE_DRAWERS = drawers;

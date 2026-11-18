@@ -5,6 +5,7 @@ import { chores, computer, crafts, fitness, gaming, idle, lookOutside, music, ph
 import { bench, goOut, jog, smoke, snowman, walkYard } from './outside';
 import { nap, sleep, wash } from './rest';
 import { chat, guest, host, visit } from './social';
+import { familyVisit, feedPets, nightWatch } from './personal';
 import { goToWork, workFromHome } from './work';
 
 /**
@@ -26,4 +27,6 @@ export const ACTIONS: readonly ActionDef[] = [
   walkYard, bench, smoke, jog, goOut, snowman,
   // общение
   visit, host, guest, chat,
+  // личное: питомцы, родные, бессонница
+  feedPets, familyVisit, nightWatch,
 ];
