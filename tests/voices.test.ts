@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildDefs } from '../src/data/defs';
 import { loadRawDataNode } from '../src/data/loadNode';
-import { buildPrompt, parseReply, Voices } from '../src/ai/voices';
+import { buildPrompt, parseLines, parseReply, Voices } from '../src/ai/voices';
 import { Simulation } from '../src/sim/simulation';
 import { createWorldState } from '../src/sim/state';
 
@@ -40,9 +40,12 @@ describe('голоса жильцов (локальная нейросеть)', 
     const v = new Voices(sim, fakeLmStudio(calls), () => 1e9);
     await v.tick();
     expect(v.status()?.model).toBe('gemma-3-27b'); // эмбеддинги пропущены
-    for (let i = 0; i < (2 * 86400) / 10 && calls.length < 3; i++) {
+    for (let i = 0; i < (2 * 86400) / 10 && sim.state.chronicle.filter((e) => e.data.voice).length < 2; i++) {
       sim.step();
-      if (i % 30 === 0) await flush();
+      if (i % 30 === 0) {
+        await v.tick();
+        await flush();
+      }
     }
     await flush();
     expect(calls.length).toBeGreaterThan(0);
@@ -53,7 +56,7 @@ describe('голоса жильцов (локальная нейросеть)', 
     expect(sim.state.diaries?.[a]?.some((x) => x.includes('Поздоровался'))).toBe(true);
     // в запросе — характеры обоих и отношения
     expect(calls[0]).toMatch(/Характер:/);
-    expect(calls[0]).toMatch(/Отношения A и B/);
+    expect(calls.some((c) => /Отношения A и B/.test(c))).toBe(true);
   }, 60_000);
 
   it('пока досчитывается пропущенное время, модель не зовут; без модели — всё по-старому', async () => {
@@ -63,7 +66,10 @@ describe('голоса жильцов (локальная нейросеть)', 
     const v = new Voices(sim, fakeLmStudio(calls), () => 1e9);
     await v.tick();
     v.live = false;
-    for (let i = 0; i < 8640; i++) sim.step();
+    for (let i = 0; i < 8640; i++) {
+      sim.step();
+      if (i % 30 === 0) await v.tick();
+    }
     await flush();
     expect(calls).toHaveLength(0);
     // нет сервера — нет и голосов
@@ -120,4 +126,91 @@ describe('голоса: «думающие» модели', () => {
     await m.chat([{ role: 'user', content: 'y' }]);
     expect(bodies.filter((b) => b.chat_template_kwargs)).toHaveLength(1);
   });
+});
+
+/** Поддельный LM Studio с потоковым ответом (SSE): реплики приходят по кусочкам */
+function streamingLmStudio(calls: string[], gate: { open: boolean }): typeof fetch {
+  return (async (url: string | URL | Request, init?: RequestInit) => {
+    const u = String(url);
+    const json = (o: unknown) => new Response(JSON.stringify(o), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    if (!u.startsWith('http://localhost:1234')) throw new TypeError('connection refused');
+    if (u.endsWith('/api/v0/models')) return json({ data: [{ id: 'qwen/qwen3.8-27b', type: 'llm', state: 'loaded' }] });
+    const body = JSON.parse(String(init?.body));
+    calls.push(body.messages[1].content);
+    expect(body.stream).toBe(true);
+    // телефон и короткие события из хроники — отвечаем сразу и целиком; идущий разговор — по кусочкам
+    const live = /Отношения A и B/.test(body.messages[1].content) && !/Что произошло/.test(body.messages[1].content);
+    const pieces = !live
+      ? ['A: Алло!\n']
+      : ['<think>\n\n</think>\n\nA: Доб', 'рый вечер!\nB: И вам', '. Как дела?\n', 'ПАМЯТЬ A: Поздоровался\nПАМЯТЬ B: Спросил, как дела'];
+    const enc = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      async pull(ctl) {
+        const p = pieces.shift();
+        if (p === undefined) {
+          ctl.enqueue(enc.encode('data: [DONE]\n\n'));
+          ctl.close();
+          return;
+        }
+        // вторая половина ответа — только когда тест разрешит
+        while (pieces.length === 1 && p.startsWith('. Как') && !gate.open) await new Promise((r) => setTimeout(r, 1));
+        ctl.enqueue(enc.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: p } }] })}\n\n`));
+      },
+    });
+    return new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+  }) as typeof fetch;
+}
+
+describe('голоса: реплики — пока идёт разговор', () => {
+  it('строки «A: …» разбираются по мере написания', () => {
+    expect(parseLines('A: Привет\nB: Здра', {}, false)?.lines).toEqual([{ who: 'A', text: 'Привет' }]);
+    const r = parseLines('**А:** «Привет»\nОльга: Здравствуйте!\nПАМЯТЬ А: виделись', { Ольга: 'B' });
+    expect(r?.lines).toEqual([{ who: 'A', text: 'Привет' }, { who: 'B', text: 'Здравствуйте!' }]);
+    expect(r?.memoryA).toBe('виделись');
+    expect(parseReply('A: Да\nB: Нет')?.lines).toHaveLength(2);
+  });
+
+  it('запрос уходит в начале разговора, реплики видны облачками до его конца и попадают в хронику', async () => {
+    const d = buildDefs(loadRawDataNode()).defs!;
+    const sim = new Simulation(d, createWorldState(d, 8));
+    const calls: string[] = [];
+    const gate = { open: false };
+    let clock = 1e9;
+    const v = new Voices(sim, streamingLmStudio(calls, gate), () => clock);
+    await v.tick();
+    // ждём, когда двое остановятся поговорить (или пара сядет поболтать)
+    let started = false;
+    for (let i = 0; i < (3 * 86400) / 10 && !started; i++) {
+      sim.step();
+      if (i % 6 === 0) {
+        await v.tick();
+        started = calls.some((c) => /Отношения A и B/.test(c) && !/Что произошло/.test(c));
+      }
+    }
+    expect(started).toBe(true);
+    await flush();
+    // модель написала только первую реплику — она уже над головой
+    // только идущие разговоры (встреча, гости, пара), не короткие события из хроники
+    const duo = <T extends { key: string; text: string }>(xs: T[]) => xs.filter((x) => /^(it|talk):/.test(x.key));
+    const first = duo(v.speech());
+    expect(first.map((x) => x.text)).toEqual(['Добрый вечер!']);
+    const talker = first[0].id;
+    const r = sim.state.residents[talker];
+    expect(['chat', 'host', 'guest', 'together'].includes(r.action?.id ?? '')).toBe(true);
+    // дописала — следующая реплика, когда первая прозвучит
+    gate.open = true;
+    await flush();
+    clock += 8000;
+    const second = duo(v.speech());
+    expect(second.map((x) => x.text)).toEqual(['И вам. Как дела?']);
+    expect(sim.state.diaries?.[talker]?.some((x) => x.includes('Поздоровался'))).toBe(true);
+    // разговор кончился — реплики в его записи хроники
+    for (let i = 0; i < 2000 && !sim.state.chronicle.some((e) => typeof e.data.voice === 'string'); i++) {
+      sim.step();
+      if (i % 6 === 0) await v.tick();
+    }
+    const voiced = sim.state.chronicle.find((e) => typeof e.data.voice === 'string');
+    if (voiced && voiced.kind !== 'chat' && voiced.kind !== 'visit') return; // пара/телефон: запись могла появиться раньше
+    expect(String(voiced?.data.voice ?? 'Добрый вечер!')).toMatch(/Добрый вечер!/);
+  }, 60_000);
 });

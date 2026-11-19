@@ -18,7 +18,18 @@ export interface LocalModel {
   server: string;
   base: string;
   model: string;
-  chat(messages: ChatMessage[], opts?: { maxTokens?: number; temperature?: number; signal?: AbortSignal }): Promise<string>;
+  /**
+   * Ответ модели целиком. С onText ответ идёт потоком: onText получает всё, что уже написано
+   * (без размышлений «думающих» моделей), — так реплики можно показывать, пока модель пишет дальше.
+   */
+  chat(messages: ChatMessage[], opts?: ChatOptions): Promise<string>;
+}
+
+export interface ChatOptions {
+  maxTokens?: number;
+  temperature?: number;
+  signal?: AbortSignal;
+  onText?: (text: string) => void;
 }
 
 /** Ошибка модели: network — сервер пропал (поищем заново), answer — ответ не получился */
@@ -100,7 +111,7 @@ export async function detectLocalModel(fetchImpl: typeof fetch = fetch): Promise
               temperature: opts.temperature ?? 0.85,
               // если всё-таки «подумает» — пусть хватит места и на ответ
               max_tokens: thinker ? Math.max(3000, opts.maxTokens ?? 500) : opts.maxTokens ?? 500,
-              stream: false,
+              stream: !!opts.onText,
               ...(extras && thinker && !noExtras ? { chat_template_kwargs: { enable_thinking: false } } : {}),
             }),
             signal: ctl.signal,
@@ -113,14 +124,55 @@ export async function detectLocalModel(fetchImpl: typeof fetch = fetch): Promise
             res = await send(false);
           }
           if (!res.ok) throw new ModelError(res.status >= 500 || res.status === 404 ? 'network' : 'answer', `сервер ответил ${res.status}`);
+          // поток (SSE): data: {"choices":[{"delta":{"content":"…"}}]}
+          if (opts.onText && res.body && /event-stream/i.test(res.headers.get('content-type') ?? '')) {
+            let content = '';
+            let reasoning = '';
+            let finish: string | undefined;
+            let buf = '';
+            const reader = res.body.getReader();
+            const dec = new TextDecoder();
+            for (;;) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              buf += dec.decode(value, { stream: true });
+              let nl: number;
+              let changed = false;
+              while ((nl = buf.indexOf('\n')) >= 0) {
+                const line = buf.slice(0, nl).trim();
+                buf = buf.slice(nl + 1);
+                if (!line.startsWith('data:')) continue;
+                const data = line.slice(5).trim();
+                if (data === '[DONE]') continue;
+                try {
+                  const j = JSON.parse(data) as { choices?: { finish_reason?: string | null; delta?: { content?: string | null; reasoning_content?: string | null; reasoning?: string | null } }[] };
+                  const ch = j.choices?.[0];
+                  if (ch?.delta?.content) {
+                    content += ch.delta.content;
+                    changed = true;
+                  }
+                  reasoning += ch?.delta?.reasoning_content ?? ch?.delta?.reasoning ?? '';
+                  if (ch?.finish_reason) finish = ch.finish_reason;
+                } catch {
+                  /* обрывок — пропустим */
+                }
+              }
+              if (changed) opts.onText(visible(content));
+            }
+            let text = visible(content).trim();
+            if (!text) text = reasoning.trim();
+            if (!text && finish === 'length') throw new ModelError('answer', 'модель слишком долго думала');
+            return text;
+          }
           const j = (await res.json()) as { choices?: { finish_reason?: string; message?: { content?: string; reasoning_content?: string; reasoning?: string } }[] };
           const ch = j.choices?.[0];
           const msg = ch?.message;
           // «думающие» модели присылают размышления в <think>…</think> или отдельным полем — их выкидываем
-          let text = (msg?.content ?? '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^[\s\S]*<\/think>/, '').trim();
-          // ответ целиком ушёл в размышления — поищем JSON хотя бы там
+          let text = visible(msg?.content ?? '').trim();
+          // ответ целиком ушёл в размышления — поищем ответ хотя бы там
           if (!text) text = (msg?.reasoning_content ?? msg?.reasoning ?? '').trim();
           if (!text && ch?.finish_reason === 'length') throw new ModelError('answer', 'модель слишком долго думала');
+          if (text) opts.onText?.(text);
           return text;
         } catch (e) {
           if (e instanceof ModelError) throw e;
@@ -133,4 +185,15 @@ export async function detectLocalModel(fetchImpl: typeof fetch = fetch): Promise
     };
   }
   return null;
+}
+
+/** Текст ответа без размышлений: <think>…</think> выкидываем, незакрытое <think> — ещё думает */
+export function visible(content: string): string {
+  let t = content.replace(/<think>[\s\S]*?<\/think>/g, '');
+  const open = t.indexOf('<think>');
+  if (open >= 0) t = t.slice(0, open);
+  // шаблон без открывающего тега: всё до </think> — размышления
+  const close = t.lastIndexOf('</think>');
+  if (close >= 0) t = t.slice(close + 8);
+  return t;
 }

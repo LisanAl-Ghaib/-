@@ -140,3 +140,9 @@ main { flex: 1; display: flex; min-height: 0; }
 
 /* «пока вас не было» */
 #away { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); background: rgba(20,18,28,.92); border: 1px solid var(--line); padding: 12px 18px; z-index: 11; text-align: center; }
+/* реплики жильцов облачками над головами (голоса нейросети) */
+#speech { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+#speech .say { position: absolute; left: 0; top: 0; max-width: 230px; width: max-content; margin: 0; padding: 4px 8px; background: #fbf8f0; color: #2a2420; border: 1px solid #2a2420; border-radius: 8px; font-size: 12px; line-height: 1.3; box-shadow: 0 2px 0 rgba(0,0,0,.35); translate: -50% calc(-100% - 8px); opacity: 0; }
+#speech .say::after { content: ''; position: absolute; left: 50%; bottom: -6px; margin-left: -5px; border: 5px solid transparent; border-top-color: #2a2420; border-bottom: 0; }
+#speech .say.in { animation: say-in .25s ease-out forwards; }
+@keyframes say-in { from { opacity: 0; margin-top: 4px; } to { opacity: 1; margin-top: 0; } }

@@ -87,6 +87,8 @@ export class Renderer {
   private silhouetteCanvas: HTMLCanvasElement | null = null;
   private cigTips = new Map<string, [number, number, 1 | -1]>();
   private headTops = new Map<string, number>();
+  /** где жилец нарисован в этом кадре (по x), только видимые */
+  private headXs = new Map<string, number>();
   private drops: { x: number; y: number; s: number }[] = [];
   readonly W: number;
   readonly H: number;
@@ -143,6 +145,26 @@ export class Renderer {
   }
 
   private conKey = -1;
+
+  /**
+   * Над головой жильца — в CSS-пикселях относительно холста (для облачков с репликами).
+   * null — жильца сейчас не видно (ушёл из дома или за краем экрана).
+   */
+  headScreen(id: string): { x: number; y: number } | null {
+    const wx = this.headXs.get(id);
+    const top = this.headTops.get(id);
+    if (wx === undefined || top === undefined) return null;
+    const dpr = window.devicePixelRatio || 1;
+    const { ox, oy } = this.camera.offset();
+    const z = this.camera.zoom;
+    const x = (ox + wx * z) / dpr;
+    // выше значка занятия (он рисуется над макушкой)
+    const y = (oy + (top - 16) * z) / dpr;
+    const w = this.canvas.width / dpr;
+    const h = this.canvas.height / dpr;
+    if (x < -40 || x > w + 40 || y < 0 || y > h + 20) return null;
+    return { x, y };
+  }
 
   resize(): void {
     const wasOverview = this.atOverview();
@@ -1203,6 +1225,7 @@ export class Renderer {
     list.sort((a, b) => a.y - b.y || a.x - b.x || (a.id < b.id ? -1 : 1));
     this.actorBoxes = [];
     this.actorDraws = [];
+    this.headXs.clear();
     for (const r of list) {
       const p = prev.get(r.id);
       let x = r.x;
@@ -1255,6 +1278,7 @@ export class Renderer {
       g.restore();
       this.actorDraws.push({ sheet, frame, x: sx - CELL_W / 2, top, flip });
       // где макушка — над ней значок и отметка «следим»
+      this.headXs.set(r.id, sx);
       this.headTops.set(r.id, frame === FRAME.lie ? iy - 7 : top + CELL_H - figureOf(def.appearance).H - (frame === FRAME.frontHang ? 2 : 0));
       // запотевшее стекло душевой: силуэт едва угадывается
       if (showerF) {

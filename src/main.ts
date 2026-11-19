@@ -56,6 +56,38 @@ async function boot() {
   const localPage = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
   const voices = new Voices(sim);
   const helpEl = $('#help');
+  // облачки с репликами над головами (когда говорят голосами нейросети)
+  const speechLayer = el('div', { id: 'speech' });
+  $('#stage').append(speechLayer);
+  const bubbles = new Map<string, { node: HTMLElement; key: string }>();
+  const drawSpeech = () => {
+    const now = voices.speech();
+    const live = new Set<string>();
+    for (const sp of now) {
+      const at = renderer.headScreen(sp.id);
+      if (!at) continue;
+      live.add(sp.id);
+      let b = bubbles.get(sp.id);
+      if (!b) {
+        b = { node: el('div', { class: 'say' }), key: '' };
+        speechLayer.append(b.node);
+        bubbles.set(sp.id, b);
+      }
+      if (b.key !== sp.key) {
+        b.key = sp.key;
+        b.node.textContent = sp.text;
+        b.node.classList.remove('in');
+        void b.node.offsetWidth; // заново проиграть появление
+        b.node.classList.add('in');
+      }
+      b.node.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px)`;
+    }
+    for (const [id, b] of bubbles) {
+      if (live.has(id)) continue;
+      b.node.remove();
+      bubbles.delete(id);
+    }
+  };
   const helpBase = helpEl.textContent ?? '';
 
   // ── рендер
@@ -324,6 +356,7 @@ async function boot() {
       focusApartment: focusedApartment,
       hoverBoard,
     });
+    if (localPage) drawSpeech();
     if (now - lastUi > 250) {
       lastUi = now;
       ui.update();
