@@ -372,6 +372,30 @@ export const LIBRARY: Record<string, ActivityAnim> = {
     stand: stand('ведёт кружок стоя у доски', [{ g: 'talk', o: 'front' }, { g: 'workUp', o: 'back' }]),
   },
 
+  // ─── балкон (сцена зависит от того, зачем вышел: data.scene)
+  balcony: {
+    balcony: stand('стоит на балконе лицом наружу, облокотившись на перила; оглядывается в комнату', [{ g: 'work', o: 'side', w: 3 }, { g: 'stand', o: 'side' }, { g: 'stand', o: 'front' }]),
+    stand: stand('на балконе', [{ g: 'work', o: 'side' }]),
+  },
+  'balcony:air': {
+    balcony: stand('вышел подышать: стоит у перил, потягивается, вдыхает поглубже, оборачивается в комнату', [{ g: 'stand', o: 'side', w: 2 }, { g: 'work', o: 'side', w: 2 }, { g: 'wave', o: 'front' }, { g: 'stand', o: 'front' }]),
+  },
+  'balcony:look': {
+    balcony: stand('смотрит во двор: облокотился на перила, подолгу не двигается, иногда выпрямляется', [{ g: 'work', o: 'side', w: 4 }, { g: 'stand', o: 'side' }]),
+  },
+  'balcony:tea': {
+    balcony: stand('с чашкой у перил: отпивает, держит чашку двумя руками, смотрит на двор', [{ g: 'workUp', o: 'side', prop: { kind: 'cup', at: 'mouth' }, alt: { g: 'work', ms: 2400 }, w: 3 }, { g: 'work', o: 'side', prop: { kind: 'cup', at: 'fwd' } }]),
+  },
+  'balcony:plants': {
+    balcony: stand('поливает цветы на балконе из лейки, обрывает сухие листья', [{ g: 'workUp', o: 'side', prop: { kind: 'can', at: 'up' }, w: 2 }, { g: 'work', o: 'side' }]),
+  },
+  'balcony:laundry': {
+    balcony: stand('развешивает бельё: тянется к верёвке с рубашкой, достаёт следующую из таза', [{ g: 'workUp', o: 'side', prop: { kind: 'shirt', at: 'up' }, alt: { g: 'work', ms: 900 }, w: 3 }, { g: 'work', o: 'side', prop: { kind: 'shirt', at: 'fwd' } }]),
+  },
+  'balcony:book': {
+    balcony: stand('читает на балконе стоя: книга в руках, перелистывает, иногда поднимает глаза на двор', [{ g: 'work', o: 'front', prop: { kind: 'book', at: 'hands' }, w: 3 }, { g: 'work', o: 'side', prop: { kind: 'book', at: 'fwd' } }]),
+  },
+
   // ─── люди
   host: { sit: sit('принимает гостей: сидит, разговаривает, жестикулирует', SIT_IDLE) },
   guest: { sit: sit('в гостях: сидит, разговаривает', SIT_IDLE), stand: stand('в гостях', STAND_IDLE) },
@@ -418,7 +442,8 @@ export const GENERIC: Record<'sit' | 'stand' | 'lie', Scene> = {
 
 /** Сцена для занятия в этом месте (с запасными вариантами) */
 export function sceneFor(id: string, place: string | undefined, posture: 'sit' | 'stand' | 'lie'): Scene {
-  const act = LIBRARY[id];
+  // «занятие:вариант» (балкон: с чаем, с лейкой…) — если варианта нет, общая сцена занятия
+  const act = LIBRARY[id] ?? (id.includes(':') && !id.startsWith('together:') ? LIBRARY[id.split(':')[0]] : undefined);
   if (act) {
     const byPlace = place ? act[place as keyof ActivityAnim] : undefined;
     if (byPlace && byPlace.posture === posture) return byPlace;

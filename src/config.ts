@@ -12,6 +12,8 @@ export const OUTER_WALL = 4;
 export const INNER_WALL = 2;
 /** узкий проулок слева от дома */
 export const ALLEY_W = 48;
+/** глубина балкона (выступает из торцевой стены наружу) */
+export const BALCONY_D = 14;
 /** двор справа от дома */
 export const YARD_W = 256;
 /** небо над крышей (с запасом: на любом экране видно небо, а не край мира) */

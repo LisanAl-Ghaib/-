@@ -96,6 +96,7 @@ export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry, con: Co
   drawStairs(g, defs);
 
   for (const apt of L.apartments) if (!con || apt.level !== con.level) drawApartment(g, gf, defs, apt, sprites);
+  for (const apt of L.apartments) if (!con || apt.level !== con.level) drawBalcony(g, gf, defs, apt);
   if (con) drawScaffolding(gf, defs, con.level, con.progress);
 
   // подвал в разрезе: бетонные стены, трубы отопления под потолком, кладовки; ниже — фундамент
@@ -480,16 +481,14 @@ function drawApartment(
     rect(g, x, lt, 1, h - 26, '#c4bdb0');
     rect(g, x - 1, fy - 27, INNER_WALL + 2, 1, apt.vacant ? '#bbb' : shade(pal.wood, 0.1)); // наличник
   }
-  // окно в торцевой стене — прямо над входом в подъезд
+  // окно в торцевой стене — прямо над входом в подъезд (над балконной дверью)
   if (def?.entranceWindow && apt.side === 'right') {
     const wx = L.buildingX1 - OUTER_WALL;
-    const wy = fy - 40;
-    rect(g, wx, wy - 1, OUTER_WALL, 28, '#efece4'); // рама
-    rect(g, wx + 1, wy, OUTER_WALL - 2, 26, '#9ccbe0'); // стекло
+    const wy = fy - 44;
+    rect(g, wx, wy - 1, OUTER_WALL, 16, '#efece4'); // рама
+    rect(g, wx + 1, wy, OUTER_WALL - 2, 14, '#9ccbe0'); // стекло
     rect(g, wx + 1, wy + 2, 1, 6, '#e4f4fb'); // блик
-    rect(g, wx, wy + 12, OUTER_WALL, 1, '#efece4'); // перекладина
-    rect(g, wx - 3, wy + 26, OUTER_WALL + 6, 2, '#d8d4cc'); // подоконник внутри и отлив снаружи
-    rect(g, wx - 3, wy + 27, 3, 1, '#a8a49c');
+    rect(g, wx, wy + 7, OUTER_WALL, 1, '#efece4'); // перекладина
   }
   // стена с входной дверью у лестничной клетки
   const dx = apt.side === 'left' ? apt.x1 - 1 : apt.x0 - 2;
@@ -998,4 +997,114 @@ function drawScaffolding(g: CanvasRenderingContext2D, defs: WorldDefs, level: nu
     rect(g, mx - 2, top - 8, 8, 6, '#3a3a42'); // кабина
     rect(g, mx - 1, top - 7, 3, 2, '#9ccbe0');
   }
+}
+
+/**
+ * Балкон в торцевой стене: бетонная плита на консолях, балконная дверь в стене,
+ * перила (в переднем слое — перед жильцом) и вещи хозяев: цветы, стул, сушилка с бельём, коробки…
+ */
+function drawBalcony(g: CanvasRenderingContext2D, gf: CanvasRenderingContext2D, defs: WorldDefs, apt: ApartmentModel) {
+  const b = apt.balcony;
+  if (!b) return;
+  const L = defs.layout;
+  const fy = L.floorY(apt.level);
+  const left = apt.side === 'left';
+  const w = b.x1 - b.x0;
+  // плита и консоль
+  rect(g, b.x0, fy, w, SLAB - 1, CONCRETE);
+  rect(g, b.x0, fy, w, 1, shade(CONCRETE, 0.2));
+  rect(g, b.x0, fy + SLAB - 1, w, 1, shade(CONCRETE, -0.25));
+  const bx = left ? b.x1 - 4 : b.x0;
+  rect(g, bx, fy + SLAB - 1, 4, 3, shade(CONCRETE, -0.15));
+  // балконная дверь в торцевой стене: рама, стекло наверху, филёнка внизу
+  const wx = left ? L.buildingX0 : L.buildingX1 - OUTER_WALL;
+  rect(g, wx, fy - 28, OUTER_WALL, 28, '#efece4');
+  rect(g, wx + 1, fy - 27, OUTER_WALL - 2, 14, '#9ccbe0');
+  rect(g, wx + 1, fy - 25, 1, 5, '#e4f4fb');
+  rect(g, wx + 1, fy - 12, OUTER_WALL - 2, 11, '#d8d2c4');
+  // задняя стенка экрана балкона (видна сквозь перила)
+  rect(g, b.x0, fy - 12, w, 1, shade(PANEL, -0.1));
+  // вещи на балконе
+  const items = apt.def?.balcony.items ?? [];
+  const pal = apartmentPalette(apt);
+  const far = left ? b.x0 + 1 : b.x1 - 1; // у дальнего края
+  const dir = left ? 1 : -1; // от дальнего края к стене
+  const at = (dx: number, ww: number) => (left ? far + dx : far - dx - ww + 1);
+  let used = 0;
+  for (const it of items) {
+    switch (it) {
+      case 'plants': {
+        const x = at(used, 4);
+        rect(g, x, fy - 3, 4, 3, '#b8653a');
+        rect(g, x - 1, fy - 7, 6, 4, '#4f8a55');
+        rect(g, x + 1, fy - 8, 2, 1, '#d8343a');
+        used += 5;
+        break;
+      }
+      case 'chair': {
+        const x = at(used, 5);
+        rect(g, x, fy - 6, 5, 1, pal.wood);
+        rect(g, x + (left ? 0 : 4), fy - 11, 1, 6, pal.wood);
+        rect(g, x, fy - 5, 1, 5, shade(pal.wood, -0.2));
+        rect(g, x + 4, fy - 5, 1, 5, shade(pal.wood, -0.2));
+        used += 6;
+        break;
+      }
+      case 'laundry': {
+        // сушилка на двух стойках у перил, на верёвке — бельё на прищепках
+        rect(g, b.x0 + 1, fy - 24, 1, 12, '#a8a49c');
+        rect(g, b.x1 - 2, fy - 24, 1, 12, '#a8a49c');
+        rect(g, b.x0 + 1, fy - 24, w - 2, 1, '#d8d4cc');
+        const colors = ['#f4f2ec', '#8fc0e0', '#e8a0a8', '#f0d070'];
+        for (let i = 0; i < 3; i++) rect(g, b.x0 + 3 + i * 3, fy - 23, 2, 4 + (i % 2) * 2, colors[(i + apt.level) % colors.length]);
+        break;
+      }
+      case 'boxes': {
+        const x = at(used, 6);
+        rect(g, x, fy - 5, 6, 5, '#b8956a');
+        rect(g, x + 1, fy - 9, 4, 4, '#a8855a');
+        rect(g, x, fy - 3, 6, 1, '#8a7048');
+        used += 7;
+        break;
+      }
+      case 'skis': {
+        const x = left ? b.x0 + 1 + used : b.x1 - 2 - used;
+        rect(g, x, fy - 24, 1, 24, '#c84a3a');
+        rect(g, x + dir, fy - 22, 1, 22, '#3a6ab0');
+        used += 3;
+        break;
+      }
+      case 'bike': {
+        const x = at(0, 12);
+        rect(g, x, fy - 5, 4, 4, '#3a3a40');
+        rect(g, x + 8, fy - 5, 4, 4, '#3a3a40');
+        rect(g, x + 2, fy - 7, 8, 1, '#c84a3a');
+        used += 12;
+        break;
+      }
+      case 'ashtray': {
+        // пепельница на перилах — рисуется спереди
+        break;
+      }
+      case 'jars': {
+        const x = at(used, 5);
+        for (let i = 0; i < 3; i++) rect(g, x + i * 2, fy - 4, 2, 4, i === 1 ? '#c84a3a' : '#7aa05a');
+        used += 6;
+        break;
+      }
+      case 'books': {
+        const x = at(used, 5);
+        for (let i = 0; i < 3; i++) rect(g, x, fy - 2 - i * 2, 5, 2, ['#8a2a2a', '#2a4a7a', '#7a5a2a'][i]);
+        used += 6;
+        break;
+      }
+    }
+  }
+  // перила (перед жильцом): поручень, стойки, боковина
+  const rail = shade(PANEL, -0.35);
+  rect(gf, b.x0, fy - 12, w, 2, rail);
+  rect(gf, b.x0, fy - 12, w, 1, shade(rail, 0.3));
+  for (let x = b.x0 + 1; x < b.x1; x += 3) rect(gf, x, fy - 10, 1, 10, rail);
+  rect(gf, left ? b.x0 : b.x1 - 1, fy - 12, 1, 12, rail);
+  if (items.includes('ashtray')) rect(gf, left ? b.x0 + 2 : b.x1 - 5, fy - 14, 3, 2, '#8a8a92');
 }

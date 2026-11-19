@@ -1,4 +1,5 @@
 import {
+  BALCONY_D,
   ALLEY_W, CORE_W, FLOOR_H, GROUND_H, INNER_WALL, OUTER_WALL, ROOF_H, SKY_MARGIN, SLAB, TILE, YARD_W,
 } from '../config';
 import type {
@@ -65,6 +66,8 @@ export interface ApartmentModel {
   rooms: RoomModel[];
   slots: SlotInstance[];
   vacant: boolean;
+  /** балкон в торцевой стене (у всех квартир выше первого этажа): где он и где на нём стоять */
+  balcony: { x0: number; x1: number; standX: number } | null;
 }
 
 export type Zone =
@@ -218,6 +221,12 @@ export class BuildingLayout {
       rooms: [],
       slots: [],
       vacant: !def,
+      balcony:
+        level === 0
+          ? null
+          : side === 'left'
+            ? { x0: this.buildingX0 - BALCONY_D, x1: this.buildingX0, standX: this.buildingX0 - Math.round(BALCONY_D / 2) }
+            : { x0: this.buildingX1, x1: this.buildingX1 + BALCONY_D, standX: this.buildingX1 + Math.round(BALCONY_D / 2) },
     };
     const fy = this.floorY(level);
     const roomDefs: RoomDef[] = def

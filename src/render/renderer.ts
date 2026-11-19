@@ -1,4 +1,4 @@
-import { CORE_W, SLAB } from '../config';
+import { BALCONY_D, CORE_W, SLAB } from '../config';
 import { clamp01, mix, shade } from '../core/math';
 import { Rng } from '../core/rng';
 import type { WorldDefs } from '../data/defs';
@@ -164,14 +164,15 @@ export class Renderer {
     const cam = this.camera;
     // крупнее всего, при котором виден весь дом (с крышей, краном и полоской двора),
     // но не мельче, чем нужно, чтобы экран целиком был внутри мира
-    const bw = L.buildingX1 - L.buildingX0 + 24;
+    // дом с балконами по бокам
+    const bw = L.buildingX1 - L.buildingX0 + 24 + BALCONY_D * 2;
     const top = L.roofY - (this.sim.state.construction && !this.sim.state.construction.done ? 44 : 22);
     const bottom = L.groundY + 26;
     const fit = Math.max(1, Math.floor(Math.min(cam.viewW / bw, cam.visH / (bottom - top))));
     const z = Math.max(cam.minZoom(), fit);
     const visW = cam.viewW / z;
     // если по ширине есть запас — дом левее, справа двор с лавочкой и остановкой
-    const x = visW >= bw + 80 ? L.buildingX0 - 12 + visW / 2 : (L.buildingX0 + L.buildingX1) / 2;
+    const x = visW >= bw + 80 ? L.buildingX0 - 12 - BALCONY_D + visW / 2 : (L.buildingX0 + L.buildingX1) / 2;
     const y = (top + bottom) / 2;
     if (animate) cam.animateTo(x, y, z, now);
     else this.camera.jumpTo(x, y, z);
@@ -244,6 +245,7 @@ export class Renderer {
     this.drawVisitors(nowMs);
     this.drawPets(nowMs);
     wg.drawImage(this.layers.front, 0, 0);
+    this.drawBalconyWeather();
     this.drawBus(tGame);
 
     // освещение
@@ -903,6 +905,22 @@ export class Renderer {
     });
   }
 
+  /** Снег на перилах и плитах балконов */
+  private drawBalconyWeather() {
+    const snow = this.env.look.snow;
+    if (snow < 0.25) return;
+    const g = this.wg;
+    const L = this.defs.layout;
+    const con = this.sim.state.construction;
+    for (const apt of L.apartments) {
+      const b = apt.balcony;
+      if (!b || (con && !con.done && apt.level === con.floor - 1)) continue;
+      const fy = L.floorY(apt.level);
+      rect(g, b.x0, fy - 13, b.x1 - b.x0, 1, '#f2f6f9');
+      if (snow > 0.5) rect(g, b.x0 + 1, fy - 1, b.x1 - b.x0 - 2, 1, '#e8eef2');
+    }
+  }
+
   /** Вещи, которые живут сами: часы идут, радио играет, обогреватель щёлкает */
   private drawAmbient(nowMs: number) {
     const g = this.wg;
@@ -1150,7 +1168,8 @@ export class Renderer {
       }
     }
     if (f?.def.draw === 'pullup_bar') env.pullup = f.y - f.h + 1;
-    env.place = placeOf(f?.def.draw, a?.id, slot?.pose, r.level === 0 && (r.x < this.defs.layout.buildingX0 || r.x > this.defs.layout.buildingX1));
+    const outside = r.x < this.defs.layout.buildingX0 || r.x > this.defs.layout.buildingX1;
+    env.place = r.level > 0 && outside && !f ? 'balcony' : placeOf(f?.def.draw, a?.id, slot?.pose, r.level === 0 && outside);
     return env;
   }
 

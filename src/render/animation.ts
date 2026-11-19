@@ -50,7 +50,9 @@ function mixHash(a: number, b: number): number {
 export function activityKey(r: ResidentState): string {
   const a = r.action;
   if (!a || a.phase !== 'perform') return '';
-  return a.id === 'together' ? `together:${a.data.kind}` : a.id;
+  if (a.id === 'together') return `together:${a.data.kind}`;
+  // у некоторых занятий есть варианты сцены (на балконе: с чаем, с лейкой, с книгой)
+  return typeof a.data.scene === 'string' ? `${a.id}:${a.data.scene}` : a.id;
 }
 
 /** Ракурсы, которые есть в базовой сцене (личные добавки не могут их расширить) */

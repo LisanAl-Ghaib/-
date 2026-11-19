@@ -7,6 +7,7 @@
   "palette": { "wall": "#a9b8c4", "floor": "#b08a62", "wood": "#7a6a5a", "textile": "#4a4f58", "accent": "#8fb0c8", "metal": "#8a8e94" },
   "wallpaper": "plain",
   "flooring": "parquet",
+  "balcony": { "items": ["chair"] },
   "rooms": [
     { "type": "bedroom", "name": "комната", "width": 5, "furniture": [
       { "item": "bed_single", "x": 1 },

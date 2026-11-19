@@ -405,3 +405,30 @@ describe('сохранение со стройкой в разгаре', () => {
     expect(sim.state.workers).toHaveLength(0);
   }, 60_000);
 });
+
+describe('балконы', () => {
+  it('у квартир выше первого этажа есть балкон, жильцы на него выходят', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const { Simulation: Sim } = await import('../src/sim/simulation');
+    const { createWorldState: create } = await import('../src/sim/state');
+    const d = build(loadRawDataNode()).defs!;
+    for (const apt of d.layout.apartments) expect(!!apt.balcony).toBe(apt.level > 0);
+    const sim = new Sim(d, create(d, 42));
+    const who = new Set<string>();
+    let outside = 0;
+    sim.bus.on('action.start', (e) => {
+      if (e.actionId === 'balcony') who.add(e.residentId);
+    });
+    for (let i = 0; i < (14 * 86400) / 10; i++) {
+      sim.step();
+      for (const r of Object.values(sim.state.residents)) {
+        if (r.action?.id !== 'balcony' || r.action.phase !== 'perform') continue;
+        const b = d.layout.apartments.find((a) => a.balcony && a.level === r.level && r.x >= a.balcony.x0 && r.x <= a.balcony.x1);
+        if (b) outside++;
+      }
+    }
+    expect(who.size).toBeGreaterThanOrEqual(3);
+    expect(outside).toBeGreaterThan(50);
+    expect(who.has('olga-shpak')).toBe(false); // на первом этаже балкона нет
+  }, 60_000);
+});

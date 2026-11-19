@@ -8,6 +8,7 @@
   "palette": { "wall": "#e4ddd0", "floor": "#a8865e", "wood": "#c8a878", "textile": "#3a5a7a", "accent": "#c8402e", "metal": "#2a2a30" },
   "wallpaper": "plain",
   "flooring": "boards",
+  "balcony": { "items": ["laundry", "plants", "chair"] },
   "rooms": [
     { "type": "hall", "name": "прихожая", "width": 2, "window": false, "furniture": [
       { "item": "coat_rack", "x": 2 },

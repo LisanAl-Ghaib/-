@@ -103,7 +103,8 @@ export function startChat(sim: Simulation, a: string, b: string, place: string, 
   const rb = s.residents[b];
   ra.interaction = it.id;
   rb.interaction = it.id;
-  const inPlace = ra.action?.id === 'bench' && rb.action?.id === 'bench';
+  // на лавочке или на балконах (разных этажей) — говорят, не сходя с места
+  const inPlace = (ra.action?.id === 'bench' && rb.action?.id === 'bench') || (ra.action?.id === 'balcony' && rb.action?.id === 'balcony');
   if (!inPlace) {
     // встали друг напротив друга
     const mid = (ra.x + rb.x) / 2;

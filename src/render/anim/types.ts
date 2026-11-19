@@ -50,7 +50,7 @@ export type Place =
   | 'table' | 'desk' | 'seat' | 'recliner'
   | 'stove' | 'sink' | 'fridge'
   | 'window' | 'plant' | 'aquarium' | 'bowls'
-  | 'piano' | 'amp' | 'bar' | 'mat' | 'bike' | 'easel' | 'board'
+  | 'piano' | 'amp' | 'bar' | 'mat' | 'bike' | 'easel' | 'board' | 'balcony'
   | 'outdoor' | 'floor';
 
 /** Что известно об окружении (считает рендер) */

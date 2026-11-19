@@ -142,6 +142,12 @@ export const ApartmentSchema = z.object({
   side: z.enum(['left', 'right']),
   /** в квартире идёт ремонт (жить нельзя, днём работают мастера) */
   renovation: z.boolean().default(false),
+  /** что стоит на балконе (балкон есть у всех квартир выше первого этажа) */
+  balcony: z
+    .object({
+      items: z.array(z.enum(['plants', 'chair', 'laundry', 'boxes', 'skis', 'bike', 'ashtray', 'jars', 'books'])).default([]),
+    })
+    .default({ items: [] }),
   /** окно в торцевой стене прямо над входом в подъезд (только у правых квартир): из него машут уходящим */
   entranceWindow: z.boolean().default(false),
   number: z.number().int().optional(),

@@ -94,6 +94,10 @@ export class TemplateNarrator implements Narrator {
 
       case 'chat': {
         const place = s(d.place);
+        if (place === 'на балконах' && !d.quarrel) {
+          const long = Number(d.minutes) >= 12;
+          return `${n(a)} и ${n(b)} ${long ? `переговаривались с балконов ${durationPhrase(Number(d.startMin), Number(d.endMin), Number(d.minutes))}` : 'перекинулись парой слов с балконов'}${d.topic ? ` — ${s(d.topic)}` : ', перегнувшись через перила'}.`;
+        }
         const dur = Number(d.minutes) < 12 ? 'перекинулись парой слов' : `${pick(['проболтали', 'обсуждали соседей', 'разговаривали', 'обсуждали новости'])} ${durationPhrase(Number(d.startMin), Number(d.endMin), Number(d.minutes))}`;
         const topic = d.topic ? ` — ${s(d.topic)}` : '';
         if (d.quarrel) return `${n(a)} и ${n(b)} столкнулись ${place} — слово за слово, и уже на весь подъезд${d.cause ? `, кажется, ${s(d.cause)}` : ''}.`;
@@ -337,6 +341,24 @@ export class TemplateNarrator implements Narrator {
         return `${n(a)} ${v(A, 'слепил', 'слепила')} во дворе снеговика${d.hat ? ' и ' + v(A, 'надел', 'надела') + ' на него ведро' : ''}.`;
       case 'snowman.melt':
         return `Снеговик, которого ${v(A, 'слепил', 'слепила')} ${n(a)}, растаял.`;
+      case 'balcony': {
+        const cold = Number(d.temp) < -3;
+        if (cold) return `${n(a)} ${v(A, 'выскочил', 'выскочила')} на балкон в одной кофте — на минутку, мороз ${s(d.temp)}°.`;
+        switch (d.scene) {
+          case 'tea':
+            return `${n(a)} пьёт чай на балконе, облокотившись на перила, и смотрит на двор.`;
+          case 'plants':
+            return `${n(a)} поливает цветы на балконе.`;
+          case 'laundry':
+            return `${n(a)} ${v(A, 'развесил', 'развесила')} на балконе бельё.`;
+          case 'book':
+            return `${n(a)} читает на балконе — по-летнему, стоя у перил.`;
+          case 'look':
+            return `${n(a)} долго стоит на балконе и смотрит во двор.`;
+          default:
+            return d.kind === 'snow' ? `${n(a)} ${v(A, 'вышел', 'вышла')} на балкон посмотреть на снег.` : `${n(a)} ${v(A, 'вышел', 'вышла')} на балкон подышать.`;
+        }
+      }
       case 'ask-help': {
         const say = d.saying ? `«${s(d.saying)}» — и ` : '';
         const how = s(d.how).replace('за него', v(A, 'за него', 'за неё'));

@@ -19,6 +19,12 @@ export function publicSpot(sim: Simulation, r: ResidentState): Spot | null {
   const L = sim.defs.layout;
   const e = sim.state.elevator;
   if (e.riders.includes(r.id)) return { kind: 'elevator', phrase: 'в лифте', key: 'elevator' };
+  // на балконе (выше первого этажа): переговариваются с соседом сверху или снизу
+  if (r.level > 0 && (r.x >= L.buildingX1 || r.x < L.buildingX0)) {
+    if (r.action?.id !== 'balcony' || r.action.phase !== 'perform') return null;
+    const side = r.x < L.buildingX0 ? 'left' : 'right';
+    return { kind: 'balcony', phrase: 'на балконах', key: `balcony:${side}` };
+  }
   if (r.x >= L.buildingX1) {
     if (r.action?.id === 'bench' && r.action.phase === 'perform') return { kind: 'bench', phrase: 'на лавочке у подъезда', key: 'bench' };
     if (r.x >= L.yard.busStop - 30) return { kind: 'busstop', phrase: 'на остановке', key: 'yard' };
@@ -68,7 +74,9 @@ export function detectEncounters(sim: Simulation): void {
       if (!sb || rb.interaction !== null || sa.key !== sb.key) continue;
       // живут вместе — встреча во дворе не событие
       if (sim.defs.residentById.get(a)?.apartment === sim.defs.residentById.get(b)?.apartment) continue;
-      const near = sa.kind === 'elevator' || (Math.abs(ra.x - rb.x) < (sa.key === 'yard' || sa.key === 'bench' ? 28 : sa.key === 'ground' ? 44 : 16) && Math.abs(ra.y - rb.y) < 10);
+      // балконы друг над другом: соседние этажи
+      const balconies = sa.kind === 'balcony' && Math.abs(ra.level - rb.level) === 1;
+      const near = sa.kind === 'elevator' || balconies || (Math.abs(ra.x - rb.x) < (sa.key === 'yard' || sa.key === 'bench' ? 28 : sa.key === 'ground' ? 44 : 16) && Math.abs(ra.y - rb.y) < 10);
       if (!near) continue;
       const key = pairKey(a, b);
       if ((s.pairCooldown[key] ?? -1) > sim.time) continue;

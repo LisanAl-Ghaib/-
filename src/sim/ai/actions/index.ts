@@ -3,6 +3,7 @@ import { cook, eat, shopping, snack } from './food';
 import { makeBed, takeOutTrash, unpack, washDishes } from './home';
 import { board, chess, chores, computer, crafts, fitness, gaming, idle, lookOutside, music, phone, plants, read, tea, watchTv } from './leisure';
 import { circleAction } from '../../circle';
+import { balcony } from './balcony';
 import { bench, goOut, jog, smoke, snowman, walkYard } from './outside';
 import { nap, sleep, toilet, wash } from './rest';
 import { chat, guest, host, visit } from './social';
@@ -27,6 +28,8 @@ export const ACTIONS: readonly ActionDef[] = [
   watchTv, read, tea, music, gaming, computer, crafts, plants, fitness, phone, lookOutside, chores, chess, board, idle,
   // кружок у себя дома (дети приходят в гости)
   circleAction,
+  // балкон
+  balcony,
   // на улице
   walkYard, bench, smoke, jog, goOut, snowman,
   // общение
