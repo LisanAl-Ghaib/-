@@ -211,3 +211,33 @@ describe('Иван и Снежана (настоящий дом)', () => {
     expect(deskOf['snezhana-galimova']?.has(ivDesk) ?? false).toBe(false);
   }, 60_000);
 });
+
+describe('одежда и проводы (настоящий дом)', () => {
+  it('куртку надевают в прихожей, дома без неё; уходящего провожают из окна над входом', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const { Simulation: Sim } = await import('../src/sim/simulation');
+    const { createWorldState: create } = await import('../src/sim/state');
+    const { hallOf } = await import('../src/sim/dressing');
+    const d = build(loadRawDataNode()).defs!;
+    const sim = new Sim(d, create(d, 21));
+    let waves = 0;
+    let dressings = 0;
+    let coatAtHome = 0;
+    for (let i = 0; i < (10 * 86400) / 10; i++) {
+      sim.step();
+      for (const def of d.residents) {
+        const r = sim.state.residents[def.id];
+        if (r.action?.data.dressing === 'on' && Number(r.action.data.pauseUntil) - sim.time === 100) dressings++;
+        const apt = d.layout.aptById.get(def.apartment)!;
+        const hall = hallOf(sim, apt.id);
+        const deepInside = !r.away && r.level === apt.level && r.x >= apt.x0 && r.x < apt.x1 && !(r.x >= hall.x0 && r.x < hall.x1);
+        if (r.dressed && deepInside && r.action?.phase === 'perform') coatAtHome++;
+        if (r.action?.id === 'wave_window' && r.gesture) waves++;
+      }
+    }
+    expect(dressings).toBeGreaterThan(5);
+    expect(coatAtHome).toBe(0);
+    expect(waves).toBeGreaterThan(3);
+    expect(sim.state.chronicle.some((e) => e.kind === 'farewell.window')).toBe(true);
+  }, 60_000);
+});

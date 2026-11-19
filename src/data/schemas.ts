@@ -130,6 +130,8 @@ export const ApartmentSchema = z.object({
   side: z.enum(['left', 'right']),
   /** в квартире идёт ремонт (жить нельзя, днём работают мастера) */
   renovation: z.boolean().default(false),
+  /** окно в торцевой стене прямо над входом в подъезд (только у правых квартир): из него машут уходящим */
+  entranceWindow: z.boolean().default(false),
   number: z.number().int().optional(),
   style: ApartmentStyleSchema,
   description: z.string().default(''),

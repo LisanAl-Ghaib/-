@@ -28,7 +28,8 @@ import { addMoodlet } from './needs';
 import { petNotes, syncPets, updatePets } from './pets';
 import { scheduleVisits, updateVisitors } from './visitors';
 import { syncWorkers, updateWorkers } from './workers';
-import { joinCooking, planTogether } from './couple';
+import { joinCooking, planTogether, updateFarewells } from './couple';
+import { updateDressing } from './dressing';
 
 export type SimEvent =
   | { type: 'action.start'; t: number; residentId: string; actionId: string; label: string }
@@ -64,7 +65,10 @@ export class Simulation {
     state.pendingChronicle ??= [];
     state.visitors ??= [];
     state.workers ??= [];
-    for (const r of Object.values(state.residents)) r.needs.bladder ??= 70;
+    for (const r of Object.values(state.residents)) {
+      r.needs.bladder ??= 70;
+      r.dressed ??= false;
+    }
     this.syncResidents();
     STOICS.clear();
     for (const d of defs.residents) if (d.traits.tags.some((t) => /стоик|стоиц/i.test(t))) STOICS.add(d.id);
@@ -365,6 +369,7 @@ export class Simulation {
         if (r.sick && r.plan) r.plan.workday = false;
       }
       updateNeeds(ctx, DT);
+      updateDressing(this, r);
       updateAgent(ctx, DT);
       // пришёл домой с пакетами — поставил в прихожей
       if (r.carrying === 'bags' && !r.away && r.level === ctx.home.level && r.x >= ctx.home.x0 && r.x < ctx.home.x1) {
@@ -380,6 +385,7 @@ export class Simulation {
     updatePets(this, DT);
     updateVisitors(this, DT);
     updateWorkers(this, DT);
+    updateFarewells(this);
     if (s.time % 600 === 0) petNotes(this);
     flushPendingChronicle(this);
     if (s.time % 60 === 0) detectEncounters(this);

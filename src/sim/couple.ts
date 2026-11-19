@@ -377,3 +377,110 @@ function bedOf(sim: Simulation, ctx: AgentCtx, ra: ResidentState, rb: ResidentSt
   if (!other) return null;
   return lying === ra ? [mine, other] : [other, mine];
 }
+
+// ───────────────────────────── проводы из окна
+
+/**
+ * Один уходит из дома (на пары, в магазин, на пробежку) — второй, если дома и не спит,
+ * подходит к окну над входом в подъезд. Уходящий, выйдя на улицу, оборачивается,
+ * они машут друг другу, и только потом он идёт дальше.
+ */
+const FAREWELL_WAVE_S = 150; // ≈ 2,5 секунды на экране
+const FAREWELL_WAIT_S = 240; // сколько ждать у подъезда, пока второй дойдёт до окна
+
+/** Где стоять у окна над входом (или null, если такого окна нет) */
+export function entranceWindowSpot(sim: Simulation, aptId: string): { level: number; x: number } | null {
+  const apt = sim.defs.layout.aptById.get(aptId);
+  if (!apt?.def?.entranceWindow || apt.side !== 'right') return null;
+  return { level: apt.level, x: apt.x1 - 4 };
+}
+
+/** Стоит у окна и машет вслед (назначается только проводами) */
+export const waveWindow: ActionDef = {
+  id: 'wave_window',
+  plan: () => null,
+  onArrive(ctx) {
+    ctx.r.facing = 1; // к окну в торцевой стене
+    return true;
+  },
+  perform(ctx, _a, dt) {
+    gain(ctx.r, 'mood', 6, dt);
+  },
+  shouldEnd(ctx, a) {
+    if (ctx.now >= a.endsAt) return true;
+    const l = ctx.sim.state.residents[String(a.data.leaver)];
+    if (!l || l.away) return true;
+    const la = l.action;
+    // передумал уходить или уже помахали и он скрылся из виду
+    if (!la || !la.target.away) return true;
+    return la.data.farewell === 'done' && !l.gesture;
+  },
+};
+
+const NOT_NOW = new Set(['sleep', 'nap', 'toilet', 'wash', 'go_to_work', 'shopping', 'together', 'visit', 'guest', 'host', 'chat']);
+
+export function updateFarewells(sim: Simulation): void {
+  const s = sim.state;
+  const L = sim.defs.layout;
+  for (const [a, b] of couples(sim)) {
+    for (const [lid, pid] of [[a, b], [b, a]] as const) {
+      const l = s.residents[lid];
+      const p = s.residents[pid];
+      const la = l?.action;
+      if (!l || !p || !la || !la.target.away || la.id === 'together' || la.data.farewell === 'done' || la.data.farewell === 'none') continue;
+      const spot = entranceWindowSpot(sim, sim.defs.residentById.get(lid)!.apartment);
+      if (!spot) {
+        la.data.farewell = 'none';
+        continue;
+      }
+      // уходящий спустился в холл первого этажа — второй идёт к окну (раньше звать незачем: долго стоять)
+      if (la.data.farewell === undefined) {
+        const inLobby = l.level === 0 && !atHome(sim, l) && l.x < L.buildingX1 && l.x >= L.buildingX0;
+        if (!inLobby) {
+          // ушёл не из дома (со двора, от соседей) — без проводов
+          if (!atHome(sim, l) && !(l.level > 0 && l.x >= L.coreX && l.x < L.coreX + 64)) la.data.farewell = 'none';
+          continue;
+        }
+        const pa = p.action;
+        const can =
+          atHome(sim, p) && p.interaction === null && !(pa && NOT_NOW.has(pa.id)) && !(pa?.target.away) &&
+          !(p.sick && p.sick.until > sim.time && p.pose === 'lie');
+        if (!can) {
+          la.data.farewell = 'none';
+          continue;
+        }
+        la.data.farewell = 'sent';
+        sim.forceAction(pid, 'wave_window', {
+          score: 30,
+          target: spot,
+          duration: 25 * 60,
+          label: 'машет из окна',
+          interruptible: false,
+          data: { leaver: lid },
+        });
+        continue;
+      }
+      // вышел из подъезда: обернуться, найти окно глазами, помахать
+      if (la.data.farewell === 'sent' && la.phase === 'travel' && !l.away && l.level === 0 && l.x >= L.buildingX1 + 26) {
+        const pw = p.action?.id === 'wave_window' && p.action.data.leaver === lid ? p.action : null;
+        l.facing = -1;
+        if (pw && pw.phase === 'perform') {
+          l.gesture = { kind: 'wave', until: sim.time + FAREWELL_WAVE_S, toX: spot.x, side: true };
+          p.gesture = { kind: 'wave', until: sim.time + FAREWELL_WAVE_S + 20, toX: l.x, side: true };
+          la.data.pauseUntil = sim.time + FAREWELL_WAVE_S;
+          la.data.farewell = 'done';
+          const key = `farewell:${lid}:${sim.calendar().dayIndex}`;
+          if (!s.flags[key] && sim.rng.chance(0.5)) {
+            s.flags[key] = sim.time;
+            chronicle(sim, 'farewell.window', [lid, pid], 1);
+          }
+        } else if (pw) {
+          // второй ещё идёт к окну — подождать
+          la.data.waitSince ??= sim.time;
+          if (sim.time - Number(la.data.waitSince) > FAREWELL_WAIT_S) la.data.farewell = 'done';
+          else la.data.pauseUntil = sim.time + 10;
+        } else la.data.farewell = 'done';
+      }
+    }
+  }
+}

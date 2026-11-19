@@ -441,6 +441,17 @@ function drawApartment(
     rect(g, x, lt, 1, h - 26, '#c4bdb0');
     rect(g, x - 1, fy - 27, INNER_WALL + 2, 1, apt.vacant ? '#bbb' : shade(pal.wood, 0.1)); // наличник
   }
+  // окно в торцевой стене — прямо над входом в подъезд
+  if (def?.entranceWindow && apt.side === 'right') {
+    const wx = L.buildingX1 - OUTER_WALL;
+    const wy = fy - 40;
+    rect(g, wx, wy - 1, OUTER_WALL, 28, '#efece4'); // рама
+    rect(g, wx + 1, wy, OUTER_WALL - 2, 26, '#9ccbe0'); // стекло
+    rect(g, wx + 1, wy + 2, 1, 6, '#e4f4fb'); // блик
+    rect(g, wx, wy + 12, OUTER_WALL, 1, '#efece4'); // перекладина
+    rect(g, wx - 3, wy + 26, OUTER_WALL + 6, 2, '#d8d4cc'); // подоконник внутри и отлив снаружи
+    rect(g, wx - 3, wy + 27, 3, 1, '#a8a49c');
+  }
   // стена с входной дверью у лестничной клетки
   const dx = apt.side === 'left' ? apt.x1 - 1 : apt.x0 - 2;
   rect(g, dx, lt, 3, h - 26, '#c8c1b4');

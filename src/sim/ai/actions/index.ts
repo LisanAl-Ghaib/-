@@ -7,7 +7,7 @@ import { nap, sleep, toilet, wash } from './rest';
 import { chat, guest, host, visit } from './social';
 import { familyVisit, feedPets, nightWatch } from './personal';
 import { goToWork, sideWork, workFromHome } from './work';
-import { together } from '../../couple';
+import { together, waveWindow } from '../../couple';
 
 /**
  * Реестр действий. Чтобы добавить действие — создай ActionDef и допиши сюда.
@@ -31,5 +31,5 @@ export const ACTIONS: readonly ActionDef[] = [
   // личное: питомцы, родные, бессонница
   feedPets, familyVisit, nightWatch,
   // вдвоём (пара)
-  together,
+  together, waveWindow,
 ];

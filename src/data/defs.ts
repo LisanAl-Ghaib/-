@@ -156,6 +156,7 @@ export function buildDefs(raw: RawData): BuildResult {
   // ── квартира vs жильцы
   for (const a of apartments) {
     const people = residents.filter((r) => r.apartment === a.id);
+    if (a.entranceWindow && a.side !== 'right') warnings.push(`${a.id}: окно над входом бывает только у правых квартир (вход в подъезд справа)`);
     for (const room of a.rooms)
       for (const fp of room.furniture)
         if (fp.owner && !people.some((p) => p.id === fp.owner)) warnings.push(`${a.id}: хозяин вещи ${fp.item} «${fp.owner}» тут не живёт`);

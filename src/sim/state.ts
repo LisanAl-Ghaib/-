@@ -7,9 +7,9 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 /** версии сохранений, которые можно дополнить до текущей (недостающие поля заполнит Simulation) */
-export const MIGRATABLE_VERSIONS = [7, 8];
+export const MIGRATABLE_VERSIONS = [7, 8, 9];
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -99,6 +99,8 @@ export interface ResidentState {
   carrying: 'bags' | 'trash' | 'gift' | 'flowers' | null;
   /** жест: кивнула, помахала */
   gesture?: Gesture | null;
+  /** одет для улицы (куртка) — надевает в прихожей, снимает там же */
+  dressed?: boolean;
 }
 
 /** Отношение жильца A к жильцу B (направленное) */
@@ -192,6 +194,8 @@ export interface Gesture {
   until: number;
   /** кому — в его сторону и повернётся */
   toX: number;
+  /** машет боком (из окна вниз, во двор), а не лицом к нам */
+  side?: boolean;
 }
 
 /** Мастер, который делает ремонт: утром приходит с улицы, в обед уходит перекусить, вечером уходит */
@@ -312,6 +316,7 @@ export function createResidentState(defs: WorldDefs, id: string, rngNext: () => 
     interaction: null,
     intents: [],
     carrying: null,
+    dressed: false,
   };
 }
 

@@ -3,6 +3,7 @@ import { clamp01, mix, shade } from '../core/math';
 import { Rng } from '../core/rng';
 import type { WorldDefs } from '../data/defs';
 import { daylight } from '../sim/env/sun';
+import type { ResidentDef } from '../data/schemas';
 import type { ResidentState } from '../sim/state';
 import type { Simulation } from '../sim/simulation';
 import type { ApartmentModel } from '../world/layout';
@@ -544,6 +545,34 @@ export class Renderer {
 
   private screensOn: [number, number, string, number][] = [];
 
+  /** Душевая кабина, в которой сейчас моется жилец */
+  private showerOf(r: ResidentState): FurnitureInstance | null {
+    const a = r.action;
+    if (a?.id !== 'wash' || a.phase !== 'perform' || !a.target.slot) return null;
+    const slot = this.sim.slotIndex.get(a.target.slot);
+    const f = slot ? this.furniture(slot.furnitureUid) : undefined;
+    return f?.def.draw === 'shower' ? f : null;
+  }
+
+  private drawShowerExtras(def: ResidentDef, f: FurnitureInstance, nowMs: number) {
+    const g = this.wg;
+    const app = def.appearance;
+    // одежда переброшена через дверцу кабины, полотенце рядом
+    const ty = f.y - f.h;
+    rect(g, f.x + 1, ty - 1, 5, 2, app.outfit.top);
+    rect(g, f.x + 1, ty + 1, 2, 4, app.outfit.top);
+    rect(g, f.x + 4, ty + 1, 2, 3, app.outfit.bottom);
+    rect(g, f.x + f.w - 4, ty - 1, 3, 2, '#f4f2ec');
+    rect(g, f.x + f.w - 3, ty + 1, 2, 5, '#f4f2ec');
+    // пар над кабиной
+    g.globalAlpha = 0.55;
+    for (let i = 0; i < 4; i++) {
+      const t = Math.floor(nowMs / 160 + i * 7);
+      rect(g, f.x + 2 + ((t + i * 3) % (f.w - 3)), f.y - f.h - 1 - (t % 6), 1, 1, '#ffffff');
+    }
+    g.globalAlpha = 1;
+  }
+
   /** Закрытая дверь туалета (занято) */
   private drawWcDoor(level: number, x: number) {
     const L = this.defs.layout;
@@ -788,7 +817,8 @@ export class Renderer {
 
   private sheet(r: ResidentState): HTMLCanvasElement | HTMLImageElement {
     const def = this.defs.residentById.get(r.id)!;
-    const coat = this.env.coats && r.level === 0 && !r.away && (r.x > this.defs.layout.buildingX1 - 6 || r.path.length > 0 || r.action?.data.out === true);
+    // куртка — только если оделся в прихожей (и до тех пор, пока не снял её дома)
+    const coat = this.env.coats && !!r.dressed;
     // иногда надевает другое (рубашку с галстуком вместо толстовки) — на весь день
     const vi = outfitOfDay(def, r.today.day);
     const app = vi < 0 ? def.appearance : withOutfitVariant(def.appearance, vi);
@@ -840,7 +870,16 @@ export class Renderer {
       // идут вдвоём — рядом, а не друг в друге
       if (moving && r.action?.id === 'together' && r.action.data.kind === 'walk' && !r.action.data.lead) dx -= 6 * r.facing;
       const sx = ix + dx;
-      const sheet = this.sheet(r);
+      let sheet = this.sheet(r);
+      // в душе: за матовым стеклом только силуэт, одежда сложена рядом, идёт пар
+      const showerF = this.showerOf(r);
+      if (showerF) {
+        sheet = this.sprites.get(`resident:${r.id}:shower`, () => generateCharacterSheet(showerLook(def.appearance))) as HTMLCanvasElement;
+        const k = Math.floor((nowMs + hashString(r.id)) / 1400) % 4;
+        frame = k === 1 ? FRAME.frontWave : k === 3 ? FRAME.backStand : FRAME.frontStand;
+        pose = { frame };
+        this.drawShowerExtras(def, showerF, nowMs);
+      }
       const facing = pose?.facing ?? r.facing;
       let flip = frame === FRAME.lie ? r.facing < 0 : facing < 0 && !PROP_FRONT.has(frame);
       if (pose?.turn) flip = !flip;
@@ -851,8 +890,16 @@ export class Renderer {
         g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, 0, 0, CELL_W, CELL_H);
       } else g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, sx - CELL_W / 2, top, CELL_W, CELL_H);
       g.restore();
+      // запотевшее стекло душевой: силуэт едва угадывается
+      if (showerF) {
+        g.globalAlpha = 0.5;
+        rect(g, showerF.x + 1, showerF.y - showerF.h + 1, showerF.w - 2, showerF.h - 3, '#e6f0f4');
+        g.globalAlpha = 0.35;
+        for (let i = 0; i < 6; i++) rect(g, showerF.x + 1 + ((i * 5 + Math.floor(nowMs / 700)) % (showerF.w - 3)), showerF.y - showerF.h + 3 + i * 5, 2, 3, '#ffffff');
+        g.globalAlpha = 1;
+      }
       // моргнул
-      if (pose?.blink && !def.sprite) {
+      if (pose?.blink && !def.sprite && !showerF) {
         for (const [ex, ey] of eyesOf(def.appearance, frame)) {
           const x = flip ? sx + CELL_W / 2 - 1 - ex : sx - CELL_W / 2 + ex;
           rect(g, x, top + ey, 1, 1, def.appearance.skin);
@@ -1122,4 +1169,13 @@ function drawGuitarOnStand(g: CanvasRenderingContext2D, x: number, floorY: numbe
   rect(g, x + 1, floorY - 8, 1, 1, '#f3f1ea');
   rect(g, x + 1, floorY - 17, 1, 8, '#3a2a1a');
   rect(g, x, floorY - 18, 3, 1, '#2a2a30');
+}
+
+/** Как человек выглядит в душе сквозь матовое стекло: силуэт без одежды и очков */
+function showerLook(app: ResidentDef['appearance']): ResidentDef['appearance'] {
+  return {
+    ...app,
+    outfit: { ...app.outfit, top: app.skin, bottom: shade(app.skin, -0.06), shoes: app.skin, style: 'casual', pattern: 'plain', coat: undefined, variants: [] },
+    accessories: [],
+  };
 }

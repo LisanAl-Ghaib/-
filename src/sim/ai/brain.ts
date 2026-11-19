@@ -114,6 +114,8 @@ export function updateAgent(ctx: AgentCtx, dt: number): void {
   }
 
   if (a.phase === 'travel') {
+    // остановился по дороге: одевается в прихожей, машет на прощание
+    if (Number(a.data.pauseUntil ?? 0) > now) return;
     const done = advanceMovement(sim, r, dt);
     if (done) {
       if (!arrive(ctx, a, def)) endAction(ctx, true);

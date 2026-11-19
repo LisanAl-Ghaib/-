@@ -157,7 +157,50 @@ export function drawProp(
     case 'guitar':
       rect(g, x - 2, y - 1, 5, 4, '#b8742e');
       rect(g, x - 1, y, 1, 1, '#3a2010');
-      for (let i = 0; i < 5; i++) rect(g, x + (3 + i) * d, y - i * 0.5 - 1, 1, 1, '#3a2010');
+      for (let i = 0; i < 5; i++) rect(g, x + (3 + i) * d, y - 1 - Math.floor(i / 2), 1, 1, '#3a2010');
+      break;
+    case 'eguitar':
+      drawEGuitar(g, app, frame, ix, top, flip, nowMs, seed, at);
       break;
   }
+}
+
+/**
+ * Электрогитара в руках: корпус у бедра, гриф по диагонали к плечу,
+ * правая рука бьёт по струнам, левая — на грифе. Все координаты целые.
+ */
+function drawEGuitar(g: CanvasRenderingContext2D, app: ResidentDef['appearance'], frame: number, ix: number, top: number, flip: boolean, nowMs: number, seed: number, at: PropAt) {
+  const { H, torsoLen } = figureOf(app);
+  const x0 = ix - CELL_W / 2;
+  const ty = top + CELL_H - H + 6; // верх торса
+  const by = ty + torsoLen - 3; // корпус гитары — у бедра
+  const BODY = '#7a1f2b';
+  const NECK = '#3a2a1a';
+  const strum = Math.floor(nowMs / 140 + seed) % 2;
+  if (FRONT_FRAMES.has(frame)) {
+    // анфас: корпус слева (правая рука играющего), гриф уходит вверх-вправо
+    const bx = x0 + C - 4;
+    rect(g, bx, by, 4, 3, BODY);
+    rect(g, bx - 1, by + 1, 1, 2, BODY);
+    rect(g, bx + 1, by + 1, 2, 1, '#f3f1ea'); // накладка
+    rect(g, bx + 2, by + 2, 1, 1, '#c8c8c8'); // звукосниматель
+    const steps = Math.max(3, torsoLen - 2);
+    for (let i = 0; i < steps; i++) rect(g, bx + 4 + i, by - 1 - i, 1, 1, NECK);
+    rect(g, bx + 4 + steps, by - 2 - steps, 2, 1, '#2a2a30'); // голова грифа
+    // правая рука бьёт по струнам, левая — на ладу
+    rect(g, bx + 2, by - 1 + strum, 1, 1, app.skin);
+    const fret = at === 'up' ? steps - 1 : Math.floor(steps / 2) + (Math.floor(nowMs / 900 + seed) % 2);
+    rect(g, bx + 4 + fret, by - 1 - fret + 1, 1, 1, app.skin);
+    // шнур к комбику
+    rect(g, bx - 1, by + 3, 1, Math.max(1, top + CELL_H - by - 3), '#1e1e22');
+    return;
+  }
+  // сбоку: корпус перед бедром, гриф вперёд-вверх
+  const d = flip ? -1 : 1;
+  const bx = flip ? x0 + CELL_W - 1 - (C + 1) - 3 : x0 + C + 1;
+  rect(g, bx, by, 4, 3, BODY);
+  rect(g, bx + (flip ? 0 : 1), by + 1, 2, 1, '#f3f1ea');
+  const nx = flip ? bx - 1 : bx + 4;
+  for (let i = 0; i < 4; i++) rect(g, nx + i * d, by - i, 1, 1, NECK);
+  rect(g, bx + 1, by - 1 + strum, 1, 1, app.skin);
 }

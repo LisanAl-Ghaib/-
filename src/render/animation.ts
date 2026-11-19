@@ -16,7 +16,7 @@ import { FRAME } from './sprites/character';
  */
 export type PropKind =
   | 'phone' | 'cup' | 'book' | 'remote' | 'fork' | 'pen' | 'knitting' | 'guitar'
-  | 'spoon' | 'rag' | 'can' | 'sponge' | 'paper' | 'hoop' | 'laptop' | 'headset';
+  | 'spoon' | 'rag' | 'can' | 'sponge' | 'paper' | 'hoop' | 'laptop' | 'headset' | 'eguitar';
 
 export type PropAt = 'hands' | 'ear' | 'mouth' | 'fwd' | 'up' | 'low';
 
@@ -211,12 +211,9 @@ const STAND: Record<string, Variant[]> = {
   feed_pets: [{ g: 'work', o: 'side', alt: { g: 'workUp', ms: 500 } }],
   phone: [{ g: 'phoneStand', o: 'front', prop: { kind: 'phone', at: 'ear' } }, { g: 'phoneStand', o: 'side', prop: { kind: 'phone', at: 'ear' } }],
   window: [{ g: 'stand', o: 'back' }, { g: 'stand', o: 'back' }, { g: 'stand', o: 'front' }],
+  wave_window: [{ g: 'stand', o: 'side' }, { g: 'stand', o: 'side' }],
   look: [{ g: 'stand', o: 'back' }],
   idle: [{ g: 'stand', o: 'front' }, { g: 'stand', o: 'side' }, { g: 'stand', o: 'back' }],
-  music: [
-    { g: 'work', o: 'side', prop: { kind: 'guitar', at: 'hands' }, alt: { g: 'workUp', ms: 300 } },
-    { g: 'work', o: 'front', prop: { kind: 'guitar', at: 'hands' }, alt: { g: 'stand', ms: 450 } },
-  ],
   'together:help_cook': [
     { g: 'work', o: 'back', alt: { g: 'workUp', ms: 420 } },
     { g: 'stand', o: 'side', prop: CUP },
@@ -257,6 +254,8 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
       if (gest.kind === 'wave') return { frame: k ? FRAME.sitArmUp : FRAME.sitArm, facing: toward };
       return { frame: k ? FRAME.sitLean : FRAME.sit, bob: k, facing: toward };
     }
+    // из окна во двор — боком к нам, рукой в окно
+    if (gest.kind === 'wave' && gest.side) return { frame: k ? FRAME.workUp : FRAME.work, facing: toward };
     if (gest.kind === 'wave') return { frame: k ? FRAME.frontWave : FRAME.frontStand };
     return { frame: FRAME.stand, bob: k, facing: toward };
   }
@@ -298,11 +297,26 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
   }
 
   // стоит
+  // в прихожей: надевает куртку, обувается (или раздевается, вернувшись)
+  if (a?.phase === 'travel' && a.data.dressing && Number(a.data.pauseUntil ?? 0) > tGame) {
+    const left = Number(a.data.pauseUntil) - tGame;
+    const k = Math.floor(nowMs / 380) % 3;
+    if (left < 25) return { frame: FRAME.frontStand, blink }; // готов — поправил воротник
+    if (a.data.dressing === 'on' && left > 60) return { frame: k === 2 ? FRAME.work : FRAME.workUp, facing: r.facing }; // снимает куртку с вешалки
+    return { frame: k === 0 ? FRAME.frontWave : k === 1 ? FRAME.standHandUp : FRAME.frontStand, bob: k === 2 ? 1 : 0 }; // руки в рукава, нагнулся завязать шнурки
+  }
   if (r.path.length > 0) return { frame: FRAME.stand };
   if (talking) {
     const g: Gesture = Math.floor(nowMs / 700 + h) % 3 === 0 ? 'talk' : 'stand';
     const o: Orient = micro === 0 ? 'side' : 'front';
     return { frame: STAND_FRAMES[o][g]!, facing: faceTo, blink };
+  }
+  if (id === 'music') {
+    // электрогитара: стоит лицом к нам, гитара поперёк корпуса, качает головой в такт;
+    // иногда замирает, подкручивает колок, поворачивается к комбику
+    const beat = Math.floor((nowMs + h) / 420) % 2;
+    if (micro === 0 && env.faceToX === undefined) return { frame: FRAME.stand, prop: { kind: 'eguitar', at: 'low' }, facing: 1 };
+    return { frame: FRAME.frontStand, prop: { kind: 'eguitar', at: micro === 1 ? 'up' : 'hands' }, bob: micro === 2 ? 0 : beat, blink };
   }
   if (id === 'fitness' && env.pullup) {
     // подтягивания
