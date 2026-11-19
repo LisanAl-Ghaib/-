@@ -217,6 +217,21 @@ export class TemplateNarrator implements Narrator {
           `${n(a)} ${v(A, 'устроил', 'устроила')} на кухне эксперимент — по запаху, ${s(d.dish)}.`,
           `С кухни ${n(a, 'gen')} тянет незнакомыми специями: похоже, ${s(d.dish)}.`,
         ]);
+      case 'renovation.done':
+        return `Мастера закончили ремонт в квартире на ${ordFloor(Number(d.floor))} этаже: вынесли мусор, сняли плёнку с окон. Квартира стоит пустая и пахнет свежей краской — ждёт хозяев.`;
+      case 'construction':
+        switch (d.stage) {
+          case 'start':
+            return `Над домом начали строить ${ordFloor(Number(d.floor), 'acc')} этаж: на крышу подняли кран, во двор привезли кирпич и цемент.`;
+          case 'walls':
+            return `На ${ordFloor(Number(d.floor))} этаже поднялись стены: мастера кладут кирпич, во дворе с утра гудит бетономешалка.`;
+          case 'roof':
+            return `${ordFloor(Number(d.floor), 'nom', true)} этаж накрыли перекрытием и сделали новую крышу — кран сняли.`;
+          case 'windows':
+            return `На ${ordFloor(Number(d.floor))} этаже вставили окна, внутри штукатурят и тянут проводку.`;
+          default:
+            return `${ordFloor(Number(d.floor), 'nom', true)} этаж достроен: две пустые квартиры ждут жильцов. Мастера собрали инструменты и ушли.`;
+        }
       case 'farewell.window':
         return pick([
           `${n(a)} ${v(A, 'вышел', 'вышла')} из подъезда, ${v(A, 'обернулся', 'обернулась')} и ${v(A, 'помахал', 'помахала')} наверх — из окна над входом ${v(A, 'ему', 'ей')} махал${v(B, '', 'а')} ${n(b)}.`,
@@ -296,4 +311,15 @@ function relWord(kind: string, gender: string): string {
     case 'colleague': return 'коллега';
     default: return f ? 'родственница' : 'родственник';
   }
+}
+
+/** «третьем», «третий» — порядковое числительное для этажа */
+function ordFloor(n: number, c: 'pre' | 'acc' | 'nom' = 'pre', cap = false): string {
+  const W: Record<number, [string, string]> = {
+    1: ['первом', 'первый'], 2: ['втором', 'второй'], 3: ['третьем', 'третий'], 4: ['четвёртом', 'четвёртый'], 5: ['пятом', 'пятый'],
+    6: ['шестом', 'шестой'], 7: ['седьмом', 'седьмой'], 8: ['восьмом', 'восьмой'], 9: ['девятом', 'девятый'], 10: ['десятом', 'десятый'],
+  };
+  const w = W[n] ?? [`${n}-м`, `${n}-й`];
+  const s = c === 'pre' ? w[0] : w[1];
+  return cap ? s[0].toUpperCase() + s.slice(1) : s;
 }

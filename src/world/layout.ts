@@ -98,6 +98,8 @@ export class BuildingLayout {
   /** всего уровней = этажей в доме */
   readonly levels: number;
   readonly aptW: number;
+  /** уровень, который строится (null — стройки нет) */
+  readonly constructionLevel: number | null;
   readonly buildingX0: number;
   readonly buildingX1: number;
   readonly coreX: number;
@@ -125,7 +127,8 @@ export class BuildingLayout {
 
   constructor(cfg: WorldConfig, aptDefs: ApartmentDef[], catalog: Map<string, FurnitureDef>) {
     // дом растёт вместе с жильцами
-    const maxFloor = Math.max(cfg.building.minFloors, ...aptDefs.map((a) => a.floor));
+    const maxFloor = Math.max(cfg.building.minFloors, cfg.building.construction?.floor ?? 0, ...aptDefs.map((a) => a.floor));
+    this.constructionLevel = cfg.building.construction ? cfg.building.construction.floor - 1 : null;
     this.levels = maxFloor;
     this.floors = maxFloor - 1;
     this.aptW = cfg.building.apartmentWidthTiles * TILE;

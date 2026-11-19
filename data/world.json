@@ -4,6 +4,10 @@
   "address": "ул. Тополиная, 7",
   "building": {
     "minFloors": 2,
-    "apartmentWidthTiles": 16
+    "apartmentWidthTiles": 16,
+    "construction": {
+      "floor": 3,
+      "workdays": 30
+    }
   }
 }

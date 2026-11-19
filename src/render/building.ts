@@ -34,7 +34,13 @@ export function apartmentPalette(apt: ApartmentModel): Palette {
   return apt.def?.palette ?? VACANT_PALETTE;
 }
 
-export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry): BuildingLayers {
+/** Стройка этажа для отрисовки: уровень и готовность 0..1 (null — стройки нет или закончена) */
+export interface ConstructionView {
+  level: number;
+  progress: number;
+}
+
+export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry, con: ConstructionView | null = null): BuildingLayers {
   const L = defs.layout;
   const back = makeCanvas(L.worldW, L.worldH);
   const front = makeCanvas(L.worldW, L.worldH);
@@ -44,8 +50,10 @@ export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry): Buildi
   const bx1 = L.buildingX1;
   const topY = L.levelTop(L.floors);
 
-  // ── крыша
+  // ── крыша (на стройке её поднимают наверх, когда новый этаж накрыт перекрытием)
   const roofTop = L.roofY;
+  const roofOn = !con || con.progress >= 0.5;
+  if (roofOn) {
   rect(g, bx0 - 2, roofTop + 6, bx1 - bx0 + 4, ROOF_H - 6, CONCRETE);
   rect(g, bx0 - 2, roofTop + 6, bx1 - bx0 + 4, 1, shade(CONCRETE, 0.2));
   rect(g, bx0 - 2, roofTop + 2, 3, 5, CONCRETE); // парапет
@@ -62,12 +70,15 @@ export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry): Buildi
   rect(g, bx1 - 71, roofTop - 5, 12, 2, CONCRETE);
   rect(g, bx1 - 30, roofTop - 18, 1, 24, '#55555c');
   rect(g, bx1 - 33, roofTop - 16, 7, 1, '#55555c');
+  }
 
   // ── внешние стены (панели)
+  // (строящийся этаж — без готовых панелей: там своя кладка)
+  const wallTop = con ? L.levelTop(con.level - 1) : topY;
   for (const wx of [bx0, bx1 - OUTER_WALL]) {
-    rect(g, wx, topY, OUTER_WALL, L.groundY - topY + SLAB, PANEL);
-    for (let l = 0; l <= L.floors; l++) rect(g, wx, L.levelTop(l), OUTER_WALL, 1, PANEL_DARK);
-    rect(g, wx + (wx === bx0 ? 0 : OUTER_WALL - 1), topY, 1, L.groundY - topY + SLAB, PANEL_DARK);
+    rect(g, wx, wallTop, OUTER_WALL, L.groundY - wallTop + SLAB, PANEL);
+    for (let l = 0; l <= L.floors; l++) if (!con || l !== con.level) rect(g, wx, L.levelTop(l), OUTER_WALL, 1, PANEL_DARK);
+    rect(g, wx + (wx === bx0 ? 0 : OUTER_WALL - 1), wallTop, 1, L.groundY - wallTop + SLAB, PANEL_DARK);
   }
 
   // ── уровни
@@ -77,13 +88,15 @@ export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry): Buildi
     // перекрытие
     rect(g, bx0, fy, bx1 - bx0, SLAB, CONCRETE);
     rect(g, bx0, fy + SLAB - 1, bx1 - bx0, 1, shade(CONCRETE, -0.2));
-    drawCore(g, defs, level, lt, fy);
+    if (con && level === con.level) drawConstruction(g, defs, level, con.progress);
+    else drawCore(g, defs, level, lt, fy);
     if (level === 0) drawGroundFloor(g, defs, lt, fy);
   }
   // лестничные марши поверх стен ядра
   drawStairs(g, defs);
 
-  for (const apt of L.apartments) drawApartment(g, gf, defs, apt, sprites);
+  for (const apt of L.apartments) if (!con || apt.level !== con.level) drawApartment(g, gf, defs, apt, sprites);
+  if (con) drawScaffolding(gf, defs, con.level, con.progress);
 
   // фундамент
   const baseY = L.groundY + SLAB;
@@ -751,4 +764,212 @@ export function drawEntrance(g: CanvasRenderingContext2D, defs: WorldDefs, open:
   rect(g, x + 3, fy - 33, 2, 1, '#ffe6a0');
   // ступенька
   rect(g, x, fy - 1, 16, 1, '#a39b8e');
+}
+
+// ───────────────────────────── стройка нового этажа
+
+const BRICK = '#a85a4a';
+const BRICK_D = '#94503f';
+const MORTAR = '#c8b8a0';
+const CONC = '#a8a49c';
+
+/** Окна будущих квартир: три проёма на каждую сторону */
+export function constructionWindows(defs: WorldDefs, level: number): [number, number, number, number][] {
+  const L = defs.layout;
+  const lt = L.levelTop(level);
+  const out: [number, number, number, number][] = [];
+  for (const ax of [L.buildingX0 + OUTER_WALL, L.coreX + CORE_W]) for (const dx of [36, 117, 198]) out.push([ax + dx, lt + 11, 22, 25]);
+  return out;
+}
+
+/**
+ * Этаж в работе. По готовности p:
+ *  0–0.15 — колонны растут, торчит арматура, на перекрытии поддоны с кирпичом;
+ *  0.15–0.45 — кирпичные стены поднимаются, оставляя проёмы окон;
+ *  ≥0.5 — сверху перекрытие и крыша (её рисует renderBuilding);
+ *  ≥0.6 — перегородки будущих квартир; ≥0.72 — окна в плёнке, штукатурка слева направо;
+ *  ≥0.85 — лампочки на проводах.
+ */
+function drawConstruction(g: CanvasRenderingContext2D, defs: WorldDefs, level: number, p: number) {
+  const L = defs.layout;
+  const lt = L.levelTop(level);
+  const fy = L.floorY(level);
+  const h = fy - lt;
+  const bx0 = L.buildingX0;
+  const bx1 = L.buildingX1;
+  const rng = Rng.fromSeed(`build${level}`);
+  const clamp = (x: number) => Math.max(0, Math.min(1, x));
+  const wins = constructionWindows(defs, level);
+  const inWin = (x: number, y: number) => wins.some(([wx, wy, ww, wh]) => x >= wx && x < wx + ww && y >= wy && y < wy + wh);
+
+  // кирпичные стены (задняя стена разреза) — растут снизу вверх
+  const hw = Math.round(clamp((p - 0.15) / 0.3) * h);
+  const spans: [number, number][] = [[bx0 + OUTER_WALL, L.coreX], [L.coreX + CORE_W, bx1 - OUTER_WALL]];
+  if (hw > 0) {
+    for (const [x0, x1] of spans) {
+      for (let y = fy - hw; y < fy; y++) {
+        const row = Math.floor((fy - y) / 3);
+        if ((fy - y) % 3 === 0) {
+          for (let x = x0; x < x1; x++) if (!inWin(x, y)) rect(g, x, y, 1, 1, MORTAR);
+          continue;
+        }
+        const off = row % 2 ? 4 : 0;
+        let x = x0;
+        while (x < x1) {
+          const end = Math.min(x1, x + 8 - ((x - x0 + off) % 8));
+          if (!inWin(x, y)) rect(g, x, y, end - x, 1, (Math.floor((x - x0 + off) / 8) + row) % 5 === 0 ? BRICK_D : BRICK);
+          if (!inWin(end - 1, y) && end < x1) rect(g, end - 1, y, 1, 1, MORTAR);
+          x = end;
+        }
+      }
+      // неровный верх кладки, пока стена растёт
+      if (hw < h) for (let x = x0; x < x1; x += 8) if (rng.chance(0.5)) rect(g, x, fy - hw - 2, 7, 2, BRICK);
+    }
+    // стены лестничной клетки — бетонные блоки
+    rect(g, L.coreX, fy - hw, CORE_W, hw, '#9a9690');
+    for (let y = fy - 6; y > fy - hw; y -= 6) rect(g, L.coreX, y, CORE_W, 1, '#8a8680');
+  }
+  // шахта лифта — бетон с первого дня
+  rect(g, L.elevator.x0 - 1, lt, L.elevator.x1 - L.elevator.x0 + 2, h, '#4a4a52');
+  rect(g, L.elevator.x0, lt, L.elevator.x1 - L.elevator.x0, h, '#2f3036');
+  rect(g, L.elevator.x0 - 2, fy - 26, L.elevator.x1 - L.elevator.x0 + 4, 2, '#7a7b84');
+  if (p < 0.72) {
+    // проём без дверей, заграждён лентой
+    for (let x = L.elevator.x0; x < L.elevator.x1; x += 2) rect(g, x, fy - 12, 1, 1, (x / 2) % 2 ? '#e8c040' : '#c8402e');
+  }
+
+  // колонны: растут в первые дни, сверху торчит арматура
+  const hc = Math.round(clamp(p / 0.15) * h);
+  const cols = [bx0, L.coreX - 3, L.coreX + CORE_W, bx1 - OUTER_WALL, bx0 + OUTER_WALL + Math.round(L.aptW / 2) - 2, L.coreX + CORE_W + Math.round(L.aptW / 2) - 2];
+  for (const cx of cols) {
+    const w = cx === bx0 || cx === bx1 - OUTER_WALL ? OUTER_WALL : 4;
+    rect(g, cx, fy - hc, w, hc, CONC);
+    rect(g, cx, fy - hc, 1, hc, shade(CONC, 0.12));
+    if (p < 0.5) for (let i = 0; i < w; i += 2) rect(g, cx + i, fy - hc - 4, 1, 4, '#5a4a3e');
+  }
+
+  // перекрытие сверху — когда этаж накрыли
+  if (p >= 0.5) {
+    rect(g, bx0, lt, bx1 - bx0, 3, CONC);
+    rect(g, bx0, lt + 3, bx1 - bx0, 1, shade(CONC, -0.2));
+  }
+
+  // перегородки будущих квартир (гипсокартон)
+  if (p >= 0.6) {
+    const ph = Math.round(clamp((p - 0.6) / 0.12) * (h - 26));
+    for (const ax of [bx0 + OUTER_WALL, L.coreX + CORE_W]) {
+      for (const dx of [96, 176]) {
+        rect(g, ax + dx, lt + (h - 26) - ph + (p >= 0.5 ? 4 : 0), 2, ph, '#d8d4cc');
+        rect(g, ax + dx, fy - 26, 2, 1, '#b8b4ac');
+      }
+    }
+  }
+
+  // штукатурка: слева направо по мере готовности
+  if (p >= 0.72) {
+    const f = clamp((p - 0.72) / 0.28);
+    for (const [x0, x1] of spans) {
+      const xe = Math.round(x0 + (x1 - x0) * f);
+      for (let x = x0; x < xe; x++)
+        for (let y = lt + 4; y < fy; y += 1) {
+          if (inWin(x, y)) continue;
+          // длинными вертикальными полосами — быстрее, чем по пикселю
+          let y2 = y;
+          while (y2 < fy && !inWin(x, y2)) y2++;
+          rect(g, x, y, 1, y2 - y, (x + Math.floor(y / 7)) % 9 === 0 ? '#c8c4bc' : '#d6d2ca');
+          y = y2;
+        }
+    }
+  }
+
+  // окна: с крышей — проёмы, потом рамы в защитной плёнке
+  for (const [wx, wy, ww, wh] of wins) {
+    if (hw < fy - wy) continue; // стена ещё не дошла
+    if (p >= 0.72) {
+      rect(g, wx - 1, wy - 1, ww + 2, wh + 2, '#efece4');
+      g.clearRect(wx, wy, ww, wh);
+      g.fillStyle = 'rgba(220,232,236,0.55)';
+      g.fillRect(wx, wy, ww, wh);
+      rect(g, wx + Math.floor(ww / 2), wy, 1, wh, '#efece4');
+      for (let i = 0; i < ww; i++) rect(g, wx + i, wy + Math.round((i * wh) / ww), 1, 1, 'rgba(230,210,150,0.8)'); // малярный скотч
+      rect(g, wx - 2, wy + wh + 1, ww + 4, 2, '#d8d4cc');
+    } else {
+      // голый проём с перемычкой
+      rect(g, wx - 2, wy - 3, ww + 4, 3, CONC);
+    }
+  }
+
+  // лампочки на проводах
+  if (p >= 0.85) for (const [wx] of wins) {
+    rect(g, wx + 11, lt + 4, 1, 6, '#333');
+    rect(g, wx + 10, lt + 10, 3, 3, '#f4ecd0');
+  }
+
+  // пол: стяжка, мусор, материалы
+  rect(g, bx0 + OUTER_WALL, fy - 1, bx1 - bx0 - 2 * OUTER_WALL, 1, p >= 0.6 ? '#b8b2a6' : '#8e8a82');
+  const left = bx0 + OUTER_WALL;
+  const right = L.coreX + CORE_W;
+  if (p < 0.6) {
+    // поддоны с кирпичом убывают по мере кладки
+    const stack = Math.max(1, Math.round((1 - clamp(p / 0.5)) * 4));
+    for (const px0 of [left + 8, right + L.aptW - 34]) {
+      rect(g, px0, fy - 2, 18, 2, '#8a6a4a');
+      for (let i = 0; i < stack; i++) {
+        rect(g, px0 + 1, fy - 5 - i * 3, 16, 3, BRICK);
+        rect(g, px0 + 1, fy - 5 - i * 3, 16, 1, MORTAR);
+      }
+    }
+    // мешки с цементом и корыто с раствором
+    for (let i = 0; i < 3; i++) rect(g, L.coreX - 30 + i * 7, fy - 5, 6, 4, '#c8c2b0');
+    rect(g, right + 20, fy - 4, 16, 3, '#5a5650');
+    rect(g, right + 21, fy - 4, 14, 1, '#9a948a');
+    // тачка
+    rect(g, right + 60, fy - 6, 10, 4, '#3f6f8a');
+    rect(g, right + 70, fy - 4, 6, 1, '#555');
+    rect(g, right + 63, fy - 2, 2, 2, '#222');
+  } else {
+    // вёдра со штукатуркой, моток кабеля, стремянка
+    rect(g, left + 30, fy - 6, 5, 5, '#e8e4dc');
+    rect(g, left + 37, fy - 6, 5, 5, '#e8e4dc');
+    rect(g, right + 40, fy - 4, 6, 3, '#c8402e');
+    for (let i = 0; i < 12; i++) rect(g, right + 120 + Math.round(i / 2), fy - 1 - i, 1, 1, '#9a7a5a');
+    for (let i = 0; i < 12; i++) rect(g, right + 128 - Math.round(i / 2), fy - 1 - i, 1, 1, '#9a7a5a');
+  }
+  // строительный мусор
+  for (let i = 0; i < 14; i++) rect(g, bx0 + 8 + rng.int(0, bx1 - bx0 - 16), fy - 1, rng.int(1, 3), 1, rng.pick(['#a89a88', '#8a7a6a', BRICK, '#c8c2b0']));
+}
+
+/** Строительные леса снаружи и кран на перекрытии (слой «перед»: леса закрывают стену) */
+function drawScaffolding(g: CanvasRenderingContext2D, defs: WorldDefs, level: number, p: number) {
+  const L = defs.layout;
+  const lt = L.levelTop(level);
+  const fy = L.floorY(level);
+  if (p < 0.85) {
+    for (const [x0, dir] of [[L.buildingX0 - 12, 1], [L.buildingX1 + 2, 1]] as const) {
+      void dir;
+      for (const x of [x0, x0 + 9]) rect(g, x, lt - 4, 1, fy - lt + 4 + 2, '#7a7b84');
+      for (let y = fy; y > lt - 4; y -= 16) {
+        rect(g, x0, y, 10, 2, '#b8956a'); // настил
+        rect(g, x0, y - 8, 10, 1, '#7a7b84'); // перекладина
+      }
+      // сетка
+      g.fillStyle = 'rgba(60,140,90,0.18)';
+      g.fillRect(x0, lt - 4, 10, fy - lt + 4);
+    }
+  }
+  // кран: стоит на перекрытии, пока этаж не накрыт
+  if (p < 0.5) {
+    const mx = L.buildingX0 + 70;
+    const top = lt - 34;
+    for (let y = top; y < fy; y += 4) {
+      rect(g, mx, y, 1, 4, '#e8b040');
+      rect(g, mx + 4, y, 1, 4, '#e8b040');
+      rect(g, mx + 1, y + 1, 3, 1, '#c8902a');
+    }
+    rect(g, mx - 22, top - 2, 110, 2, '#e8b040'); // стрела
+    for (let x = mx - 22; x < mx + 88; x += 4) rect(g, x, top, 1, 2, '#c8902a');
+    rect(g, mx - 22, top, 12, 6, '#7a7b84'); // противовес
+    rect(g, mx - 2, top - 8, 8, 6, '#3a3a42'); // кабина
+    rect(g, mx - 1, top - 7, 3, 2, '#9ccbe0');
+  }
 }

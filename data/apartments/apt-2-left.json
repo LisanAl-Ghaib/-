@@ -2,32 +2,18 @@
   "id": "apt-2-left",
   "floor": 2,
   "side": "left",
-  "renovation": true,
   "style": "minimal",
-  "description": "Квартиру купили новые хозяева и затеяли ремонт: старые обои с вензелями сдирают, стены выравнивают и красят в серо-голубой. Днём здесь работают мастера, по вечерам пахнет краской на весь этаж.",
-  "palette": { "wall": "#b8b88a", "floor": "#8a8580", "wood": "#9a7a5a", "textile": "#7a5a4a", "accent": "#8fb0c8", "metal": "#b8bec4" },
-  "wallpaper": "damask",
-  "flooring": "concrete",
+  "description": "Ремонт закончен: стены выровнены и выкрашены в серо-голубой, новый паркет, поставлена сантехника. Мебели пока нет — квартира пустая и ждёт новых хозяев.",
+  "palette": { "wall": "#a9b8c4", "floor": "#b08a62", "wood": "#9a7a5a", "textile": "#7a8a9a", "accent": "#8fb0c8", "metal": "#b8bec4" },
+  "wallpaper": "plain",
+  "flooring": "parquet",
   "rooms": [
-    { "type": "bedroom", "width": 5, "furniture": [
-      { "item": "drop_cloth", "x": 16 },
-      { "item": "boxes", "x": 4 },
-      { "item": "ladder", "x": 40 },
-      { "item": "paint_cans", "x": 56 }
+    { "type": "bedroom", "name": "спальня", "width": 5, "furniture": [] },
+    { "type": "living", "name": "комната", "width": 5, "furniture": [] },
+    { "type": "kitchen", "name": "кухня", "width": 3, "furniture": [] },
+    { "type": "bathroom", "name": "санузел", "width": 1, "window": false, "wallpaper": "tiles", "wall": "#c8d8e0", "furniture": [
+      { "item": "toilet", "x": 3 }
     ] },
-    { "type": "living", "width": 6, "furniture": [
-      { "item": "covered_sofa", "x": 4 },
-      { "item": "wallpaper_rolls", "x": 40 },
-      { "item": "sawhorse", "x": 52 },
-      { "item": "work_lamp", "x": 82 }
-    ] },
-    { "type": "kitchen", "width": 3, "furniture": [
-      { "item": "cement_bags", "x": 3 },
-      { "item": "bucket", "x": 30 },
-      { "item": "toolbox", "x": 34 }
-    ] },
-    { "type": "hall", "width": 2, "furniture": [
-      { "item": "boxes", "x": 8 }
-    ] }
+    { "type": "hall", "name": "прихожая", "width": 2, "window": false, "furniture": [] }
   ]
 }

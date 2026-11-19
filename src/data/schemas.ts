@@ -15,6 +15,14 @@ export const WorldConfigSchema = z.object({
       /** дом растёт с жильцами: этажей = max(minFloors, самый высокий описанный этаж) */
       minFloors: z.number().int().min(2).max(16).default(2),
       apartmentWidthTiles: z.number().int().min(8).max(24).default(16),
+      /** строящийся этаж: мастера возводят его рабочими днями; когда готов — две пустые квартиры */
+      construction: z
+        .object({
+          floor: z.number().int().min(2).max(16),
+          /** сколько рабочих дней бригады займёт стройка */
+          workdays: z.number().int().min(3).max(200).default(30),
+        })
+        .optional(),
     })
     .default({ minFloors: 2, apartmentWidthTiles: 16 }),
 });

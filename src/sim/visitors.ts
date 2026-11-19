@@ -1,4 +1,5 @@
 import { WALK_SPEED } from '../config';
+import { callElevator, elevatorAt, elevatorDoorsOpen } from '../world/elevator';
 import { planPath } from '../world/navigation';
 import { endAction, startAction } from './ai/brain';
 import { chronicle } from './chronicle/chronicle';
@@ -7,6 +8,7 @@ import type { Step } from '../world/navigation';
 import type { VisitorState } from './state';
 
 export interface Walker {
+  id: string;
   x: number;
   y: number;
   level: number;
@@ -65,6 +67,36 @@ export function walk(sim: Simulation, v: Walker, dt: number): boolean {
       v.away = true;
       v.path.shift();
       continue;
+    }
+    if (s.k === 'elevator') {
+      // лифт: вызвать, дождаться, войти, доехать
+      const e = sim.state.elevator;
+      const L = sim.defs.layout;
+      if (s.phase !== 'ride') {
+        s.phase = 'wait';
+        if (elevatorAt(e, s.from) && elevatorDoorsOpen(e) && e.riders.length < 4) {
+          s.phase = 'ride';
+          e.riders.push(v.id);
+          callElevator(e, s.to);
+        } else {
+          callElevator(e, s.from);
+          break;
+        }
+      }
+      const idx = Math.max(0, e.riders.indexOf(v.id));
+      v.x = L.elevator.doorX - 4 + (idx % 3) * 4;
+      v.y = e.y;
+      v.level = e.level;
+      if (elevatorAt(e, s.to) && elevatorDoorsOpen(e)) {
+        e.riders = e.riders.filter((id) => id !== v.id);
+        v.level = s.to;
+        v.y = L.floorY(s.to);
+        v.x = L.elevator.doorX;
+        v.path.shift();
+        continue;
+      }
+      callElevator(e, s.to);
+      break;
     }
     if (s.k !== 'walk') {
       v.path.shift();

@@ -27,7 +27,7 @@ import { warmth } from './social/social';
 import { addMoodlet } from './needs';
 import { petNotes, syncPets, updatePets } from './pets';
 import { scheduleVisits, updateVisitors } from './visitors';
-import { syncWorkers, updateWorkers } from './workers';
+import { syncConstruction, syncWorkers, updateWorkers } from './workers';
 import { joinCooking, planTogether, updateFarewells } from './couple';
 import { updateDressing } from './dressing';
 
@@ -80,6 +80,7 @@ export class Simulation {
       if (e.actionId === 'cook') joinCooking(this, e.residentId);
     });
     syncPets(this);
+    syncConstruction(this);
     syncWorkers(this);
   }
 
@@ -335,12 +336,20 @@ export class Simulation {
     return k;
   }
 
-  elevatorThreshold(def: ResidentDef, _r: ResidentState): number {
+  /** С какой разницы в этажах человек едет на лифте, а не идёт пешком */
+  elevatorThreshold(def: ResidentDef, r: ResidentState): number {
     const age = this.age(def);
-    if (age >= 65) return 1;
-    if (def.traits.activity === 'active') return 4;
-    if (def.traits.activity === 'lazy') return 2;
-    return 3;
+    const sick = !!(r.sick && r.sick.until > this.time);
+    if (age >= 65 || sick) return 1;
+    let t = def.traits.activity === 'active' ? 4 : def.traits.activity === 'lazy' ? 2 : 3;
+    // тяжёлые сумки, валится с ног, поздно ночью — поедет и на один этаж
+    if (r.carrying === 'bags') t -= 2;
+    if (r.needs.energy < 25) t -= 1;
+    const h = this.calendar().hourOfDay;
+    if (h >= 23 || h < 5) t -= 1;
+    // кто любит ходить пешком — по лестнице, пока здоров (разве что с полными сумками)
+    if (def.traits.tags.some((x) => /ходить пешком|пешком/i.test(x))) t = Math.max(t, r.carrying === 'bags' ? 2 : 4);
+    return Math.max(1, t);
   }
 
   // ── шаг мира

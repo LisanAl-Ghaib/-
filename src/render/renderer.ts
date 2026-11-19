@@ -7,7 +7,7 @@ import type { ResidentDef } from '../data/schemas';
 import type { ResidentState } from '../sim/state';
 import type { Simulation } from '../sim/simulation';
 import type { ApartmentModel } from '../world/layout';
-import { drawApartmentDoor, drawEntrance, renderBuilding, residentsBoardRect, windowRect, type BuildingLayers } from './building';
+import { drawApartmentDoor, drawEntrance, renderBuilding, residentsBoardRect, windowRect, type BuildingLayers, type ConstructionView } from './building';
 import { Camera } from './camera';
 import { DEFAULT_LOOK, drawGround, drawTrees, drawYardProps, makeTrees, type OutdoorLook, type TreeShape } from './outdoor';
 import { busPhase } from '../world/transport';
@@ -118,8 +118,18 @@ export class Renderer {
   }
 
   rebuildStatic(): void {
-    this.layers = renderBuilding(this.defs, this.sprites);
+    const con = this.conView();
+    this.conKey = con ? Math.floor(con.progress * 100) : -1;
+    this.layers = renderBuilding(this.defs, this.sprites, con);
   }
+
+  /** Стройка этажа сейчас (или null) */
+  private conView(): ConstructionView | null {
+    const c = this.sim.state.construction;
+    return c && !c.done ? { level: c.floor - 1, progress: c.progress } : null;
+  }
+
+  private conKey = -1;
 
   resize(): void {
     const dpr = window.devicePixelRatio || 1;
@@ -162,6 +172,9 @@ export class Renderer {
 
   render(nowMs: number, alpha: number, prev: Map<string, { x: number; y: number }>, opts: RenderOptions): void {
     if (!this.layers) return;
+    // стройка продвинулась на процент (или закончилась) — перерисовать дом
+    const con = this.conView();
+    if ((con ? Math.floor(con.progress * 100) : -1) !== this.conKey) this.rebuildStatic();
     const { wg, defs, sim } = this;
     const L = defs.layout;
     const cal = sim.calendar();
@@ -195,10 +208,12 @@ export class Renderer {
     // дом
     wg.drawImage(this.layers.back, 0, 0);
     this.drawDynamicFurniture(nowMs);
+    this.drawSite(nowMs);
     this.life.draw(wg);
-    this.life.drawWorkers(wg, nowMs);
     this.drawDoors();
     this.drawElevator();
+    // мастера — после кабины лифта: едут с цементом и их видно в кабине
+    this.life.drawWorkers(wg, nowMs);
     this.drawActors(alpha, prev, opts, nowMs);
     this.drawVisitors(nowMs);
     this.drawPets(nowMs);
@@ -330,7 +345,9 @@ export class Renderer {
   private drawDoors() {
     const L = this.defs.layout;
     const residents: { x: number; y: number; level: number; away: boolean }[] = [...Object.values(this.sim.state.residents), ...this.sim.state.visitors, ...this.sim.state.workers];
+    const conLevel = this.conView()?.level;
     for (const apt of L.apartments) {
+      if (apt.level === conLevel) continue; // на стройке дверей ещё нет
       const fy = L.floorY(apt.level);
       const open = residents.some((r) => !r.away && r.level === apt.level && Math.abs(r.x - apt.doorX) < 7 && Math.abs(r.y - fy) < 4);
       drawApartmentDoor(this.wg, apt, fy, open);
@@ -450,6 +467,30 @@ export class Renderer {
     rect(g, x + 35, y - 4, 6, 4, '#222');
     rect(g, x + 9, y - 3, 2, 2, '#888');
     rect(g, x + 37, y - 3, 2, 2, '#888');
+  }
+
+  /** Кран: тележка ездит по стреле, на тросе качается поддон с кирпичом */
+  private drawSite(nowMs: number) {
+    const con = this.conView();
+    if (!con || con.progress >= 0.5) return;
+    const L = this.defs.layout;
+    const g = this.wg;
+    const mx = L.buildingX0 + 70;
+    const top = L.levelTop(con.level) - 34;
+    const working = this.sim.state.workers.some((w) => w.phase === 'working' && !w.away);
+    const t = working ? this.sim.time / 600 : 0;
+    const tx = Math.round(mx + 30 + Math.sin(t) * 45);
+    const ropeLen = working ? 20 + Math.round((Math.sin(t * 1.7) + 1) * 14) : 12;
+    const sway = Math.round(Math.sin(nowMs / 700) * (working ? 1 : 0));
+    rect(g, tx - 2, top + 2, 5, 2, '#3a3a42');
+    rect(g, tx, top + 4, 1, ropeLen, '#2a2a30');
+    rect(g, tx - 1 + sway, top + 4 + ropeLen, 3, 2, '#3a3a42'); // крюк
+    if (working && Math.sin(t * 0.5) > -0.2) {
+      const ly = top + 6 + ropeLen;
+      rect(g, tx - 7 + sway, ly, 14, 2, '#8a6a4a');
+      rect(g, tx - 6 + sway, ly - 4, 12, 4, '#a85a4a');
+      rect(g, tx - 6 + sway, ly - 4, 12, 1, '#c8b8a0');
+    }
   }
 
   private drawElevator() {
@@ -1047,7 +1088,9 @@ export class Renderer {
       lg.fillRect(x, y, w, h);
     };
     const lit: [number, number, number, number][] = [];
+    const conLevel = this.conView()?.level;
     for (const apt of L.apartments) {
+      if (apt.level === conLevel) continue; // стройка — под открытым небом
       const lt = L.levelTop(apt.level);
       const fy = L.floorY(apt.level);
       for (const room of apt.rooms) {
@@ -1059,6 +1102,7 @@ export class Renderer {
     }
     // подъезд: лампы горят всю ночь (тускло)
     for (let level = 0; level <= L.floors; level++) {
+      if (level === conLevel) continue; // на стройке ламп подъезда ещё нет
       const lt = L.levelTop(level);
       const fy = L.floorY(level);
       region(L.coreX, lt, CORE_W, fy - lt + 2, 0.08 + overcastDim + (1 - day) * 0.32);

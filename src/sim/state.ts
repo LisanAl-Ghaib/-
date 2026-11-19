@@ -7,9 +7,9 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 /** версии сохранений, которые можно дополнить до текущей (недостающие поля заполнит Simulation) */
-export const MIGRATABLE_VERSIONS = [7, 8, 9];
+export const MIGRATABLE_VERSIONS = [7, 8, 9, 10];
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -198,10 +198,23 @@ export interface Gesture {
   side?: boolean;
 }
 
+/** Стройка нового этажа */
+export interface ConstructionState {
+  /** этаж по-человечески */
+  floor: number;
+  /** 0..1 — сколько сделано */
+  progress: number;
+  startedAt: number;
+  done: boolean;
+}
+
 /** Мастер, который делает ремонт: утром приходит с улицы, в обед уходит перекусить, вечером уходит */
 export interface WorkerState {
   id: string;
+  /** где работает: id квартиры на ремонте или `build-<этаж>` — стройка этажа */
   aptId: string;
+  /** несёт материалы (мешок цемента, кирпичи) — везёт на лифте */
+  carry?: boolean;
   /** номер мастера в бригаде (внешность) */
   idx: number;
   phase: 'off' | 'arriving' | 'working' | 'lunch' | 'leaving';
@@ -272,6 +285,8 @@ export interface WorldState {
   visitors: VisitorState[];
   /** мастера на ремонте */
   workers: WorkerState[];
+  /** стройка нового этажа (null — нет) */
+  construction?: ConstructionState | null;
   /** еда в мисках по квартирам */
   petFood: Record<string, number>;
   /** записи хроники, которые станут заметны позже (болезнь видно днём, а не в 4 утра) */

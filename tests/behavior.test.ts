@@ -85,14 +85,15 @@ describe('следы жизни в квартирах', () => {
 });
 
 describe('настоящий дом', () => {
-  it('двухэтажный, с консьержной и квартирой на ремонте', async () => {
+  it('консьержная, квартира после ремонта, строится третий этаж', async () => {
     const { buildDefs: build } = await import('../src/data/defs');
     const r = build(loadRawDataNode());
     expect(r.errors).toEqual([]);
     const L = r.defs!.layout;
-    expect(L.levels).toBe(2);
+    expect(L.levels).toBe(3);
+    expect(L.constructionLevel).toBe(2);
     expect(L.aptById.get('apt-1-left')).toBeTruthy();
-    expect(L.aptById.get('apt-2-left')?.def?.renovation).toBe(true);
+    expect(L.aptById.get('apt-2-left')?.def?.renovation).toBe(false);
     expect(L.aptById.get('apt-2-right')?.vacant).toBe(false); // там живут Иван и Снежана
   });
 });
@@ -240,4 +241,37 @@ describe('одежда и проводы (настоящий дом)', () => {
     expect(waves).toBeGreaterThan(3);
     expect(sim.state.chronicle.some((e) => e.kind === 'farewell.window')).toBe(true);
   }, 60_000);
+});
+
+describe('стройка третьего этажа (настоящий дом)', () => {
+  it('бригада с ремонта переходит на стройку, возит цемент на лифте, этаж растёт и достраивается', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const { Simulation: Sim } = await import('../src/sim/simulation');
+    const { createWorldState: create } = await import('../src/sim/state');
+    const d = build(loadRawDataNode()).defs!;
+    // старое сохранение: бригада ещё числится на ремонте второго этажа и сейчас там работает
+    const st = create(d, 9);
+    st.workers = [0, 1].map((i) => ({
+      id: `apt-2-left:${i}`, aptId: 'apt-2-left', idx: i, phase: 'working' as const, day: -1, arriveAt: 0, lunchAt: 0, backAt: 0, leaveAt: 0, lunchDone: false,
+      x: 100 + i * 20, y: d.layout.floorY(1), level: 1, away: false, facing: 1 as const, path: [], walkDist: 0, greetedAt: -1e9, gesture: null,
+    }));
+    const sim = new Sim(d, st);
+    expect(sim.state.workers.every((w) => w.aptId === 'build-3')).toBe(true);
+    expect(sim.state.chronicle.some((e) => e.kind === 'renovation.done')).toBe(true);
+    let rode = false;
+    let maxLevel = 0;
+    for (let i = 0; i < (70 * 86400) / 10 && !sim.state.construction?.done; i++) {
+      sim.step();
+      if (sim.state.elevator.riders.some((id) => id.startsWith('build-3'))) rode = true;
+      for (const w of sim.state.workers) if (!w.away) maxLevel = Math.max(maxLevel, w.level);
+    }
+    expect(rode).toBe(true);
+    expect(maxLevel).toBe(2);
+    expect(sim.state.construction?.done).toBe(true);
+    const stages = sim.state.chronicle.filter((e) => e.kind === 'construction').map((e) => e.data.stage);
+    expect(stages).toEqual(['start', 'walls', 'roof', 'windows', 'done']);
+    // бригада уходит насовсем
+    for (let i = 0; i < 8640; i++) sim.step();
+    expect(sim.state.workers).toHaveLength(0);
+  }, 120_000);
 });

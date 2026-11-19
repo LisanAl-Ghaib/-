@@ -3,7 +3,8 @@ import { hashString } from '../core/rng';
 import type { WorldDefs } from '../data/defs';
 import type { ResidentDef } from '../data/schemas';
 import type { Simulation } from '../sim/simulation';
-import { workersAt } from '../sim/workers';
+import { sitesOf, workersAt } from '../sim/workers';
+import { CORE_W } from '../config';
 import type { ApartmentModel, FurnitureInstance } from '../world/layout';
 import { rect } from './pixel';
 import { CELL_H, CELL_W, FRAME, generateCharacterSheet } from './sprites/character';
@@ -147,9 +148,13 @@ export class LifeDetails {
         }
       } else if (!w.path.length) frame = FRAME.stand;
       this.drawWorker(g, key, app, x, y + bob, frame, facing);
-      // в руке: ящик с инструментом или пакет
+      // в руке: ящик с инструментом или пакет; на стройку — мешок цемента на плече
       const hx = x + facing * 3;
-      if (w.idx % 2) {
+      if (w.carry) {
+        rect(g, x - 4, y - 23, 8, 4, '#c8c2b0');
+        rect(g, x - 4, y - 23, 8, 1, '#e0dccc');
+        rect(g, x - 1, y - 22, 3, 1, '#8a8478');
+      } else if (w.idx % 2) {
         rect(g, hx - 3, y - 7, 6, 4, '#c8402e');
         rect(g, hx - 1, y - 8, 2, 1, '#3a3a3a');
       } else {
@@ -159,8 +164,90 @@ export class LifeDetails {
     }
   }
 
+  /** Стройка этажа: кладка, раствор, кирпичи в руках; потом штукатурка и проводка */
+  private drawConstructionCrew(g: CanvasRenderingContext2D, nowMs: number): void {
+    const c = this.sim.state.construction;
+    if (!c || c.done) return;
+    const site = sitesOf(this.sim).find((x) => x.kind === 'construction');
+    if (!site) return;
+    const crew = workersAt(this.sim, site.id);
+    if (!crew.length) return;
+    const L = this.defs.layout;
+    const fy = L.floorY(site.level);
+    const p = c.progress;
+    const right = L.coreX + CORE_W;
+    const left = L.buildingX0 + 4;
+    type Spot = { kind: 'lay' | 'mix' | 'carry' | 'plaster' | 'wire' | 'pour'; x: number };
+    const spots: Spot[] = [];
+    if (p < 0.5) {
+      for (const x of [left + 40, left + 120, left + 200, right + 50, right + 140, right + 220]) spots.push({ kind: p < 0.15 ? 'pour' : 'lay', x });
+      spots.push({ kind: 'mix', x: right + 40 }, { kind: 'carry', x: left + 60 }, { kind: 'carry', x: right + 100 });
+    } else {
+      for (const x of [left + 30, left + 150, right + 60, right + 180]) spots.push({ kind: 'plaster', x });
+      spots.push({ kind: 'wire', x: right + 124 }, { kind: 'carry', x: left + 90 }, { kind: 'mix', x: left + 36 });
+    }
+    const seed = hashString(site.id);
+    const tMin = this.sim.time / 60;
+    const SEG = 11;
+    const seg = Math.floor(tMin / SEG);
+    const inSeg = tMin - seg * SEG;
+    const t = nowMs / 1000;
+    for (const w of crew) {
+      const wi = w.idx % 2;
+      const app = wi ? WORKER_B : WORKER_A;
+      const key = `npc:worker${wi}`;
+      const choose = (sg: number) => spots[((Math.imul(sg + 31 * wi, 2654435761) ^ seed) >>> 0) % spots.length];
+      const cur = choose(seg);
+      const prevSp = choose(seg - 1);
+      if (inSeg < 2 && prevSp.x !== cur.x) {
+        // переходит, несёт кирпичи или ведро
+        const k = inSeg / 2;
+        const x = Math.round(prevSp.x + (cur.x - prevSp.x) * k);
+        this.drawWorker(g, key, app, x, fy, FRAME.walk0 + (Math.floor(x / 3) % 4), cur.x >= prevSp.x ? 1 : -1);
+        if (p < 0.5) {
+          rect(g, x - 3, fy - 14, 6, 3, '#a85a4a');
+          rect(g, x - 3, fy - 14, 6, 1, '#c8b8a0');
+        } else rect(g, x + 2, fy - 9, 4, 4, '#e8e4dc');
+        continue;
+      }
+      const alt = Math.floor(t * 2.2 + wi) % 2;
+      switch (cur.kind) {
+        case 'lay': {
+          // спиной к нам: мастерок, кирпич в стену
+          this.drawWorker(g, key, app, cur.x, fy, alt ? FRAME.backWork : FRAME.backStand, 1);
+          if (alt) rect(g, cur.x + 3, fy - 16, 3, 2, '#a85a4a');
+          break;
+        }
+        case 'pour':
+          this.drawWorker(g, key, app, cur.x, fy, alt ? FRAME.work : FRAME.workUp, 1);
+          if (alt) rect(g, cur.x + 5, fy - 3, 2, 2, '#9a968c');
+          break;
+        case 'mix':
+          this.drawWorker(g, key, app, cur.x, fy, alt ? FRAME.work : FRAME.stand, -1);
+          if (Math.floor(t * 6) % 4 === 0) rect(g, cur.x - 8, fy - 7, 1, 1, '#d8d2c6');
+          break;
+        case 'carry':
+          this.drawWorker(g, key, app, cur.x, fy, FRAME.frontStand, 1);
+          rect(g, cur.x - 3, fy - 13, 6, 3, p < 0.5 ? '#a85a4a' : '#e8e4dc');
+          break;
+        case 'plaster':
+          this.drawWorker(g, key, app, cur.x, fy, alt ? FRAME.backWork : FRAME.backStand, 1);
+          rect(g, cur.x - 2 + alt * 3, fy - 22 - alt * 4, 4, 1, '#9aa0a8'); // правило/шпатель
+          break;
+        case 'wire':
+          // на стремянке тянет проводку
+          this.drawWorker(g, key, app, cur.x, fy - 10, alt ? FRAME.workUp : FRAME.backWork, 1);
+          rect(g, cur.x + 2, L.levelTop(site.level) + 6, 1, 3, '#333');
+          break;
+      }
+      // стук и пыль
+      if (Math.floor(t * 3 + wi * 5) % 9 === 0) rect(g, cur.x + (wi ? -6 : 6), fy - 20, 1, 1, '#ffffff');
+    }
+  }
+
   drawWorkers(g: CanvasRenderingContext2D, nowMs: number): void {
     this.drawWalkingWorkers(g, nowMs);
+    this.drawConstructionCrew(g, nowMs);
     for (const apt of this.defs.layout.apartments) {
       if (!this.workersOn(apt)) continue;
       const present = new Set(workersAt(this.sim, apt.id).map((w) => w.idx % 2));

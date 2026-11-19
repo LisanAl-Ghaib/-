@@ -164,7 +164,7 @@ export function buildDefs(raw: RawData): BuildResult {
       room.furniture.flatMap((fp) => catalog.get(fp.item)?.slots ?? []),
     );
     const has = (u: string) => slots.filter((s) => s.use.includes(u as never)).length;
-    if (people.length === 0 && !a.renovation) warnings.push(`${a.id}: квартира описана, но в ней никто не живёт`);
+    if (people.length === 0 && !a.renovation) warnings.push(`${a.id}: квартира пустая — ждёт жильца (опиши его, и квартиру обставим под него)`);
     if (people.length > 0 && a.renovation) errors.push(`${a.id}: в квартире идёт ремонт — заселить нельзя (renovation: true)`);
     if (people.length > 0) {
       if (has('sleep') < people.length) warnings.push(`${a.id}: спальных мест ${has('sleep')}, жильцов ${people.length}`);

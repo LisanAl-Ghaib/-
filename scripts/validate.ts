@@ -21,7 +21,8 @@ const label = (id: string) => {
   const def = defs.apartments.find((a) => a.id === id);
   if (people.length) return people.join(', ');
   if (def?.renovation) return '(ремонт)';
-  return def ? '(описана, пустует)' : '— свободна —';
+  if (!def && defs.layout.constructionLevel !== null && id.startsWith(`apt-${defs.layout.constructionLevel + 1}-`)) return '(строится)';
+  return def ? '(после ремонта, пустует)' : '— свободна —';
 };
 for (let level = defs.layout.floors; level >= 0; level--) {
   const floor = level + 1;
@@ -32,3 +33,5 @@ for (let level = defs.layout.floors; level >= 0; level--) {
   console.log(`  ${floor} этаж: ${row.join(' | ')}`);
 }
 console.log('\nНовый этаж появится сам, как только будет описана квартира на нём (apt-<этаж>-<left|right>).');
+const con = defs.config.building.construction;
+if (con) console.log(`Строится ${con.floor} этаж (data/world.json → building.construction, ~${con.workdays} рабочих дней бригады).`);
