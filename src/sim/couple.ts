@@ -367,6 +367,12 @@ export function planTogether(sim: Simulation): void {
           const comeTarget = seat ? { level: stay.level, x: seat.x, slot: seat.key } : { level: stay.level, x: Math.round(Math.max(room.x0 + 4, Math.min(room.x1 - 4, stay.x + side * 9))) };
           const ids: [string, string] = stay === ra ? [a, b] : [b, a];
           start(sim, ids[0], ids[1], { kind: 'talk', minutes: sim.rng.int(12, 40), targets: [stayTarget, comeTarget] });
+          // иногда соседям слышно, о чём болтают (не чаще раза в пару часов)
+          const key = `coupletalk:${[a, b].sort().join(':')}`;
+          if (sim.time - (sim.state.flags[key] ?? -1e9) > 1.5 * 3600 && sim.rng.chance(0.85)) {
+            sim.state.flags[key] = sim.time;
+            chronicle(sim, 'couple.talk', ids, 1, { room: room.name });
+          }
           return true;
         },
       });

@@ -21,7 +21,9 @@ import { detectLocalModel, type ChatMessage, type LocalModel } from './localMode
  */
 
 /** О каких событиях есть что послушать */
-const SPOKEN = new Set(['chat', 'visit', 'elevator', 'ask-help', 'quarrel', 'reconcile', 'honest']);
+const SPOKEN = new Set(['chat', 'visit', 'elevator', 'ask-help', 'quarrel', 'reconcile', 'honest', 'couple.talk', 'concierge', 'greet']);
+/** говорит один (второго не слышно или это не жилец): телефон, рыбка, кружок с детьми */
+const SOLO = new Set(['phone-call', 'fish.talk', 'circle.heard']);
 /** сколько записей дневника хранить и сколько показывать модели */
 const DIARY_KEEP = 16;
 const DIARY_SHOW = 6;
@@ -72,9 +74,14 @@ export class Voices {
 
   private onEntry(e: ChronicleEntry): void {
     // дневник: заметное о жильце запоминается и без нейросети
-    if (e.importance >= 2 && !SPOKEN.has(e.kind)) for (const id of e.actors) this.remember(id, e.t, e.text);
-    if (!this.live || !SPOKEN.has(e.kind) || e.actors.length < 2) return;
-    if (e.kind === 'chat' && Number(e.data.minutes ?? 0) < 6 && !e.data.quarrel) return;
+    if (e.importance >= 2 && !SPOKEN.has(e.kind) && !SOLO.has(e.kind)) for (const id of e.actors) this.remember(id, e.t, e.text);
+    if (!this.live) return;
+    if (!(SPOKEN.has(e.kind) && e.actors.length >= 2) && !(SOLO.has(e.kind) && e.actors.length >= 1)) return;
+    // консьержка кивает каждому — озвучиваем только, когда есть о чём сказать
+    if (e.kind === 'concierge' && (e.data.flavor === 'nod' || e.data.flavor === 'kid')) return;
+    // кивнули друг другу — иногда слышно и пару слов (через раз, чтобы не заваливать модель)
+    if (e.kind === 'greet' && e.id % 2 === 1) return;
+    if (e.kind === 'chat' && Number(e.data.minutes ?? 0) < 3 && !e.data.quarrel) return;
     this.queue.push(e.id);
     // не копим: свежее важнее
     while (this.queue.length > QUEUE_MAX) this.queue.shift();
@@ -101,10 +108,12 @@ export class Voices {
       const parsed = parseReply(raw);
       if (parsed) {
         const [a, b] = entry.actors;
-        const name = (who: 'A' | 'B') => shortName(this.sim, who === 'A' ? a : b);
-        entry.data.voice = parsed.lines.map((l) => `${name(l.who)}: ${l.text}`).join('\n');
+        const other = entry.kind === 'circle.heard' ? 'Дети' : null;
+        const name = (who: 'A' | 'B' | 'X') => (who === 'A' ? shortName(this.sim, a) : who === 'B' && b ? shortName(this.sim, b) : other);
+        const lines = parsed.lines.filter((l) => name(l.who));
+        if (lines.length) entry.data.voice = lines.map((l) => `${name(l.who)}: ${l.text}`).join('\n');
         if (parsed.memoryA) this.remember(a, entry.t, parsed.memoryA);
-        if (parsed.memoryB) this.remember(b, entry.t, parsed.memoryB);
+        if (parsed.memoryB && b) this.remember(b, entry.t, parsed.memoryB);
         touchChronicle();
       }
       this.failures = 0;
@@ -171,6 +180,8 @@ function scene(entry: ChronicleEntry): string {
       return `A пришёл/пришла в гости к B${d.intent && d.intent !== 'chat' ? ` (повод: ${d.intent === 'treat' ? 'угостить' : d.intent === 'congratulate' ? 'поздравить' : d.intent === 'care' ? 'проведать больного' : d.intent === 'apologize' ? 'помириться' : d.intent})` : ''}${d.gift ? `, принёс(ла) ${d.gift}` : ''}${d.dinner ? ', вместе поели' : ''}${d.quarrel ? `. Разговор перешёл в ссору${d.cause ? ` (${d.cause})` : ''}` : ''}. Слышно из-за двери.`;
     case 'elevator':
       return 'Едут вместе в лифте: короткий разговор на пару фраз.';
+    case 'greet':
+      return `Поздоровались на ходу ${d.place}: 1–2 короткие реплики, не больше.`;
     case 'ask-help':
       return `A подошёл/подошла к B ${d.what}; B ${d.how}.`;
     case 'quarrel':
@@ -179,6 +190,16 @@ function scene(entry: ChronicleEntry): string {
       return 'Мирятся после ссоры: неловко, но по-доброму.';
     case 'honest':
       return `В гостях A мягко, но честно говорит хозяину (B), что ${d.what}.`;
+    case 'couple.talk':
+      return `A и B живут вместе и болтают дома (${d.room}) о чём-нибудь своём, бытовом или смешном. Соседям через стенку слышны обрывки.`;
+    case 'concierge':
+      return `A — консьержка, сидит в своём окошке у входа; B проходит мимо (${d.flavor === 'candy' ? 'это ребёнок — она даёт конфету' : d.flavor === 'bags' ? 'с тяжёлыми сумками' : d.flavor === 'late' ? 'возвращается поздно' : d.flavor === 'wet' ? 'с мокрой улицы' : d.flavor === 'cold' ? 'выходит на мороз без шапки' : d.flavor === 'quit' ? 'жалуется на работу и в который раз грозится уволиться' : 'остановился поговорить'}). Коротко, 2–3 реплики.`;
+    case 'phone-call':
+      return `A говорит по телефону (${d.kind === 'sibling' ? (d.gender === 'f' ? 'с сестрой' : 'с братом') : d.kind === 'friend' ? (d.gender === 'f' ? 'с подругой' : 'с другом') : 'с кем-то из своих'}${d.name ? ` по имени ${d.name}` : ''}) — про ${d.topic}. Слышны только реплики A, собеседника не слышно. Пиши только реплики A (who: "A"), 2–3 штуки.`;
+    case 'fish.talk':
+      return 'A кормит рыбку в аквариуме и вполголоса с ней разговаривает — живёт один. Только реплики A (who: "A"), 1–3 штуки, просто и немного грустно-смешно.';
+    case 'circle.heard':
+      return 'A ведёт у себя дома детский шахматный кружок. Слышно из-за двери: A объясняет, дети спрашивают. Реплики A — who: "A", реплики детей — who: "X". 2–4 реплики.';
     default:
       return '';
   }
@@ -198,7 +219,7 @@ memoryA/memoryB — одна короткая фраза в третьем ли�
 export function buildPrompt(sim: Simulation, entry: ChronicleEntry, model = ''): ChatMessage[] {
   const [a, b] = entry.actors;
   const da = sim.defs.residentById.get(a)!;
-  const db = sim.defs.residentById.get(b)!;
+  const db = b ? sim.defs.residentById.get(b) : undefined;
   const c = sim.calendar();
   const part = c.hourOfDay < 6 ? 'ночь' : c.hourOfDay < 12 ? 'утро' : c.hourOfDay < 18 ? 'день' : c.hourOfDay < 23 ? 'вечер' : 'ночь';
   const days = ['', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
@@ -209,10 +230,7 @@ export function buildPrompt(sim: Simulation, entry: ChronicleEntry, model = ''):
     `Сцена: ${scene(entry)}`,
     '',
     `A — ${card(sim, da)}`,
-    '',
-    `B — ${card(sim, db)}`,
-    '',
-    `Отношения A и B: ${relation(sim, a, b)}.`,
+    ...(db ? ['', `B — ${card(sim, db)}`, '', `Отношения A и B: ${relation(sim, a, b)}.`] : []),
   ].join('\n');
   // Qwen3 и похожие по умолчанию «думают» вслух — просим сразу отвечать
   const noThink = /qwen3|deepseek-r1|qwq/i.test(model) ? ' /no_think' : '';
@@ -223,7 +241,8 @@ export function buildPrompt(sim: Simulation, entry: ChronicleEntry, model = ''):
 }
 
 export interface Reply {
-  lines: { who: 'A' | 'B'; text: string }[];
+  /** A и B — жильцы, X — не жилец (дети на кружке) */
+  lines: { who: 'A' | 'B' | 'X'; text: string }[];
   memoryA?: string;
   memoryB?: string;
 }
@@ -250,9 +269,9 @@ export function parseReply(raw: string): Reply | null {
       .slice(0, 160);
   const lines = o.lines
     .map((l) => l as { who?: unknown; text?: unknown })
-    .filter((l) => (l.who === 'A' || l.who === 'B') && typeof l.text === 'string' && clean(l.text).length > 0)
+    .filter((l) => (l.who === 'A' || l.who === 'B' || l.who === 'X') && typeof l.text === 'string' && clean(l.text).length > 0)
     .slice(0, 4)
-    .map((l) => ({ who: l.who as 'A' | 'B', text: clean(l.text as string) }));
+    .map((l) => ({ who: l.who as 'A' | 'B' | 'X', text: clean(l.text as string) }));
   if (lines.length < 1) return null;
   const mem = (m: unknown) => (typeof m === 'string' && m.trim() ? m.trim().slice(0, 160) : undefined);
   return { lines, memoryA: mem(o.memoryA), memoryB: mem(o.memoryB) };

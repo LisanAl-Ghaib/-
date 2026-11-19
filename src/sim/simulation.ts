@@ -120,7 +120,7 @@ export class Simulation {
     if (actionId !== 'phone' || interrupted) return;
     const def = this.defs.residentById.get(id);
     const friends = def?.contacts.filter((c) => c.phone && !c.callEveryDays) ?? [];
-    if (!def || !friends.length || !this.rng.chance(0.3)) return;
+    if (!def || !friends.length || !this.rng.chance(0.5)) return;
     const c = this.rng.pick(friends);
     const topic = c.topics.length ? this.rng.pick(c.topics) : this.rng.pick(['цены на рынке', 'давление и погоду', 'новых соседей', 'вчерашний сериал', 'рецепт засолки', 'общих знакомых', 'внуков']);
     chronicle(this, 'phone-call', [id], 1, { name: c.name ?? null, gender: c.gender, kind: c.kind, topic, family: c.kind !== 'friend' && !!c.name });

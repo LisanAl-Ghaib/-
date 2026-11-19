@@ -197,7 +197,7 @@ export function endInteraction(sim: Simulation, it: Interaction): void {
       music: it.notes.includes('music'),
       meal: meta.meal ?? 'ужин',
     }, it.startedAt);
-  } else if ((minutes >= 6 || it.quarrel) && !it.notes.includes('help')) {
+  } else if ((minutes >= 4 || it.quarrel) && !it.notes.includes('help')) {
     chronicle(sim, 'chat', [a, b], it.quarrel ? 3 : minutes >= 15 ? 2 : 1, {
       place: it.place,
       minutes,

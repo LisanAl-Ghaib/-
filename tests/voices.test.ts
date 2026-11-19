@@ -84,3 +84,15 @@ describe('голоса жильцов (локальная нейросеть)', 
     expect(p[1].content).toMatch(/\/no_think$/);
   });
 });
+
+describe('голоса: один говорящий', () => {
+  it('телефон и рыбка — промпт с одним жильцом, без «B»', () => {
+    const d = buildDefs(loadRawDataNode()).defs!;
+    const sim = new Simulation(d, createWorldState(d, 8));
+    const entry = { id: 2, t: sim.time, kind: 'phone-call', actors: ['claude-opusov'], importance: 1 as const, text: 'У Клода Антроповича звонит телефон: с сестрой Соней.', data: { kind: 'sibling', gender: 'f', name: 'Соня', topic: 'свои новые стихи', family: true } };
+    const p = buildPrompt(sim, entry);
+    expect(p[1].content).toMatch(/с сестрой по имени Соня/);
+    expect(p[1].content).not.toMatch(/B —/);
+    expect(parseReply('{"lines":[{"who":"A","text":"Соня, это прекрасно"},{"who":"X","text":"..."}]}')?.lines).toHaveLength(2);
+  });
+});
