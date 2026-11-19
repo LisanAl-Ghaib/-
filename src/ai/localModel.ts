@@ -68,6 +68,9 @@ export async function detectLocalModel(fetchImpl: typeof fetch = fetch): Promise
     }
     if (!model) continue;
     const id = model;
+    // модели, которые сначала «думают» (Qwen3 и новее, R1, QwQ): просим не думать вслух
+    // и оставляем запас токенов на случай, если всё-таки подумают
+    const thinker = /qwen3|qwq|deepseek-r1|reason|think/i.test(id);
     return {
       server: c.server,
       base: c.base,
@@ -84,14 +87,17 @@ export async function detectLocalModel(fetchImpl: typeof fetch = fetch): Promise
               model: id,
               messages,
               temperature: opts.temperature ?? 0.85,
-              max_tokens: opts.maxTokens ?? 500,
+              max_tokens: thinker ? Math.max(1600, opts.maxTokens ?? 500) : opts.maxTokens ?? 500,
               stream: false,
+              ...(thinker ? { chat_template_kwargs: { enable_thinking: false } } : {}),
             }),
             signal: ctl.signal,
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const j = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-          const text = j.choices?.[0]?.message?.content ?? '';
+          const j = (await res.json()) as { choices?: { message?: { content?: string; reasoning_content?: string } }[] };
+          // если ответ ушёл целиком в «размышления» — поищем JSON и там
+          const msg = j.choices?.[0]?.message;
+          const text = msg?.content?.trim() ? msg.content : msg?.reasoning_content ?? '';
           // «думающие» модели (Qwen3 и др.) присылают размышления в <think>…</think> — их выкидываем
           return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
         } finally {
