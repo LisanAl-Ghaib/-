@@ -107,7 +107,7 @@ export function startChat(sim: Simulation, a: string, b: string, place: string, 
   const inPlace =
     (ra.action?.id === 'bench' && rb.action?.id === 'bench') ||
     (ra.action?.id === 'balcony' && rb.action?.id === 'balcony') ||
-    (ra.action?.id === 'common_room' && rb.action?.id === 'common_room');
+    (['common_room', 'build_common'].includes(ra.action?.id ?? '') && ['common_room', 'build_common'].includes(rb.action?.id ?? ''));
   if (!inPlace) {
     // встали друг напротив друга
     const mid = (ra.x + rb.x) / 2;

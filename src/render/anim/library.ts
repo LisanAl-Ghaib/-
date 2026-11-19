@@ -439,6 +439,14 @@ export const LIBRARY: Record<string, ActivityAnim> = {
   'together:intimacy': { stand: stand('вдвоём', STAND_IDLE), lie: { note: 'вдвоём под одеялом', posture: 'lie', script: sleeping('blanket') }, sit: sit('вдвоём', SIT_IDLE) },
   wave_window: { stand: stand('у окна над входом машет уходящему', [{ g: 'stand', o: 'side' }]), window: stand('у окна над входом машет уходящему', [{ g: 'stand', o: 'side' }]) },
 
+  // ─── жильцы обустраивают подвал
+  build_common: { stand: stand('работает в подвале: наклоняется, берёт, несёт, выпрямляется, вытирает лоб', [{ g: 'work', o: 'side', alt: { g: 'workUp', ms: 700 }, w: 2 }, { g: 'stand', o: 'side' }, { g: 'work', o: 'front' }]) },
+  'build_common:clear': { stand: stand('выносит хлам: наклоняется к куче, поднимает доски и мешки, выпрямляется, отряхивает руки', [{ g: 'work', o: 'side', alt: { g: 'stand', ms: 900 }, w: 2 }, { g: 'work', o: 'front' }, { g: 'stand', o: 'side' }]) },
+  'build_common:walls': { stand: stand('красит стену валиком: спиной к нам, рука вверх-вниз, отходит посмотреть', [{ g: 'workUp', o: 'back', alt: { g: 'work', ms: 500 }, w: 3 }, { g: 'stand', o: 'back' }]) },
+  'build_common:floor': { stand: stand('стелет пол: наклонился, подгоняет доску, стучит молотком', [{ g: 'work', o: 'side', alt: { g: 'workUp', ms: 300 }, w: 3 }, { g: 'stand', o: 'side' }]) },
+  'build_common:light': { stand: stand('тянет провод и вешает лампу: руки вверх, к потолку', [{ g: 'workUp', o: 'back', w: 3 }, { g: 'stand', o: 'side' }]) },
+  'build_common:bring': { stand: stand('принёс вещи: ставит, двигает, отходит посмотреть', [{ g: 'work', o: 'front', alt: { g: 'stand', ms: 1200 }, w: 2 }, { g: 'stand', o: 'side' }]) },
+
   // ─── комната отдыха в подвале
   common_room: {
     table: sit('за общим столом в комнате отдыха: чашка чая, оглядывается на соседей, откидывается', [{ g: 'handUp', prop: CUP, w: 2 }, { g: 'rest' }, { g: 'slouch', prop: CUP_LOW }, { g: 'cross' }]),

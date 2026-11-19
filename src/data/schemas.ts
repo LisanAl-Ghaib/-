@@ -122,6 +122,10 @@ export const FurniturePlacementSchema = z.object({
   owner: z.string().optional(),
   /** вещь арендатора (из его belongings): стоит в квартире, только пока он тут живёт */
   tenant: z.string().optional(),
+  /** общая комната: вещь появляется, когда жильцы её принесут (номер «захода»: 0, 1, 2…) */
+  buildSet: z.number().int().min(0).optional(),
+  /** что принесли за этот заход (у первой вещи захода): «старый диван», «книжный шкаф и полсотни книг» */
+  buildLabel: z.string().optional(),
 });
 
 export const RoomSchema = z.object({

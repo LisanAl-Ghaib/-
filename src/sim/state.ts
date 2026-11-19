@@ -7,9 +7,9 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 15;
+export const SAVE_VERSION = 16;
 /** версии сохранений, которые можно дополнить до текущей (недостающие поля заполнит Simulation) */
-export const MIGRATABLE_VERSIONS = [7, 8, 9, 10, 11, 12, 13, 14];
+export const MIGRATABLE_VERSIONS = [7, 8, 9, 10, 11, 12, 13, 14, 15];
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -96,7 +96,7 @@ export interface ResidentState {
   /** намерение навестить кого-то (подарок, извинение…) */
   intents: { target: string; kind: string; until: number; gift?: string }[];
   /** что несёт в руках — видно на улице и в подъезде */
-  carrying: 'bags' | 'trash' | 'gift' | 'flowers' | 'suitcase' | 'plate' | null;
+  carrying: 'bags' | 'trash' | 'gift' | 'flowers' | 'suitcase' | 'plate' | 'box' | null;
   /** жест: кивнула, помахала */
   gesture?: Gesture | null;
   /** одет для улицы (куртка) — надевает в прихожей, снимает там же */
@@ -137,6 +137,25 @@ export interface Interaction {
   quarrel: boolean;
   dinner: boolean;
   ended: boolean;
+}
+
+export interface CommonBuild {
+  /** 0 — расчистка хлама, 1 — стены, 2 — пол, 3 — свет, 4 — сносят мебель, 5 — готово */
+  stage: number;
+  /** готовность текущего этапа 0..1 */
+  progress: number;
+  /** сколько заходов мебели уже принесли */
+  sets: number;
+  /** когда кто-то предложил обустроить подвал (null — ещё не начинали) */
+  started: number | null;
+  done: number | null;
+  /** кто принесёт следующий заход мебели и когда его выбрали */
+  nextBy: string | null;
+  nextPicked: number;
+  /** кто приносил последним */
+  lastBy: string | null;
+  /** кто помогал (работал или принёс вещи) */
+  helpers?: string[];
 }
 
 export interface Tenancy {
@@ -316,6 +335,8 @@ export interface WorldState {
   diaries?: Record<string, string[]>;
   /** съёмные квартиры: кто сейчас снимает, до какого времени, кто жил раньше (sim/tenants.ts) */
   tenancy?: Record<string, Tenancy>;
+  /** жильцы сами обустраивают комнату отдыха в подвале (sim/commonBuild.ts) */
+  commonBuild?: CommonBuild;
 }
 
 export function createResidentState(defs: WorldDefs, id: string, rngNext: () => number): ResidentState {

@@ -22,7 +22,13 @@ export function publicSpot(sim: Simulation, r: ResidentState): Spot | null {
   // подвал: в комнате отдыха (сидят — и разговорились) или на лестнице вниз
   if (r.level < 0) {
     const room = L.commonRoom;
-    if (room && r.x >= room.x0 && r.x < room.x1) return r.action?.id === 'common_room' && r.action.phase === 'perform' ? { kind: 'common', phrase: 'в комнате отдыха в подвале', key: 'common' } : null;
+    if (room && r.x >= room.x0 && r.x < room.x1) {
+      if (r.action?.phase !== 'perform') return null;
+      if (r.action.id === 'common_room') return { kind: 'common', phrase: 'в комнате отдыха в подвале', key: 'common' };
+      // обустраивают подвал — разговаривают за работой
+      if (r.action.id === 'build_common') return { kind: 'common', phrase: 'в подвале за работой', key: 'common' };
+      return null;
+    }
     return r.x >= L.coreX - 8 && r.x < L.coreX + CORE_W + 8 ? { kind: 'stairs', phrase: 'на лестнице в подвал', key: 'stairs:basement' } : null;
   }
   // на балконе (выше первого этажа): переговариваются с соседом сверху или снизу

@@ -100,8 +100,16 @@ export class LifeDetails {
   }
 
   /** Что жилец несёт в руках */
-  drawCarry(g: CanvasRenderingContext2D, carrying: 'bags' | 'trash' | 'gift' | 'flowers' | 'suitcase' | 'plate', x: number, y: number, facing: 1 | -1) {
+  drawCarry(g: CanvasRenderingContext2D, carrying: 'bags' | 'trash' | 'gift' | 'flowers' | 'suitcase' | 'plate' | 'box', x: number, y: number, facing: 1 | -1) {
     const hx = x + facing * 3;
+    if (carrying === 'box') {
+      // картонная коробка перед собой: несёт вещи в подвал
+      rect(g, hx - 4, y - 15, 9, 7, '#b8925a');
+      rect(g, hx - 4, y - 15, 9, 1, '#d0aa70');
+      rect(g, hx, y - 15, 1, 7, '#9a7444');
+      rect(g, hx - 3, y - 12, 2, 1, '#8a6434');
+      return;
+    }
     if (carrying === 'plate') {
       // тарелка с угощением перед собой, накрыта салфеткой
       rect(g, hx - 3, y - 11, 7, 1, '#f4f2ec');

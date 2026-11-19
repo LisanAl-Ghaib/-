@@ -40,7 +40,14 @@ export interface ConstructionView {
   progress: number;
 }
 
-export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry, con: ConstructionView | null = null): BuildingLayers {
+/** Как далеко жильцы продвинулись с комнатой отдыха (null — готова или её нет) */
+export interface CommonBuildView {
+  /** 0 — хлам, 1 — стены, 2 — пол, 3 — свет, 4 — сносят мебель */
+  stage: number;
+  progress: number;
+}
+
+export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry, con: ConstructionView | null = null, build: CommonBuildView | null = null): BuildingLayers {
   const L = defs.layout;
   const back = makeCanvas(L.worldW, L.worldH);
   const front = makeCanvas(L.worldW, L.worldH);
@@ -98,7 +105,7 @@ export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry, con: Co
   // лестничные марши поверх стен ядра
   drawStairs(g, defs);
 
-  for (const apt of L.apartments) if (!con || apt.level !== con.level) drawApartment(g, gf, defs, apt, sprites);
+  for (const apt of L.apartments) if (!con || apt.level !== con.level) drawApartment(g, gf, defs, apt, sprites, apt === L.commonRoom ? build : null);
   for (const apt of L.apartments) if (!con || apt.level !== con.level) drawBalcony(g, gf, defs, apt);
   if (con) drawScaffolding(gf, defs, con.level, con.progress);
 
@@ -330,6 +337,7 @@ function drawApartment(
   defs: WorldDefs,
   apt: ApartmentModel,
   sprites: SpriteRegistry,
+  build: CommonBuildView | null = null,
 ) {
   const L = defs.layout;
   const lt = L.levelTop(apt.level);
@@ -411,6 +419,15 @@ function drawApartment(
       rect(g, room.x0, lt + 2, w, 1, shade(wallColor, 0.25));
       rect(g, room.x0, lt + 3, w, 1, shade(wallColor, -0.12));
     }
+    // подвал ещё обустраивают: до проводки света — голая лампочка-переноска на проводе
+    if (build && build.stage < 4) {
+      if (room.index === 0) {
+        const lx = Math.round((room.x0 + room.x1) / 2);
+        rect(g, lx, lt + 2, 1, 9, '#333');
+        rect(g, lx - 1, lt + 11, 3, 3, '#f2e6b0');
+      }
+      continue;
+    }
     // гирлянда
     if (style === 'cozy' || style === 'boho') {
       const colors = ['#ffd27a', '#ff8a6a', '#8fd0ff', '#b8f08a'];
@@ -431,6 +448,7 @@ function drawApartment(
       drawFurniture(f.def.layer === 'front' ? gf : g, f, pal, def?.style ?? 'plain', sprite);
     }
   }
+  if (build && build.stage < 4) drawCommonBuild(g, apt, lt, fy, build);
   // межкомнатные стены с проёмами
   for (const [i, wx] of L.innerWalls(apt).entries()) {
     const x = Math.round(wx);
@@ -639,6 +657,96 @@ function drawBasement(g: CanvasRenderingContext2D, defs: WorldDefs) {
   rect(g, bx0 - 6, fy + SLAB, bx1 - bx0 + 12, 1, '#a39f98');
   // окошки подвала у самой земли (в кладовках)
   for (let x = bx0 + 20; x < storeX1 - 20; x += 64) rect(g, x, lt + 1, 8, 3, '#2d2b2a');
+}
+
+/**
+ * Подвал ещё обустраивают: где не покрашено — голый бетон с подтёками, где не постелено — бетонный пол,
+ * хлам (до расчистки), стремянка и банки с краской, стопка досок, моток провода.
+ */
+function drawCommonBuild(g: CanvasRenderingContext2D, apt: ApartmentModel, lt: number, fy: number, b: CommonBuildView) {
+  const x0 = apt.x0;
+  const x1 = apt.x1;
+  const span = x1 - x0;
+  const painted = b.stage < 1 ? x0 : b.stage === 1 ? x0 + Math.round(span * b.progress) : x1;
+  const floored = b.stage < 2 ? x0 : b.stage === 2 ? x0 + Math.round(span * b.progress) : x1;
+  const rng = Rng.fromSeed('commonbuild');
+  // голый бетон: стены
+  if (painted < x1) {
+    rect(g, painted, lt, x1 - painted, fy - lt, '#77726b');
+    rect(g, painted, lt, x1 - painted, 2, '#625e58');
+    for (let i = 0; i < (x1 - painted) / 3; i++) rect(g, painted + rng.int(0, x1 - painted - 1), lt + rng.int(2, fy - lt - 4), 1, rng.int(1, 4), rng.pick(['#6a665f', '#827d75', '#5e6a5e']));
+    // кирпич проступает сквозь штукатурку
+    for (let k = 0; k < 6; k++) {
+      const bx = painted + rng.int(0, Math.max(1, x1 - painted - 10));
+      const by = lt + rng.int(6, fy - lt - 20);
+      rect(g, bx, by, 8, 3, '#8a5a4a');
+      rect(g, bx, by + 1, 8, 1, '#6e4a3e');
+    }
+  }
+  // бетонный пол
+  if (floored < x1) {
+    rect(g, floored, fy, x1 - floored, 4, '#8a8580');
+    rect(g, floored, fy - 2, x1 - floored, 2, '#6a665f');
+  }
+  if (b.stage === 0) {
+    // хлам: чем дальше расчистка, тем меньше куч
+    const piles = Math.ceil((1 - b.progress) * 9);
+    const prng = Rng.fromSeed('junk');
+    for (let i = 0; i < 9; i++) {
+      const px = x0 + 8 + Math.floor(((span - 30) * i) / 9) + prng.int(0, 6);
+      const kind = prng.int(0, 4);
+      if (i >= piles) continue;
+      if (kind === 0) {
+        // коробки штабелем
+        rect(g, px, fy - 10, 12, 10, '#a8865a');
+        rect(g, px + 2, fy - 18, 10, 8, '#9a7a50');
+        rect(g, px, fy - 10, 12, 1, '#c0a070');
+      } else if (kind === 1) {
+        // старые покрышки
+        rect(g, px, fy - 5, 12, 5, '#2a2a2a');
+        rect(g, px + 1, fy - 10, 10, 5, '#333');
+        rect(g, px + 4, fy - 9, 4, 3, '#555');
+      } else if (kind === 2) {
+        // доски, прислонённые к стене
+        for (let k = 0; k < 4; k++) rect(g, px + k * 2, fy - 26 + k, 2, 26 - k, k % 2 ? '#8a6a48' : '#7a5a3c');
+      } else if (kind === 3) {
+        // сломанный стул и мешок
+        rect(g, px, fy - 8, 9, 2, '#6a4a30');
+        rect(g, px, fy - 6, 1, 6, '#6a4a30');
+        rect(g, px + 8, fy - 14, 1, 14, '#6a4a30');
+        rect(g, px + 10, fy - 7, 8, 7, '#8a8a70');
+      } else {
+        // старый матрас свёрнут
+        rect(g, px, fy - 9, 16, 9, '#b0a890');
+        rect(g, px, fy - 6, 16, 1, '#8a8470');
+      }
+    }
+  }
+  if (b.stage === 1) {
+    // стремянка у границы покраски, ведро и валик
+    const lx = Math.min(x1 - 14, Math.max(x0 + 4, painted - 4));
+    for (let k = 0; k < 6; k++) rect(g, lx + 1, fy - 4 - k * 5, 8, 1, '#b8b8b0');
+    rect(g, lx, fy - 30, 1, 30, '#a8a8a0');
+    rect(g, lx + 9, fy - 30, 1, 30, '#a8a8a0');
+    rect(g, lx + 12, fy - 7, 6, 7, '#d8d8d0');
+    rect(g, lx + 12, fy - 7, 6, 2, '#c9a27e');
+  }
+  if (b.stage === 2) {
+    // стопка досок там, где ещё стелят
+    const sx = Math.min(x1 - 34, Math.max(x0 + 2, floored + 4));
+    for (let k = 0; k < 4; k++) rect(g, sx, fy - 3 - k * 2, 30, 2, k % 2 ? '#9a7450' : '#8a6a48');
+  }
+  if (b.stage === 3) {
+    // стремянка посередине, моток провода
+    const lx = Math.round((x0 + x1) / 2) - 18;
+    for (let k = 0; k < 6; k++) rect(g, lx + 1, fy - 4 - k * 5, 8, 1, '#b8b8b0');
+    rect(g, lx, fy - 30, 1, 30, '#a8a8a0');
+    rect(g, lx + 9, fy - 30, 1, 30, '#a8a8a0');
+    rect(g, lx + 14, fy - 5, 6, 5, '#2a2a2a');
+    rect(g, lx + 16, fy - 4, 2, 3, '#c8402e');
+    // провод вдоль потолка — докуда дотянули
+    rect(g, x0 + 4, lt + 3, Math.round((span - 8) * b.progress), 1, '#2a2a2a');
+  }
 }
 
 function drawStairs(g: CanvasRenderingContext2D, defs: WorldDefs) {

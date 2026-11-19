@@ -33,6 +33,7 @@ import { joinCooking, planTogether, updateFarewells } from './couple';
 import { updateDressing } from './dressing';
 import { syncTenants, updateTenants } from './tenants';
 import { updateCommonRoom } from './commonRoom';
+import { syncCommonBuild, updateCommonBuild } from './commonBuild';
 
 export type SimEvent =
   | { type: 'action.start'; t: number; residentId: string; actionId: string; label: string }
@@ -76,6 +77,7 @@ export class Simulation {
     }
     // арендаторы съёмных квартир: в defs — только тот, кто сейчас живёт
     syncTenants(this);
+    syncCommonBuild(this);
     this.syncResidents();
     this.refreshTraits();
     initRelations(this);
@@ -418,6 +420,7 @@ export class Simulation {
     }
     updateInteractions(this, DT);
     updateTenants(this);
+    updateCommonBuild(this);
     updateCommonRoom(this);
     updatePets(this, DT);
     updateCircles(this);

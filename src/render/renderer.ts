@@ -7,7 +7,7 @@ import type { ResidentDef } from '../data/schemas';
 import type { ResidentState } from '../sim/state';
 import type { Simulation } from '../sim/simulation';
 import type { ApartmentModel } from '../world/layout';
-import { drawApartmentDoor, drawEntrance, renderBuilding, residentsBoardRect, windowRect, type BuildingLayers, type ConstructionView } from './building';
+import { drawApartmentDoor, drawEntrance, renderBuilding, residentsBoardRect, windowRect, type BuildingLayers, type CommonBuildView, type ConstructionView } from './building';
 import { Camera } from './camera';
 import { DEFAULT_LOOK, drawGround, drawTrees, drawYardProps, makeTrees, type OutdoorLook, type TreeShape } from './outdoor';
 import { busPhase } from '../world/transport';
@@ -136,7 +136,8 @@ export class Renderer {
     const con = this.conView();
     this.conKey = con ? Math.floor(con.progress * 100) : -1;
     this.presenceKey = this.defs.layout.presenceKey;
-    this.layers = renderBuilding(this.defs, this.sprites, con);
+    this.buildKey = this.commonBuildKey();
+    this.layers = renderBuilding(this.defs, this.sprites, con, this.commonBuildView());
   }
 
   /** Стройка этажа сейчас (или null) */
@@ -148,6 +149,18 @@ export class Renderer {
   private conKey = -1;
   /** какие арендаторы живут (въехал/съехал — его вещи появились/исчезли) */
   private presenceKey = '';
+  /** как далеко жильцы обустроили подвал */
+  private buildKey = '';
+
+  private commonBuildView(): CommonBuildView | null {
+    const b = this.sim.state.commonBuild;
+    return this.defs.layout.commonRoom && b && b.stage < 4 ? { stage: b.stage, progress: b.progress } : null;
+  }
+
+  private commonBuildKey(): string {
+    const v = this.commonBuildView();
+    return v ? `${v.stage}:${Math.floor(v.progress * 24)}` : 'done';
+  }
 
   /**
    * Над головой жильца — в CSS-пикселях относительно холста (для облачков с репликами).
@@ -226,7 +239,7 @@ export class Renderer {
     if (!this.layers) return;
     // стройка продвинулась на процент (или закончилась) — перерисовать дом
     const con = this.conView();
-    if ((con ? Math.floor(con.progress * 100) : -1) !== this.conKey || this.defs.layout.presenceKey !== this.presenceKey) this.rebuildStatic();
+    if ((con ? Math.floor(con.progress * 100) : -1) !== this.conKey || this.defs.layout.presenceKey !== this.presenceKey || this.commonBuildKey() !== this.buildKey) this.rebuildStatic();
     const { wg, defs, sim } = this;
     const L = defs.layout;
     const cal = sim.calendar();
@@ -1750,6 +1763,9 @@ export function iconFor(r: ResidentState): string | null {
     case 'chess':
     case 'circle':
       return 'chess';
+    case 'build_common':
+      if (r.interaction !== null) return 'talk';
+      return a.data.stage === 'bring' ? 'gift' : 'broom';
     case 'common_room':
       if (r.interaction !== null && a.data.kind !== 'chess') return 'talk';
       return a.data.kind === 'chess' ? 'chess' : a.data.kind === 'read' ? 'book' : a.data.kind === 'treat' ? 'food' : 'cup';

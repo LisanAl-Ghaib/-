@@ -20,6 +20,8 @@ export interface SlotInstance {
   owner?: string;
   /** вещь арендатора: есть, только пока он тут живёт */
   tenant?: string;
+  /** общая комната: появляется, когда жильцы принесут этот заход */
+  buildSet?: number;
 }
 
 export interface FurnitureInstance {
@@ -41,6 +43,8 @@ export interface FurnitureInstance {
   owner?: string;
   /** вещь арендатора: есть, только пока он тут живёт */
   tenant?: string;
+  /** общая комната: появляется, когда жильцы принесут этот заход */
+  buildSet?: number;
 }
 
 export interface RoomModel {
@@ -287,6 +291,7 @@ export class BuildingLayout {
           channel: fp.channel,
           owner: fp.owner,
           tenant: fp.tenant,
+          buildSet: fp.buildSet,
         };
         fd.slots.forEach((s, si) => {
           const sx = fp.flip ? fx + fd.w - s.dx : fx + s.dx;
@@ -303,6 +308,7 @@ export class BuildingLayout {
             roomIndex: index,
             owner: fp.owner,
             tenant: fp.tenant,
+            buildSet: fp.buildSet,
           };
           inst.slots.push(slot);
           apt.slots.push(slot);
@@ -319,16 +325,31 @@ export class BuildingLayout {
     return apt;
   }
 
-  /** какие арендаторы сейчас живут (для отрисовки: смена — перерисовать дом) */
+  /** какие арендаторы живут и сколько заходов мебели принесли в общую комнату (смена — перерисовать дом) */
   presenceKey = '';
+  private presentTenants = new Set<string>();
+  /** сколько заходов мебели уже принесли в общую комнату (Infinity — всё на месте) */
+  private revealedSets = Infinity;
 
   /** Въехал/съехал арендатор: его вещи появляются в квартире или исчезают вместе с ним */
   setTenantsPresent(ids: Iterable<string>): void {
-    const present = new Set(ids);
-    this.presenceKey = [...present].sort().join(',');
+    this.presentTenants = new Set(ids);
+    this.applyVisibility();
+  }
+
+  /** Жильцы обустраивают общую комнату: видны только принесённые вещи */
+  setRevealedSets(n: number): void {
+    this.revealedSets = n;
+    this.applyVisibility();
+  }
+
+  private applyVisibility(): void {
+    const present = this.presentTenants;
+    const shown = (o: { tenant?: string; buildSet?: number }) => (!o.tenant || present.has(o.tenant)) && (o.buildSet === undefined || o.buildSet < this.revealedSets);
+    this.presenceKey = `${[...present].sort().join(',')}|${this.revealedSets}`;
     for (const apt of this.apartments) {
-      apt.slots = apt.allSlots.filter((sl) => !sl.tenant || present.has(sl.tenant));
-      for (const room of apt.rooms) room.furniture = room.allFurniture.filter((f) => !f.tenant || present.has(f.tenant));
+      apt.slots = apt.allSlots.filter(shown);
+      for (const room of apt.rooms) room.furniture = room.allFurniture.filter(shown);
     }
   }
 

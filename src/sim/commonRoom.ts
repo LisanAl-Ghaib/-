@@ -1,4 +1,5 @@
 import type { ApartmentModel, SlotInstance } from '../world/layout';
+import { commonRoomReady } from './commonBuild';
 import { aptState, fitDuration, gv, habit, householdIds, minutesToBed, minutesToLeave, novelty, sleepTime } from './ai/helpers';
 import type { ActionDef, ActionPlan, AgentCtx } from './ai/types';
 import { chronicle, chronicleAt } from './chronicle/chronicle';
@@ -65,7 +66,7 @@ export const commonRoomAction: ActionDef = {
   plan(ctx) {
     const { sim, r, def, cal } = ctx;
     const room = roomOf(sim);
-    if (!room || r.sick || sleepTime(ctx) || minutesToLeave(ctx) < 60 || minutesToBed(ctx) < 45) return null;
+    if (!room || !commonRoomReady(sim) || r.sick || sleepTime(ctx) || minutesToLeave(ctx) < 60 || minutesToBed(ctx) < 45) return null;
     const h = cal.hourOfDay;
     const weekend = cal.weekday >= 6;
     if (h < (weekend ? 11 : 16.5) || h >= 22.5) return null;

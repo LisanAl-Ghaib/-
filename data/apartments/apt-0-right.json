@@ -4,38 +4,177 @@
  "side": "right",
  "common": true,
  "style": "cozy",
- "description": "Комната отдыха жильцов в подвале: кирпичные стены, покрашенные в тёплый цвет, старый диван, шкаф с книгами «бери-оставляй», шахматный столик, длинный стол с чайником и чашками, кресло, радио на комоде, гирлянда. В закутке — раковина, холодильничек и микроволновка: сюда приносят угощение.",
- "palette": { "wall": "#c9a27e", "floor": "#8a6a4e", "wood": "#7a5a3e", "textile": "#9a5a4a", "accent": "#d8b26a", "metal": "#8a8a86", "light": "#ffcf7a" },
+ "description": "Дальний подвал, который жильцы сами обустраивают под комнату отдыха: сначала выносят хлам, красят кирпичные стены в тёплый цвет, стелют доски, проводят свет и гирлянду, потом сносят из квартир старый диван, книжный шкаф, шахматный столик, большой стол с чайником, кресло, радио на комоде, цветы; в закутке — раковина, холодильничек и микроволновка.",
+ "palette": {
+  "wall": "#c9a27e",
+  "floor": "#8a6a4e",
+  "wood": "#7a5a3e",
+  "textile": "#9a5a4a",
+  "accent": "#d8b26a",
+  "metal": "#8a8a86",
+  "light": "#ffcf7a"
+ },
  "wallpaper": "brick",
  "flooring": "boards",
  "rooms": [
-  { "type": "living", "name": "комната отдыха", "width": 12, "window": false, "furniture": [
-   { "item": "bookshelf", "x": 4 },
-   { "item": "sofa", "x": 24 },
-   { "item": "picture", "x": 34, "elevation": 30 },
-   { "item": "floor_lamp", "x": 57 },
-   { "item": "family_photos", "x": 66, "elevation": 34 },
-   { "item": "rug", "x": 66 },
-   { "item": "kitchen_table", "x": 70 },
-   { "item": "chessboard", "x": 76, "elevation": 10 },
-   { "item": "sconce", "x": 100, "elevation": 28 },
-   { "item": "wall_clock", "x": 120, "elevation": 40 },
-   { "item": "dining_table", "x": 108 },
-   { "item": "tea_set", "x": 117, "elevation": 11 },
-   { "item": "armchair", "x": 140 },
-   { "item": "chest", "x": 156 },
-   { "item": "radio", "x": 158, "elevation": 13 },
-   { "item": "wall_shelf", "x": 154, "elevation": 34 },
-   { "item": "books_stack", "x": 157, "elevation": 40 },
-   { "item": "hanging_plant", "x": 178, "elevation": 40 },
-   { "item": "plant_big", "x": 177 }
-  ] },
-  { "type": "kitchen", "name": "закуток", "width": 4, "window": false, "wallpaper": "tiles", "wall": "#d8d0c0", "furniture": [
-   { "item": "sink_small", "x": 2 },
-   { "item": "kitchen_counter", "x": 18 },
-   { "item": "microwave", "x": 21, "elevation": 13 },
-   { "item": "coffee_machine", "x": 32, "elevation": 13 },
-   { "item": "mini_fridge", "x": 44 }
-  ] }
+  {
+   "type": "living",
+   "name": "комната отдыха",
+   "width": 12,
+   "window": false,
+   "furniture": [
+    {
+     "item": "bookshelf",
+     "x": 4,
+     "buildSet": 1,
+     "buildLabel": "книжный шкаф и полсотни книг"
+    },
+    {
+     "item": "sofa",
+     "x": 24,
+     "buildSet": 0,
+     "buildLabel": "старый диван"
+    },
+    {
+     "item": "picture",
+     "x": 34,
+     "elevation": 30,
+     "buildSet": 4,
+     "buildLabel": "торшер, бра и пару картин"
+    },
+    {
+     "item": "floor_lamp",
+     "x": 57,
+     "buildSet": 4
+    },
+    {
+     "item": "family_photos",
+     "x": 66,
+     "elevation": 34,
+     "buildSet": 4
+    },
+    {
+     "item": "rug",
+     "x": 66,
+     "buildSet": 0
+    },
+    {
+     "item": "kitchen_table",
+     "x": 70,
+     "buildSet": 2,
+     "buildLabel": "шахматный столик с доской"
+    },
+    {
+     "item": "chessboard",
+     "x": 76,
+     "elevation": 10,
+     "buildSet": 2
+    },
+    {
+     "item": "sconce",
+     "x": 100,
+     "elevation": 28,
+     "buildSet": 4
+    },
+    {
+     "item": "wall_clock",
+     "x": 120,
+     "elevation": 40,
+     "buildSet": 6,
+     "buildLabel": "комод с радиоприёмником и часы"
+    },
+    {
+     "item": "dining_table",
+     "x": 108,
+     "buildSet": 3,
+     "buildLabel": "большой стол и чайный сервиз"
+    },
+    {
+     "item": "tea_set",
+     "x": 117,
+     "elevation": 11,
+     "buildSet": 3
+    },
+    {
+     "item": "armchair",
+     "x": 140,
+     "buildSet": 5,
+     "buildLabel": "кресло"
+    },
+    {
+     "item": "chest",
+     "x": 156,
+     "buildSet": 6
+    },
+    {
+     "item": "radio",
+     "x": 158,
+     "elevation": 13,
+     "buildSet": 6
+    },
+    {
+     "item": "wall_shelf",
+     "x": 154,
+     "elevation": 34,
+     "buildSet": 6
+    },
+    {
+     "item": "books_stack",
+     "x": 157,
+     "elevation": 40,
+     "buildSet": 6
+    },
+    {
+     "item": "hanging_plant",
+     "x": 178,
+     "elevation": 40,
+     "buildSet": 7,
+     "buildLabel": "цветы в горшках"
+    },
+    {
+     "item": "plant_big",
+     "x": 177,
+     "buildSet": 7
+    }
+   ]
+  },
+  {
+   "type": "kitchen",
+   "name": "закуток",
+   "width": 4,
+   "window": false,
+   "wallpaper": "tiles",
+   "wall": "#d8d0c0",
+   "furniture": [
+    {
+     "item": "sink_small",
+     "x": 2,
+     "buildSet": 8,
+     "buildLabel": "раковину, холодильничек и микроволновку для закутка"
+    },
+    {
+     "item": "kitchen_counter",
+     "x": 18,
+     "buildSet": 8
+    },
+    {
+     "item": "microwave",
+     "x": 21,
+     "elevation": 13,
+     "buildSet": 8
+    },
+    {
+     "item": "coffee_machine",
+     "x": 32,
+     "elevation": 13,
+     "buildSet": 8
+    },
+    {
+     "item": "mini_fridge",
+     "x": 44,
+     "buildSet": 8
+    }
+   ]
+  }
  ]
 }
