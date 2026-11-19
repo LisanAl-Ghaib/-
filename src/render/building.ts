@@ -98,12 +98,38 @@ export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry, con: Co
   for (const apt of L.apartments) if (!con || apt.level !== con.level) drawApartment(g, gf, defs, apt, sprites);
   if (con) drawScaffolding(gf, defs, con.level, con.progress);
 
-  // фундамент
+  // подвал в разрезе: бетонные стены, трубы отопления под потолком, кладовки; ниже — фундамент
   const baseY = L.groundY + SLAB;
-  rect(g, bx0 - 2, baseY, bx1 - bx0 + 4, L.worldH - baseY, '#6e6a64');
+  const depth = 46;
+  rect(g, bx0 - 2, baseY, bx1 - bx0 + 4, depth, '#6e6a64');
   rect(g, bx0 - 2, baseY, bx1 - bx0 + 4, 1, '#5a5650');
-  // отмостка — вентиляционные окошки подвала
-  for (let x = bx0 + 20; x < bx1 - 20; x += 64) rect(g, x, baseY + 6, 8, 4, '#2d2b2a');
+  rect(g, bx0 + 2, baseY + 3, bx1 - bx0 - 4, depth - 7, '#3a3734'); // помещение подвала
+  rect(g, bx0 + 2, baseY + depth - 4, bx1 - bx0 - 4, 1, '#4a4642'); // пол
+  // трубы: отопление (подача и обратка), холодная вода
+  rect(g, bx0 + 4, baseY + 5, bx1 - bx0 - 8, 2, '#8a3a2e');
+  rect(g, bx0 + 4, baseY + 8, bx1 - bx0 - 8, 2, '#3a5a8a');
+  rect(g, bx0 + 4, baseY + 11, bx1 - bx0 - 8, 1, '#6a6a72');
+  for (let x = bx0 + 30; x < bx1 - 10; x += 48) rect(g, x, baseY + 4, 3, 8, '#6a6a72'); // хомуты и стояки
+  // кладовки жильцов: деревянные решётки, внутри — банки, лыжи, коробки
+  const rng = Rng.fromSeed('basement');
+  for (let x = bx0 + 12; x < bx1 - 40; x += 34) {
+    if (x > L.coreX - 30 && x < L.coreX + CORE_W) continue;
+    for (let i = 0; i < 22; i += 3) rect(g, x + i, baseY + 16, 1, depth - 20, '#7a6040');
+    rect(g, x, baseY + 16, 22, 1, '#7a6040');
+    rect(g, x + 3, baseY + depth - 10, 6, 6, rng.pick(['#8a6a4a', '#6a5a4a']));
+    if (rng.chance(0.6)) for (let i = 0; i < 3; i++) rect(g, x + 12 + i * 3, baseY + depth - 8, 2, 4, rng.pick(['#c84a3a', '#d8b860', '#7ab060']));
+    if (rng.chance(0.4)) rect(g, x + 17, baseY + 18, 1, depth - 22, '#3a6ab0');
+  }
+  // под ядром — бойлерная: котёл и манометр
+  rect(g, L.coreX + 14, baseY + 18, 16, depth - 22, '#5a5a62');
+  rect(g, L.coreX + 18, baseY + 22, 4, 4, '#d8d4cc');
+  rect(g, L.coreX + 19, baseY + 23, 1, 1, '#c8402e');
+  rect(g, L.coreX + 36, baseY + 26, 12, 14, '#4a5a4a');
+  // фундаментная подушка
+  rect(g, bx0 - 6, baseY + depth, bx1 - bx0 + 12, 6, '#8a8680');
+  rect(g, bx0 - 6, baseY + depth, bx1 - bx0 + 12, 1, '#a39f98');
+  // окошки подвала у самой земли
+  for (let x = bx0 + 20; x < bx1 - 20; x += 64) rect(g, x, baseY + 1, 8, 3, '#2d2b2a');
   return { back, front };
 }
 

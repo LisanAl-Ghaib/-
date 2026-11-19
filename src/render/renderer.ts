@@ -104,14 +104,19 @@ export class Renderer {
     this.lg = ctx2d(this.light);
     this.camera = new Camera(this.W, this.H);
     this.city = makeCity(this.W, 80);
-    this.stars = makeStars(this.W, L.groundY);
+    this.stars = makeStars(this.W, L.groundY, 'stars', 320);
     const rng = Rng.fromSeed('clouds');
-    this.clouds = Array.from({ length: 7 }, (_, i) => ({
-      img: makeCloud(`cloud${i}`, rng.int(30, 56), rng.int(12, 18)),
-      x0: rng.int(0, this.W),
-      y: rng.int(4, 60),
-      speed: rng.range(0.4, 1),
-    }));
+    // облака на разной высоте: дальние — выше, мельче и медленнее
+    this.clouds = Array.from({ length: 16 }, (_, i) => {
+      const y = rng.int(8, Math.max(20, L.roofY - 30));
+      const far = 1 - y / Math.max(1, L.roofY);
+      return {
+        img: makeCloud(`cloud${i}`, Math.round(rng.int(30, 60) * (1 - far * 0.4)), Math.round(rng.int(12, 18) * (1 - far * 0.3))),
+        x0: rng.int(0, this.W),
+        y,
+        speed: rng.range(0.4, 1) * (1 - far * 0.5),
+      };
+    });
     this.trees = makeTrees(defs);
     this.life = new LifeDetails(defs, sim, this.sprites);
   }
@@ -153,16 +158,17 @@ export class Renderer {
   overview(now: number, animate = true): void {
     const L = this.defs.layout;
     const cam = this.camera;
-    // дом по ширине целиком (можно чуть обрезать по краям), но не меньше ×1
-    const bw = L.buildingX1 - L.buildingX0;
-    const fitW = Math.max(1, Math.floor(cam.viewW / (bw * 0.97)));
-    const fitH = Math.max(1, Math.floor(cam.visH / (L.worldH - L.roofY + 30)));
-    // если по высоте место есть — можно на ступень крупнее, обрезав края дома
-    const z = Math.max(fitW, Math.min(fitH, fitW + 1));
+    // крупнее всего, при котором виден весь дом (с крышей, краном и полоской двора),
+    // но не мельче, чем нужно, чтобы экран целиком был внутри мира
+    const bw = L.buildingX1 - L.buildingX0 + 24;
+    const top = L.roofY - (this.sim.state.construction && !this.sim.state.construction.done ? 44 : 22);
+    const bottom = L.groundY + 26;
+    const fit = Math.max(1, Math.floor(Math.min(cam.viewW / bw, cam.visH / (bottom - top))));
+    const z = Math.max(cam.minZoom(), fit);
     const visW = cam.viewW / z;
-    // дом целиком слева, остальное — двору; если дом не влезает — по центру дома
-    const x = visW >= this.W ? this.W / 2 : visW >= bw + 32 ? L.buildingX0 - 16 + visW / 2 : (L.buildingX0 + L.buildingX1) / 2;
-    const y = (L.roofY - 20 + L.worldH) / 2;
+    // если по ширине есть запас — дом левее, справа двор с лавочкой и остановкой
+    const x = visW >= bw + 80 ? L.buildingX0 - 12 + visW / 2 : (L.buildingX0 + L.buildingX1) / 2;
+    const y = (top + bottom) / 2;
     if (animate) cam.animateTo(x, y, z, now);
     else this.camera.jumpTo(x, y, z);
   }
@@ -195,6 +201,7 @@ export class Renderer {
     drawStars(wg, this.stars, (1 - day) * (1 - env.overcast), nowMs);
     drawSunMoon(wg, cal, this.W, L.groundY - 40, env.overcast);
     this.drawClouds(tGame, day);
+    this.drawSkyLife(nowMs, day);
     this.drawCity(day, cal.hour);
     if (env.fog > 0) {
       wg.globalAlpha = env.fog * 0.5;
@@ -251,6 +258,46 @@ export class Renderer {
       this.wg.globalAlpha = 0.85 * (0.25 + 0.75 * clamp01(day * 1.3)) * (1 - this.env.overcast * 0.3);
       this.wg.drawImage(c.img, x, c.y);
       this.wg.globalAlpha = 1;
+    }
+  }
+
+  /** Небо живёт: днём пролетает стая птиц, ночью — самолёт с мигающими огнями */
+  private drawSkyLife(nowMs: number, day: number) {
+    const g = this.wg;
+    const L = this.defs.layout;
+    const t = nowMs / 1000;
+    if (day > 0.4 && this.env.rain < 0.3) {
+      // стая раз в ~40 секунд пересекает небо
+      const period = 40;
+      const k = (t % period) / period;
+      const cycle = Math.floor(t / period);
+      const y0 = Math.round(L.roofY - 60 - ((cycle * 37) % Math.max(40, L.roofY - 120)));
+      const x0 = Math.round(-30 + k * (this.W + 60));
+      const flap = Math.floor(t * 4) % 2;
+      for (let i = 0; i < 7; i++) {
+        const bx = x0 - Math.abs(i - 3) * 6;
+        const by = y0 + Math.abs(i - 3) * 2; // клин
+        g.fillStyle = '#2a2a34';
+        g.fillRect(bx - 1, by - flap, 1, 1);
+        g.fillRect(bx, by, 1, 1);
+        g.fillRect(bx + 1, by - flap, 1, 1);
+      }
+    }
+    if (day < 0.5) {
+      // самолёт: красный и белый огни мигают, медленно ползёт по небу
+      const period = 70;
+      const k = (t % period) / period;
+      const cycle = Math.floor(t / period);
+      const x = Math.round(this.W + 20 - k * (this.W + 40));
+      const y = Math.round(40 + ((cycle * 53) % Math.max(40, L.roofY - 120)));
+      if (Math.floor(t * 1.5) % 2) {
+        g.fillStyle = '#ff4a3a';
+        g.fillRect(x, y, 1, 1);
+      }
+      if (Math.floor(t * 1.5 + 0.5) % 3 === 0) {
+        g.fillStyle = '#ffffff';
+        g.fillRect(x + 3, y, 1, 1);
+      }
     }
   }
 

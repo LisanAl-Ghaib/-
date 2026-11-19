@@ -38,8 +38,9 @@ export class Camera {
     return Math.max(1, this.viewH - this.insetBottom);
   }
 
+  /** Меньше нельзя: экран всегда целиком внутри мира — краёв мира не видно */
   minZoom(): number {
-    return Math.max(1, Math.floor(Math.min(this.viewW / this.worldW, this.viewH / this.worldH)));
+    return Math.max(1, Math.ceil(Math.max(this.viewW / this.worldW, this.visH / this.worldH)));
   }
 
   maxZoom(): number {
@@ -81,6 +82,7 @@ export class Camera {
   }
 
   clampCenter() {
+    if (!this.anim && this.zoom < this.minZoom()) this.zoom = this.zoomF = this.minZoom();
     const halfW = this.viewW / 2 / this.zoom;
     const halfH = this.visH / 2 / this.zoom;
     this.cx = this.worldW <= halfW * 2 ? this.worldW / 2 : clamp(this.cx, halfW, this.worldW - halfW);

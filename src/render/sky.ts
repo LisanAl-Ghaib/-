@@ -48,9 +48,9 @@ export interface Star {
   b: number;
 }
 
-export function makeStars(w: number, h: number, seed = 'stars'): Star[] {
+export function makeStars(w: number, h: number, seed = 'stars', n = 90): Star[] {
   const rng = Rng.fromSeed(seed);
-  return Array.from({ length: 90 }, () => ({ x: rng.int(0, w - 1), y: rng.int(0, Math.floor(h * 0.75)), b: rng.range(0.3, 1) }));
+  return Array.from({ length: n }, () => ({ x: rng.int(0, w - 1), y: rng.int(0, Math.floor(h * 0.85)), b: rng.range(0.3, 1) }));
 }
 
 export function drawStars(g: CanvasRenderingContext2D, stars: Star[], visibility: number, twinkleT: number): void {
@@ -65,7 +65,8 @@ export function drawStars(g: CanvasRenderingContext2D, stars: Star[], visibility
 
 export function drawSunMoon(g: CanvasRenderingContext2D, c: CalendarInfo, w: number, horizonY: number, overcast: number): void {
   const alt = sunAltitude(c);
-  const arcH = horizonY - 14;
+  // дуга не выше, чем видно над домом
+  const arcH = Math.min(horizonY - 14, 260);
   // солнце
   if (alt > -4) {
     const t = clamp01((c.hourOfDay - 5) / 15);

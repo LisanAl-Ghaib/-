@@ -306,3 +306,25 @@ describe('Павел Муров (настоящий дом)', () => {
     expect(Object.keys(sim.state.pets).some((id) => id.startsWith('pavel'))).toBe(false); // рыбка живёт в аквариуме
   }, 60_000);
 });
+
+describe('сохранение со старой геометрией', () => {
+  it('небо стало выше — люди, гости, мастера и лифт сдвигаются на свои полы', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const { Simulation: Sim } = await import('../src/sim/simulation');
+    const { createWorldState: create } = await import('../src/sim/state');
+    const d = build(loadRawDataNode()).defs!;
+    const a = new Sim(d, create(d, 4));
+    for (let i = 0; i < 3000; i++) a.step();
+    const st = JSON.parse(JSON.stringify(a.state));
+    // как будто сохранено при прежней геометрии: всё на 324 пикселя выше, groundY не записан
+    const old = 324;
+    delete st.groundY;
+    for (const r of Object.values(st.residents) as { y: number }[]) r.y -= old;
+    for (const w of st.workers as { y: number }[]) w.y -= old;
+    st.elevator.y -= old;
+    const b = new Sim(d, st);
+    for (const id of Object.keys(a.state.residents)) expect(b.state.residents[id].y).toBeCloseTo(a.state.residents[id].y, 5);
+    expect(b.state.elevator.y).toBeCloseTo(a.state.elevator.y, 5);
+    expect(b.state.groundY).toBe(d.layout.groundY);
+  });
+});

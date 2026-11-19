@@ -65,6 +65,7 @@ export class Simulation {
     state.pendingChronicle ??= [];
     state.visitors ??= [];
     state.workers ??= [];
+    shiftGeometry(state, defs);
     for (const r of Object.values(state.residents)) {
       r.needs.bladder ??= 70;
       r.dressed ??= false;
@@ -446,4 +447,42 @@ export class Simulation {
   run(steps: number): void {
     for (let i = 0; i < steps; i++) this.step();
   }
+}
+
+/**
+ * Геометрия мира поменялась (выше небо, глубже земля, вырос этаж) — все вертикальные координаты
+ * в сохранении сдвигаются, чтобы люди остались на своих полах, а не висели в воздухе.
+ * Старые сохранения без groundY: сдвиг узнаём по стоящему лифту (его пол — пол этажа).
+ */
+function shiftGeometry(state: WorldState, defs: WorldDefs): void {
+  const L = defs.layout;
+  let dy = 0;
+  if (state.groundY !== undefined) dy = L.groundY - state.groundY;
+  else {
+    const e = state.elevator;
+    if (e && e.target === null && e.level <= L.floors) dy = L.floorY(e.level) - e.y;
+    else {
+      // лифт был в пути — по тому, кто спокойно стоит у себя на полу
+      const r = Object.values(state.residents).find((x) => !x.away && x.pose === 'stand' && x.path.length === 0);
+      if (r) dy = L.floorY(r.level) - r.y;
+    }
+  }
+  state.groundY = L.groundY;
+  if (!dy) return;
+  const shiftPath = (path: { y?: number }[]) => {
+    for (const st of path) if (typeof st.y === 'number') st.y += dy;
+  };
+  for (const r of Object.values(state.residents)) {
+    r.y += dy;
+    shiftPath(r.path as { y?: number }[]);
+  }
+  for (const v of state.visitors ?? []) {
+    v.y += dy;
+    shiftPath(v.path as { y?: number }[]);
+  }
+  for (const w of state.workers ?? []) {
+    w.y += dy;
+    shiftPath(w.path as { y?: number }[]);
+  }
+  state.elevator.y += dy;
 }

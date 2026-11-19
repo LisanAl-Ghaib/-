@@ -7,9 +7,9 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 /** версии сохранений, которые можно дополнить до текущей (недостающие поля заполнит Simulation) */
-export const MIGRATABLE_VERSIONS = [7, 8, 9, 10];
+export const MIGRATABLE_VERSIONS = [7, 8, 9, 10, 11];
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -287,6 +287,8 @@ export interface WorldState {
   workers: WorkerState[];
   /** стройка нового этажа (null — нет) */
   construction?: ConstructionState | null;
+  /** где была земля в мире, когда сохраняли: если геометрия дома изменилась — координаты сдвигаются */
+  groundY?: number;
   /** еда в мисках по квартирам */
   petFood: Record<string, number>;
   /** записи хроники, которые станут заметны позже (болезнь видно днём, а не в 4 утра) */

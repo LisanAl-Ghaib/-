@@ -14,11 +14,11 @@ export const INNER_WALL = 2;
 export const ALLEY_W = 48;
 /** двор справа от дома */
 export const YARD_W = 256;
-/** небо над крышей */
-export const SKY_MARGIN = 56;
+/** небо над крышей (с запасом: на любом экране видно небо, а не край мира) */
+export const SKY_MARGIN = 380;
 export const ROOF_H = 16;
-/** земля под уровнем улицы */
-export const GROUND_H = 24;
+/** земля под уровнем улицы: разрез грунта, трубы, корни, подвал */
+export const GROUND_H = 200;
 
 /** шаг симуляции, игровых секунд */
 export const DT = 10;
