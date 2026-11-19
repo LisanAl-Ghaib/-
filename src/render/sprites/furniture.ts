@@ -358,8 +358,17 @@ const drawers: Record<string, Drawer> = {
     R(c, 1, 0, w - 2, 1, shade(main, 0.2));
     R(c, 0, 1, w, 5, main);
     R(c, 1, 6, w - 2, 1, '#ffe7a8');
-    R(c, w / 2, 6, 1, h - 7, '#555');
+    R(c, Math.floor(w / 2), 6, 1, h - 7, '#555');
     R(c, 1, h - 1, w - 2, 1, '#444');
+  },
+  table_lamp(c) {
+    // настольная лампа: абажур, ножка, подставка
+    const { w, h, main } = c;
+    R(c, 1, 0, w - 2, 1, shade(main, 0.2));
+    R(c, 0, 1, w, 3, main);
+    R(c, 0, 4, w, 1, '#ffe7a8');
+    R(c, Math.floor(w / 2), 4, 1, h - 5, '#6a5a4a');
+    R(c, 1, h - 1, w - 2, 1, '#5a4a3a');
   },
   rug(c) {
     const { w, h, main, pal } = c;

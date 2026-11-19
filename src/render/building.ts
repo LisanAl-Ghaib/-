@@ -1022,6 +1022,10 @@ function drawBalcony(g: CanvasRenderingContext2D, gf: CanvasRenderingContext2D, 
   rect(g, wx + 1, fy - 27, OUTER_WALL - 2, 14, '#9ccbe0');
   rect(g, wx + 1, fy - 25, 1, 5, '#e4f4fb');
   rect(g, wx + 1, fy - 12, OUTER_WALL - 2, 11, '#d8d2c4');
+  // фонарь на стене у балконной двери
+  const lx = left ? L.buildingX0 - 2 : L.buildingX1 + 1;
+  rect(g, left ? lx + 1 : lx - 1, fy - 32, 1, 2, '#5a5a62'); // кронштейн
+  rect(g, lx, fy - 31, 1, 3, '#e8e2c8'); // плафон
   // задняя стенка экрана балкона (видна сквозь перила)
   rect(g, b.x0, fy - 12, w, 1, shade(PANEL, -0.1));
   // вещи на балконе

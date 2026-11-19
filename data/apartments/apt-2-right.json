@@ -32,6 +32,7 @@
     ] },
     { "type": "living", "name": "комната", "width": 8, "furniture": [
       { "item": "bed_double", "x": 1 },
+      { "item": "sconce", "x": 26, "elevation": 30 },
       { "item": "couple_photo", "x": 10 },
       { "item": "gaming_desk", "x": 34, "owner": "ivan-muravyev" },
       { "item": "laptop_desk", "x": 63, "owner": "snezhana-galimova" },

@@ -22,6 +22,7 @@ import { generatePetSheet, PET_FRAME, PET_H, PET_W } from './sprites/pet';
 import { kidAppearance, nightHeadphones, outfitOfDay, visitorAppearance, withOutfitVariant, withStreet } from './visitorLook';
 import { animatePose, smokePhase, type AnimEnv, type Pose } from './animation';
 import { placeOf } from './anim/place';
+import { balconyLampOn, balconyLampPos, lampInstead, lampOn, lampsOf } from './lamps';
 import { cigaretteTip, drawCover, drawProp, eyesOf } from './props';
 import type { FurnitureInstance } from '../world/layout';
 import { partnerOf } from '../sim/couple';
@@ -1401,6 +1402,8 @@ export class Renderer {
       if (r.action?.id === 'sleep' && r.action.phase === 'perform') continue;
       // уединились — свет погашен
       if (r.action?.id === 'together' && r.action.data.kind === 'intimacy') continue;
+      // кто-то спит, а этот сидит под лампой — горит только лампа
+      if (lampInstead(this.sim, apt, roomIndex, r)) continue;
       // играет ночью, рядом кто-то спит — сидит без света, только монитор
       if (r.action?.id === 'gaming' && r.action.phase === 'perform' && Object.values(this.sim.state.residents).some((o) => o !== r && o.level === r.level && o.x >= room.x0 && o.x < room.x1 && o.action?.id === 'sleep')) continue;
       return true;
@@ -1422,6 +1425,7 @@ export class Renderer {
       lg.fillRect(x, y, w, h);
     };
     const lit: [number, number, number, number][] = [];
+    const litRooms = new Set<string>();
     const conLevel = this.conView()?.level;
     for (const apt of L.apartments) {
       if (apt.level === conLevel) continue; // стройка — под открытым небом
@@ -1432,7 +1436,10 @@ export class Renderer {
         const shut = this.curtainsClosed(apt, room.index) ? 0.32 : 0; // задёрнуто — полумрак
         const a = on ? 0.04 : apt.vacant ? 0.18 + overcastDim + (1 - day) * 0.7 : 0.1 + shut + overcastDim * 1.5 + (1 - day) * 0.74;
         region(room.x0, lt, room.x1 - room.x0, fy - lt + 2, Math.min(0.88, a));
-        if (on) lit.push([room.x0, lt, room.x1 - room.x0, fy - lt]);
+        if (on) {
+          lit.push([room.x0, lt, room.x1 - room.x0, fy - lt]);
+          litRooms.add(`${apt.id}:${room.index}`);
+        }
       }
     }
     // подъезд: лампы горят всю ночь (тускло)
@@ -1446,6 +1453,32 @@ export class Renderer {
         region(L.coreX + CORE_W, lt, L.buildingX1 - L.coreX - CORE_W - 4, fy - lt + 2, 0.08 + (1 - day) * 0.34);
       }
     }
+    // светильники: тёплое пятно вокруг лампы (в тёмной комнате — только оно)
+    const evening = day * (1 - this.env.overcast * 0.4) <= 0.6;
+    const lamps = lampsOf(this.defs).filter((l) => l.apt.level !== conLevel && lampOn(this.sim, l, evening));
+    const balconyLamps = evening ? L.apartments.filter((a) => a.level !== conLevel && balconyLampOn(this.sim, a, evening)).map((a) => balconyLampPos(defs, a)!) : [];
+    lg.globalCompositeOperation = 'destination-out';
+    for (const l of lamps) {
+      if (litRooms.has(`${l.apt.id}:${l.room.index}`)) continue;
+      const lt = L.levelTop(l.apt.level);
+      lg.save();
+      lg.beginPath();
+      lg.rect(l.room.x0, lt, l.room.x1 - l.room.x0, L.floorY(l.apt.level) - lt + 2);
+      lg.clip();
+      for (let i = 3; i >= 1; i--) {
+        lg.globalAlpha = 0.3;
+        disc(lg, l.x, l.y + 4, Math.round((l.r * i) / 3), '#000');
+      }
+      lg.restore();
+    }
+    for (const [x, y] of balconyLamps) {
+      for (let i = 3; i >= 1; i--) {
+        lg.globalAlpha = 0.28;
+        disc(lg, x, y + 8, Math.round((16 * i) / 3), '#000');
+      }
+    }
+    lg.globalAlpha = 1;
+    lg.globalCompositeOperation = 'source-over';
     // фонари
     if (day < 0.5) {
       const k = 1 - day * 2;
@@ -1475,6 +1508,28 @@ export class Renderer {
         rect(this.wg, lx - 2, y + 7, 5, 1, '#fff2c0');
       }
     }
+    // тёплый круг от ламп и горящие лампочки
+    const wg = this.wg;
+    for (const l of lamps) {
+      const lt = L.levelTop(l.apt.level);
+      wg.save();
+      wg.beginPath();
+      wg.rect(l.room.x0, lt, l.room.x1 - l.room.x0, L.floorY(l.apt.level) - lt);
+      wg.clip();
+      wg.globalAlpha = 0.1;
+      disc(wg, l.x, l.y + 4, l.r, '#ffb860');
+      wg.globalAlpha = 0.12;
+      disc(wg, l.x, l.y + 2, Math.round(l.r / 2), '#ffd890');
+      wg.restore();
+      rect(wg, l.x - 1, l.y, 3, 1, '#fff2c0');
+    }
+    for (const [x, y] of balconyLamps) {
+      wg.globalAlpha = 0.12;
+      disc(wg, x, y + 8, 16, '#ffd080');
+      wg.globalAlpha = 1;
+      rect(wg, x, y + 1, 1, 2, '#fff6d0');
+    }
+    wg.globalAlpha = 1;
   }
 
   private blit() {

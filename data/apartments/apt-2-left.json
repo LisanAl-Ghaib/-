@@ -11,11 +11,13 @@
   "rooms": [
     { "type": "bedroom", "name": "комната", "width": 5, "furniture": [
       { "item": "bed_single", "x": 1 },
+      { "item": "sconce", "x": 14, "elevation": 28 },
       { "item": "computer_desk", "x": 28 },
       { "item": "aquarium", "x": 60 }
     ] },
     { "type": "living", "name": "зал", "width": 4, "furniture": [
       { "item": "recliner", "x": 6 },
+      { "item": "floor_lamp", "x": 25 },
       { "item": "ashtray", "x": 30 },
       { "item": "tv_stand", "x": 40, "channel": "series" }
     ] },

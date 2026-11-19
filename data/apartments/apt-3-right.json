@@ -32,6 +32,7 @@
       { "item": "bed_single", "x": 17 },
       { "item": "wall_shelf", "x": 20, "elevation": 34 },
       { "item": "armchair", "x": 42 },
+      { "item": "sconce", "x": 46, "elevation": 28 },
       { "item": "books_stack", "x": 52 },
       { "item": "desk", "x": 58, "owner": "claude-opusov" },
       { "item": "laptop", "x": 64, "elevation": 12 },
