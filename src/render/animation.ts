@@ -49,6 +49,8 @@ export interface AnimEnv {
   pullup?: boolean;
   /** развалился в кресле-реклайнере */
   recline?: boolean;
+  /** переговаривается с тем, кто рядом (пара в одной комнате) */
+  chatter?: boolean;
 }
 
 type Orient = 'front' | 'side' | 'back';
@@ -242,7 +244,7 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
   const id = a?.phase === 'perform' ? (a.id === 'together' ? `together:${a.data.kind}` : a.id) : '';
   const seg = Math.floor((tGame / 60 + (h % 13)) / SEG_MIN);
   const pick = <T,>(list: T[]) => list[mixHash(seg, h) % list.length];
-  const talking = a?.data.talking === true || r.interaction !== null;
+  const talking = a?.data.talking === true || r.interaction !== null || !!env.chatter;
   // мелкие движения: окно ~2.6 с, активная часть — первые ~1.1 с
   // непоседы (активные) ёрзают и оглядываются чаще
   const P = def.traits.activity === 'active' ? 1700 : def.traits.activity === 'lazy' ? 3400 : 2600;
@@ -280,7 +282,12 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
     const dx = (mixHash(seg, h ^ 0x33) % 3) - 1; // поёрзал
     if (id === 'sleep' || id === 'nap') return { frame: SIT_FRAMES[base].slouch!, bob: breathe };
     if (id === 'fitness') return { frame: FRAME.sit, bob: Math.floor(nowMs / 250) % 2 };
-    if (env.recline && (id === 'watch_tv' || id === 'idle' || id === 'eat' || id === 'night_watch' || id === 'read')) {
+    if (env.recline && id === 'night_watch') {
+      // не спится: сидит в кресле с телефоном, качает головой в такт музыке в наушниках
+      const beat = Math.floor((nowMs + h) / 520) % 2;
+      return { frame: micro === 2 ? FRAME.sitArmUp : FRAME.sitArm, prop: { kind: 'phone', at: 'hands' }, bob: beat, blink };
+    }
+    if (env.recline && (id === 'watch_tv' || id === 'idle' || id === 'eat' || id === 'read')) {
       // развалился в реклайнере: откинулся, иногда тянется к пульту или подносит ко рту
       const k = mixHash(seg, h) % 5;
       const frame = k === 3 ? FRAME.sitArmUp : k === 4 ? FRAME.sitArm : FRAME.sitLean;

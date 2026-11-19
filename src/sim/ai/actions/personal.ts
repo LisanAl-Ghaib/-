@@ -74,12 +74,12 @@ export const smokeWindow: ActionDef = {
     if (!spot) return null;
     const night = ctx.cal.hourOfDay >= 22 || ctx.cal.hourOfDay < 6;
     const since = ctx.now - Math.max(r.recent.smoke_window ?? -1e9, r.recent.smoke ?? -1e9);
-    const crave = Math.min(1.6, since / (2 * 3600)); // давно не курил — тянет
+    const crave = Math.min(1.8, since / (heavy(h) ? 2700 : 2 * 3600)); // давно не курил — тянет
     // после кошмара — сразу к окну (если с тех пор ещё не курил)
     const afterNightmare = r.recent.nightmare !== undefined && ctx.now - r.recent.nightmare < 15 * 60 && since > ctx.now - r.recent.nightmare;
     return {
       // днём, если погода не совсем дрянь, примерно через раз выходит к подъезду
-      score: (1 + h * 4 + (night ? 2 : 0) + (woke ? 3 : 0)) * crave * (!night && ctx.sim.outdoorAppeal(ctx.def) > 0.2 ? 0.55 : 1) + (afterNightmare ? 14 : 0),
+      score: (1 + h * 4 + (night ? 2 : 0) + (woke ? 3 : 0)) * crave * (!night && ctx.sim.outdoorAppeal(ctx.def) > 0.2 ? 0.42 : 1) + (afterNightmare ? 14 : 0),
       target: spot,
       duration: ctx.sim.rng.int(5, 9) * 60,
       label: 'курит в окно',
@@ -215,3 +215,8 @@ export const nightWatch: ActionDef = {
     gain(ctx.r, 'energy', 1, dt);
   },
 };
+
+/** Заядлый курильщик: тянет каждые ~45 минут */
+function heavy(h: number): boolean {
+  return h >= 0.9;
+}

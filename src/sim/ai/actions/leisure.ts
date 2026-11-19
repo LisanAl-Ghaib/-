@@ -12,6 +12,8 @@ interface LeisureSpec {
   habit?: HabitKind;
   /** без привычки не делает вовсе */
   requiresHabit?: boolean;
+  /** или можно и без привычки, если есть условие (книги дома) */
+  orIf?: (ctx: AgentCtx) => boolean;
   base: number;
   label: (ctx: AgentCtx) => string;
   rates: { mood?: number; social?: number; energy?: number };
@@ -30,7 +32,7 @@ function leisure(s: LeisureSpec): ActionDef {
       const { r } = ctx;
       if (sleepTime(ctx) || minutesToLeave(ctx) < 25) return null;
       const h = s.habit ? habit(ctx, s.habit) : 0;
-      if (s.requiresHabit && h <= 0) return null;
+      if (s.requiresHabit && h <= 0 && !s.orIf?.(ctx)) return null;
       let target;
       if (s.use) {
         let spot = homeSlot(ctx, s.use, s.rooms);
@@ -77,7 +79,8 @@ export const watchTv = leisure({
 });
 
 export const read = leisure({
-  id: 'read', icon: 'book', use: 'read', rooms: ['living', 'bedroom', 'study', 'studio'], habit: 'reading', requiresHabit: true,
+  // читают те, кто любит читать, а почитать может любой, у кого дома есть книги
+  id: 'read', icon: 'book', use: 'read', rooms: ['living', 'bedroom', 'study', 'studio'], habit: 'reading', requiresHabit: true, orIf: hasBooks,
   base: 1.4, label: () => 'читает', rates: { mood: 6 }, minutes: [25, 80], cooldown: 3 * 3600, bonus: beforeBed,
 });
 
@@ -218,3 +221,8 @@ export const tea = leisure({
     return (h >= 7 && h < 10) || (h >= 15.5 && h < 17.5) ? 1.8 : 0;
   },
 });
+
+/** Дома есть книги: стеллаж, стопка, полка с книгами */
+export function hasBooks(ctx: AgentCtx): boolean {
+  return ctx.home.rooms.some((r) => r.furniture.some((f) => f.def.draw === 'bookshelf' || f.def.draw === 'books_stack' || f.def.draw === 'wall_shelf'));
+}

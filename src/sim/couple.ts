@@ -14,7 +14,7 @@ import type { Simulation } from './simulation';
  * уединяются перед сном (свет гаснет, больше ничего не видно), дарят друг другу подарки.
  * Оба получают действие `together` с одним и тем же `kind` и ссылкой друг на друга.
  */
-export type TogetherKind = 'walk' | 'film' | 'chess' | 'help_cook' | 'intimacy' | 'gift';
+export type TogetherKind = 'walk' | 'film' | 'chess' | 'help_cook' | 'intimacy' | 'gift' | 'talk';
 
 const LABEL: Record<TogetherKind, string> = {
   walk: 'гуляют вдвоём',
@@ -23,6 +23,7 @@ const LABEL: Record<TogetherKind, string> = {
   help_cook: 'помогает готовить',
   intimacy: 'уединились',
   gift: 'подарок',
+  talk: 'болтают',
 };
 
 /** Чего не прерывают ради времени вдвоём (всё остальное — можно) */
@@ -153,7 +154,7 @@ function start(sim: Simulation, a: string, b: string, p: Plan2): void {
       label: LABEL[p.kind],
       via: p.via,
       interruptible: p.kind !== 'gift' && p.kind !== 'intimacy',
-      data: { kind: p.kind, with: other, lead: i === 0, talking: p.kind === 'gift' || p.kind === 'help_cook', out: p.kind === 'walk', ...(i === 0 ? p.extra ?? {} : {}) },
+      data: { kind: p.kind, with: other, lead: i === 0, talking: p.kind === 'gift' || p.kind === 'help_cook' || p.kind === 'talk', out: p.kind === 'walk', ...(i === 0 ? p.extra ?? {} : {}) },
     });
   });
   // начали в одну секунду — пусть и закончат вместе
@@ -348,8 +349,30 @@ export function planTogether(sim: Simulation): void {
         },
       });
     }
+    // просто поболтать — чаще всего: в одной комнате почти всегда, из разных — один подойдёт к другому
+    if (toBed > 20 && leave > 30) {
+      const same = ca.home === cb.home && sim.defs.layout.roomAt(ca.home, ra.x).index === sim.defs.layout.roomAt(cb.home, rb.x).index;
+      opts.push({
+        w: same ? 14 : 5,
+        go: () => {
+          // тот, кто сидит (или кто первый), остаётся на месте; второй подходит
+          const [stay, come] = rb.pose === 'sit' && ra.pose !== 'sit' ? [rb, ra] : [ra, rb];
+          const stayTarget = stay.action?.target.slot && stay.pose === 'sit'
+            ? { level: stay.level, x: stay.x, slot: stay.action.target.slot }
+            : { level: stay.level, x: Math.round(stay.x) };
+          const room = sim.defs.layout.roomAt(ca.home, stay.x);
+          // присесть рядом, если есть свободное место поблизости, иначе встать рядом
+          const seat = ca.home.slots.find((sl) => sl.roomIndex === room.index && (sl.use.includes('sit') || sl.use.includes('eat')) && sl.pose === 'sit' && sl.key !== stayTarget.slot && Math.abs(sl.x - stay.x) < 30 && sim.isSlotFree(sl.key, come.id));
+          const side = stay.x - room.x0 > 14 ? -1 : 1;
+          const comeTarget = seat ? { level: stay.level, x: seat.x, slot: seat.key } : { level: stay.level, x: Math.round(Math.max(room.x0 + 4, Math.min(room.x1 - 4, stay.x + side * 9))) };
+          const ids: [string, string] = stay === ra ? [a, b] : [b, a];
+          start(sim, ids[0], ids[1], { kind: 'talk', minutes: sim.rng.int(12, 40), targets: [stayTarget, comeTarget] });
+          return true;
+        },
+      });
+    }
     const total = opts.reduce((x, o) => x + o.w, 0);
-    if (!total || !sim.rng.chance(Math.min(0.6, total * 0.035))) continue;
+    if (!total || !sim.rng.chance(Math.min(0.75, total * 0.035))) continue;
     const choice = sim.rng.weighted(opts, (o) => o.w);
     choice?.go();
   }

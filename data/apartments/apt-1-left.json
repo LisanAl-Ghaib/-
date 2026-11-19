@@ -15,6 +15,7 @@
       { "item": "bed_single", "x": 2, "flip": true },
       { "item": "embroidery", "x": 28, "elevation": 32 },
       { "item": "nightstand", "x": 28 },
+      { "item": "books_stack", "x": 29, "elevation": 9 },
       { "item": "armchair", "x": 38 },
       { "item": "embroidery_basket", "x": 53 },
       { "item": "tv_old", "x": 64, "alwaysOn": true, "channel": "news" },

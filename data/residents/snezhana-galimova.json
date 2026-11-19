@@ -31,7 +31,7 @@
     { "kind": "jogging", "strength": 0.4, "note": "спорт" },
     { "kind": "fitness", "strength": 0.6, "note": "спорт" },
     { "kind": "cooking", "strength": 0.7, "note": "готовит на двоих, пробует необычные блюда" },
-    { "kind": "reading", "strength": 0.5, "note": "стоицизм" }
+    { "kind": "reading", "strength": 0.65, "note": "периодически читает; стоицизм" }
   ],
   "backstory": "",
   "appearance": {

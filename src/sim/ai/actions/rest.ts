@@ -1,6 +1,6 @@
 import { addMoodlet, gain } from '../../needs';
 import { hasTag, INSOMNIA, NIGHTMARES } from './personal';
-import { gv, homeSlot, minutesToLeave, roomOfType, roomPoint, sleepTime, urgency } from '../helpers';
+import { gv, homeSlot, minutesToBed, minutesToLeave, roomOfType, roomPoint, sleepTime, urgency } from '../helpers';
 import type { ActionDef } from '../types';
 
 /** Ночной сон в своей кровати. Будильник — по распорядку. */
@@ -81,8 +81,10 @@ export const nap: ActionDef = {
   icon: 'zzz',
   plan(ctx) {
     const { r, def } = ctx;
-    if (sleepTime(ctx) || r.needs.energy > 40 || minutesToLeave(ctx) < 90) return null;
-    const spot = homeSlot(ctx, 'nap') ?? homeSlot(ctx, 'sleep');
+    // перед сном не дремлют — ложатся спать по-настоящему
+    if (sleepTime(ctx) || r.needs.energy > 40 || minutesToLeave(ctx) < 90 || minutesToBed(ctx) < 150) return null;
+    // днём прилечь — на кровать (а не уснуть сидя в кресле)
+    const spot = homeSlot(ctx, 'sleep') ?? homeSlot(ctx, 'nap');
     if (!spot) return null;
     const lazy = def.traits.activity === 'lazy' ? 1.5 : 1;
     return {

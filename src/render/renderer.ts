@@ -23,6 +23,7 @@ import { nightHeadphones, outfitOfDay, visitorAppearance, withOutfitVariant, wit
 import { animatePose, type AnimEnv, type Pose } from './animation';
 import { drawProp, eyesOf } from './props';
 import type { FurnitureInstance } from '../world/layout';
+import { partnerOf } from '../sim/couple';
 import { drawScreen, type ScreenKind } from './screens';
 
 /** кадры анфас и со спины — не отражаются по направлению взгляда */
@@ -79,6 +80,9 @@ export class Renderer {
   private trees: TreeShape[];
   private fxRng = Rng.fromSeed('render-fx'); // косметика, не влияет на симуляцию
   private actorBoxes: ActorBox[] = [];
+  /** как нарисован каждый жилец в этом кадре — чтобы ночью дорисовать силуэт перед светящимся */
+  private actorDraws: { sheet: CanvasImageSource; frame: number; x: number; top: number; flip: boolean }[] = [];
+  private silhouetteCanvas: HTMLCanvasElement | null = null;
   private drops: { x: number; y: number; s: number }[] = [];
   readonly W: number;
   readonly H: number;
@@ -594,6 +598,38 @@ export class Renderer {
   private screenDraws: { kind: ScreenKind; x: number; y: number; w: number; h: number; seed: string; channel?: string; apt: ApartmentModel; ri: number }[] = [];
   private tanks: { f: FurnitureInstance; apt: ApartmentModel; ri: number; colors: string[] }[] = [];
 
+  /**
+   * Светящееся (экран, аквариум) рисуется поверх ночного затемнения — значит, и поверх людей.
+   * Кто стоит перед ним, тот после этого дорисовывается тёмным силуэтом: человек на фоне света.
+   */
+  private behindActors(x: number, y: number, w: number, h: number, draw: () => void) {
+    const g = this.wg;
+    draw();
+    const sc = (this.silhouetteCanvas ??= makeCanvas(CELL_W, CELL_H));
+    const sg = sc.getContext('2d')!;
+    for (const d of this.actorDraws) {
+      if (d.x >= x + w || d.x + CELL_W <= x || d.top >= y + h || d.top + CELL_H <= y) continue;
+      sg.globalCompositeOperation = 'source-over';
+      sg.clearRect(0, 0, CELL_W, CELL_H);
+      sg.save();
+      if (d.flip) {
+        sg.translate(CELL_W, 0);
+        sg.scale(-1, 1);
+      }
+      sg.drawImage(d.sheet, d.frame * CELL_W, 0, CELL_W, CELL_H, 0, 0, CELL_W, CELL_H);
+      sg.restore();
+      sg.globalCompositeOperation = 'source-in';
+      sg.fillStyle = '#161a28';
+      sg.fillRect(0, 0, CELL_W, CELL_H);
+      g.save();
+      g.beginPath();
+      g.rect(x, y, w, h);
+      g.clip();
+      g.drawImage(sc, d.x, d.top);
+      g.restore();
+    }
+  }
+
   /** Рыбки в аквариуме */
   private drawFish(f: FurnitureInstance, colors: string[], nowMs: number) {
     const g = this.wg;
@@ -619,17 +655,36 @@ export class Renderer {
     if (day < 0.6) {
       for (const s of this.screenDraws) {
         if (this.roomLit(s.apt, s.ri, day)) continue;
-        g.globalAlpha = 0.9;
-        drawScreen(g, s.kind, s.x, s.y, s.w, s.h, this.sim.time, nowMs, s.seed, s.channel);
-        g.globalAlpha = 1;
+        this.behindActors(s.x, s.y, s.w, s.h, () => {
+          g.globalAlpha = 0.9;
+          drawScreen(g, s.kind, s.x, s.y, s.w, s.h, this.sim.time, nowMs, s.seed, s.channel);
+          g.globalAlpha = 1;
+        });
       }
       for (const t of this.tanks) {
         if (this.roomLit(t.apt, t.ri, day)) continue;
-        g.globalAlpha = 0.55;
-        rect(g, t.f.x + 1, t.f.y - t.f.h + 1, t.f.w - 2, t.f.h - 10, '#4f93b8');
-        g.globalAlpha = 1;
-        this.drawFish(t.f, t.colors, nowMs);
+        // кто стоит перед аквариумом — остаётся перед ним
+        this.behindActors(t.f.x, t.f.y - t.f.h, t.f.w, t.f.h, () => {
+          g.globalAlpha = 0.55;
+          rect(g, t.f.x + 1, t.f.y - t.f.h + 1, t.f.w - 2, t.f.h - 10, '#4f93b8');
+          g.globalAlpha = 1;
+          this.drawFish(t.f, t.colors, nowMs);
+        });
       }
+    }
+    // ночью с телефоном в тёмной комнате: экран светит в лицо
+    if (day < 0.5) for (const r of Object.values(this.sim.state.residents)) {
+      const a = r.action;
+      if (r.away || !a || a.phase !== 'perform' || a.id !== 'night_watch' || r.pose !== 'sit') continue;
+      const apt = this.defs.layout.apartmentAt(r.level, r.x);
+      if (!apt || this.roomLit(apt, this.defs.layout.roomAt(apt, r.x).index, day)) continue;
+      const fx = Math.round(r.x) + (r.facing < 0 ? -5 : 4);
+      const fy = Math.round(r.y) - 13;
+      rect(g, fx, fy, 2, 1, '#9ed8ff');
+      g.globalAlpha = 0.16;
+      rect(g, fx - 2, fy - 5, 4, 5, '#9ed8ff');
+      rect(g, fx - 1, fy - 6, 2, 1, '#9ed8ff');
+      g.globalAlpha = 1;
     }
     // дым и огонёк сигареты
     for (const r of Object.values(this.sim.state.residents)) {
@@ -976,6 +1031,20 @@ export class Renderer {
     if (f && r.pose === 'sit' && /table/.test(f.def.draw) && (a?.id === 'eat' || a?.id === 'tea' || a?.id === 'idle' || a?.id === 'host' || a?.id === 'guest'))
       env.tableBack = hashString(slot!.key) % 2 === 0;
     if (f && /stove|sink|window/.test(f.def.draw)) env.wallWork = true;
+    // пара в одной комнате, каждый занят своим — время от времени перебрасываются словами
+    const pid = partnerOf(this.sim, r.id);
+    const p = pid ? this.sim.state.residents[pid] : undefined;
+    if (p && a?.phase === 'perform' && p.action?.phase === 'perform' && !r.away && !p.away && p.level === r.level && env.faceToX === undefined) {
+      const apt = this.defs.layout.apartmentAt(r.level, r.x);
+      const quiet = (x: ResidentState) => ['sleep', 'nap', 'toilet', 'wash', 'together', 'work', 'side_work'].includes(x.action!.id) && !(x.action!.id === 'side_work' && Math.floor(this.sim.time / 900) % 3 === 0);
+      if (apt && this.defs.layout.roomAt(apt, r.x).index === this.defs.layout.roomAt(apt, p.x).index && !quiet(r) && !quiet(p)) {
+        const win = Math.floor(this.sim.time / 180 + hashString(apt.id)) % 5;
+        if (win !== 0 && win !== 3) {
+          env.faceToX = p.x;
+          env.chatter = true;
+        }
+      }
+    }
     if (f && (f.def.draw === 'piano' || f.def.draw === 'digital_piano')) env.instrument = 'piano';
     if (f?.def.draw === 'eguitar_amp') env.instrument = 'guitar';
     if (f?.def.draw === 'pullup_bar') env.pullup = true;
@@ -1011,6 +1080,7 @@ export class Renderer {
     const list = Object.values(this.sim.state.residents).filter((r) => !r.away);
     list.sort((a, b) => a.y - b.y || a.x - b.x || (a.id < b.id ? -1 : 1));
     this.actorBoxes = [];
+    this.actorDraws = [];
     for (const r of list) {
       const p = prev.get(r.id);
       let x = r.x;
@@ -1064,6 +1134,7 @@ export class Renderer {
         g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, 0, 0, CELL_W, CELL_H);
       } else g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, sx - CELL_W / 2, top, CELL_W, CELL_H);
       g.restore();
+      this.actorDraws.push({ sheet, frame, x: sx - CELL_W / 2, top, flip });
       // запотевшее стекло душевой: силуэт едва угадывается
       if (showerF) {
         g.globalAlpha = 0.5;

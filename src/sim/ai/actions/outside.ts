@@ -98,7 +98,7 @@ export const smoke: ActionDef = {
     const since = ctx.now - Math.max(r.recent.smoke ?? -1e9, r.recent.smoke_window ?? -1e9);
     return {
       // заядлый курильщик выйдет и в непогоду
-      score: (1 + h * 5) * novelty(ctx, 'smoke', 2.5 * 3600) * Math.min(1, since / 3600) * Math.max(h > 0.8 ? 0.75 : 0.4, weather(ctx)) * windowToo + (woke ? 3 : 0),
+      score: (1 + h * 5) * novelty(ctx, 'smoke', h >= 0.9 ? 1.2 * 3600 : 2.5 * 3600) * Math.min(1, since / (h >= 0.9 ? 2400 : 3600)) * Math.max(h > 0.8 ? 0.75 : 0.4, weather(ctx)) * windowToo + (woke ? 3 : 0),
       target: { level: 0, x: L.buildingX1 + 12 + ctx.sim.rng.int(0, 8) },
       duration: ctx.sim.rng.int(6, 10) * 60,
       label: gv(ctx.def, 'курит у подъезда', 'курит у подъезда'),
