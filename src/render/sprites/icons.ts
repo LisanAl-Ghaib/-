@@ -38,6 +38,8 @@ const ICONS: Record<string, IconDef> = {
   // ── значки занятий (в белой плашке)
   cup: { rows: ['.c.c...', '..c.c..', '.......', 'aaaaa..', 'abbbaaa', 'abbba.a', '.aaa.aa'], colors: { a: '#8a5a3a', b: '#c8a070', c: '#b8b8b8' } },
   cig: { rows: ['....c..', '...c...', '....c..', '.......', 'aaaaab.', 'aaaaab.', '.......'], colors: { a: '#e8e4dc', b: '#e8602a', c: '#a0a0a0' } },
+  chalk: { rows: ['aaaaaaa', 'abbbbba', 'abcbcba', 'abbcbba', 'abbbbba', 'aaaaaaa', '.d.....'], colors: { a: '#6a4630', b: '#2f3a33', c: '#e8ece4', d: '#f4f4f0' } },
+  notebook: { rows: ['.aaaaa.', '.abbba.', '.acbca.', '.abbba.', '.acbca.', '.aaaaa.', '.....d.'], colors: { a: '#3a5a7a', b: '#f2efe4', c: '#a8c0d8', d: '#e0b040' } },
   chess: { rows: ['...a...', '..aaa..', '...a...', '..aaa..', '..aaa..', '.aaaaa.', '.aaaaa.'], colors: { a: '#2a2a30' } },
   bed: { rows: ['.......', 'a......', 'abb....', 'accccca', 'aaaaaaa', 'a.....a', '.......'], colors: { a: '#7a5a3a', b: '#f4f2ec', c: '#5a8ac8' } },
   trash: { rows: ['..aaa..', 'aaaaaaa', '.bbbbb.', '.b.b.b.', '.b.b.b.', '.b.b.b.', '.bbbbb.'], colors: { a: '#4a4a52', b: '#6a6a72' } },

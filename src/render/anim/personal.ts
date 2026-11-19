@@ -28,6 +28,8 @@ export interface Personal {
   micro: Micro[];
   /** откуда что взялось (для атласа и проверки) */
   mannerisms: Mannerism[];
+  /** в разговоре: explain — объясняя, рисует руками схемы в воздухе; listen — слушает, наклонив голову */
+  talk: { explain?: boolean; tilt?: boolean };
 }
 
 /** Похожие вещи: заменять можно только внутри пары (то же место в руке) */
@@ -38,6 +40,9 @@ export const SWAPPABLE: Partial<Record<PropKind, PropKind[]>> = {
 
 const CUP = { kind: 'cup', at: 'mouth' } as const;
 const PHONE = { kind: 'phone', at: 'hands' } as const;
+const PENCIL = { kind: 'pencil', at: 'mouth' } as const;
+const NOTEBOOK = { kind: 'notebook', at: 'hands' } as const;
+const BOOK = { kind: 'book', at: 'hands' } as const;
 
 /** Что делает каждая манера (только добавки) */
 const APPLY: Record<Mannerism, (p: Personal) => void> = {
@@ -68,6 +73,29 @@ const APPLY: Record<Mannerism, (p: Personal) => void> = {
     for (const id of ['idle', 'watch_tv', 'bench']) add(p, id, { g: 'hands', prop: PHONE });
   },
   cross_legged: (p) => add(p, '*sit', { g: 'cross', w: 2 }),
+  pencil_tap: (p) => {
+    // думает — постукивает карандашом по подбородку
+    for (const id of ['read', 'work', 'computer', 'side_work', 'chess', 'together:chess', 'circle']) add(p, id, { g: 'handUp', prop: PENCIL, w: 2 });
+  },
+  draws_in_air: (p) => {
+    p.talk.explain = true;
+  },
+  notebook: (p) => {
+    // всё записывает в блокнот
+    for (const id of ['idle', 'bench', 'tea', 'work', 'read']) add(p, id, { g: 'hands', prop: NOTEBOOK });
+  },
+  reads_everywhere: (p) => {
+    for (const id of ['idle', 'bench', 'tea']) add(p, id, { g: 'hands', prop: BOOK, w: 2 });
+    add(p, 'window', { g: 'work', o: 'front', prop: BOOK });
+  },
+  sore_back: (p) => {
+    // спина ноет: потягивается, откидывается
+    p.micro.push('stretch', 'slouch');
+    add(p, '*sit', { g: 'slouch' });
+  },
+  tilts_head: (p) => {
+    p.talk.tilt = true;
+  },
 };
 
 function add(p: Personal, key: string, b: Beat) {
@@ -95,7 +123,7 @@ export function personalOf(def: ResidentDef): Personal {
   let p = cache.get(def);
   if (p) return p;
   const all = [...new Set<Mannerism>([...autoMannerisms(def), ...(def.mannerisms ?? [])])];
-  p = { tempo: 1, fidget: 4, swaps: {}, extra: {}, micro: [], mannerisms: all };
+  p = { tempo: 1, fidget: 4, swaps: {}, extra: {}, micro: [], mannerisms: all, talk: {} };
   for (const m of all) APPLY[m](p);
   p.tempo = Math.min(1.3, Math.max(0.75, p.tempo));
   p.fidget = Math.min(7, Math.max(2, p.fidget));

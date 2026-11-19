@@ -1,0 +1,51 @@
+{
+  "id": "apt-3-right",
+  "floor": 3,
+  "side": "right",
+  "style": "classic",
+  "creaky": true,
+  "description": "Квартира Клода Антроповича: старая, с хорошим, но не новым ремонтом и скрипучим паркетом. Книги везде — стеллажи от пола до потолка, стопки на полу и на столе. Над круглым столом с шахматной доской — большая грифельная доска с формулами, списками дел и рисунками кота. Старое пианино с радио на крышке, письменный стол с ноутбуком у окна во двор. На кухне заварочный чайник и банки с чаями, на подоконнике герань. Кот Токен.",
+  "palette": { "wall": "#d8ccb2", "floor": "#9a6a42", "wood": "#6a4630", "textile": "#4a6a52", "accent": "#b8603a", "metal": "#8a8c8e" },
+  "wallpaper": "stripes",
+  "flooring": "parquet",
+  "rooms": [
+    { "type": "hall", "name": "прихожая", "width": 2, "window": false, "furniture": [
+      { "item": "coat_rack", "x": 1 },
+      { "item": "bookcase_tall", "x": 15 }
+    ] },
+    { "type": "bathroom", "name": "санузел", "width": 2, "window": false, "wallpaper": "tiles", "wall": "#c8d4d0", "furniture": [
+      { "item": "washbasin", "x": 0 },
+      { "item": "toilet", "x": 10 },
+      { "item": "cat_tray", "x": 19 }
+    ] },
+    { "type": "kitchen", "name": "кухня", "width": 3, "wallpaper": "tiles", "wall": "#e2dccb", "furniture": [
+      { "item": "fridge_old", "x": 0 },
+      { "item": "radio", "x": 1, "elevation": 26 },
+      { "item": "stove", "x": 14 },
+      { "item": "geranium", "x": 16 },
+      { "item": "sink_small", "x": 29 },
+      { "item": "tea_set", "x": 34 }
+    ] },
+    { "type": "living", "name": "комната", "width": 9, "furniture": [
+      { "item": "bookcase_tall", "x": 0 },
+      { "item": "bed_single", "x": 17 },
+      { "item": "wall_shelf", "x": 20, "elevation": 34 },
+      { "item": "armchair", "x": 42 },
+      { "item": "books_stack", "x": 52 },
+      { "item": "desk", "x": 58, "owner": "claude-opusov" },
+      { "item": "laptop", "x": 64, "elevation": 12 },
+      { "item": "books_stack", "x": 73, "elevation": 12 },
+      { "item": "chalkboard", "x": 84 },
+      { "item": "cat_bowls", "x": 90 },
+      { "item": "stool", "x": 87 },
+      { "item": "stool", "x": 98 },
+      { "item": "round_table", "x": 81 },
+      { "item": "chessboard", "x": 92, "elevation": 11 },
+      { "item": "piano", "x": 112 },
+      { "item": "radio", "x": 126, "elevation": 19 },
+      { "item": "wall_shelf", "x": 114, "elevation": 36 },
+      { "item": "books_stack", "x": 137 },
+      { "item": "books_stack", "x": 137, "elevation": 6 }
+    ] }
+  ]
+}

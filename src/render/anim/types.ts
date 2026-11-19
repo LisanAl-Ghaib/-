@@ -12,7 +12,8 @@
 export type PropKind =
   | 'phone' | 'cup' | 'book' | 'remote' | 'fork' | 'pen' | 'knitting' | 'guitar'
   | 'spoon' | 'rag' | 'can' | 'sponge' | 'paper' | 'hoop' | 'laptop' | 'headset' | 'eguitar' | 'cigarette'
-  | 'toothbrush' | 'towel' | 'knife' | 'plate' | 'shirt' | 'bag' | 'food';
+  | 'toothbrush' | 'towel' | 'knife' | 'plate' | 'shirt' | 'bag' | 'food'
+  | 'notebook' | 'pencil' | 'chalk' | 'pie';
 
 export type PropAt = 'hands' | 'ear' | 'mouth' | 'fwd' | 'up' | 'low';
 
@@ -49,7 +50,7 @@ export type Place =
   | 'table' | 'desk' | 'seat' | 'recliner'
   | 'stove' | 'sink' | 'fridge'
   | 'window' | 'plant' | 'aquarium' | 'bowls'
-  | 'piano' | 'amp' | 'bar' | 'mat' | 'bike' | 'easel'
+  | 'piano' | 'amp' | 'bar' | 'mat' | 'bike' | 'easel' | 'board'
   | 'outdoor' | 'floor';
 
 /** Что известно об окружении (считает рендер) */

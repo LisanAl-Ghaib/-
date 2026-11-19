@@ -61,8 +61,8 @@ export const BACK_FRAMES = new Set<number>([20, 21, 22, 23]);
 
 /** Пропорции фигуры (для реквизита в руках) */
 export function figureOf(app: ResidentDef['appearance']): { H: number; legLen: number; torsoLen: number } {
-  const H = app.height === 'short' ? 18 : app.height === 'tall' ? 22 : 20;
-  const legLen = H === 18 ? 7 : H === 22 ? 9 : 8;
+  const H = app.height === 'child' ? 16 : app.height === 'short' ? 18 : app.height === 'tall' ? 22 : 20;
+  const legLen = H === 16 ? 6 : H === 18 ? 7 : H === 22 ? 9 : 8;
   return { H, legLen, torsoLen: H - legLen - 6 };
 }
 
@@ -101,9 +101,7 @@ export function generateCharacterSheet(app: Appearance, opts: { coat?: boolean }
     eye: app.eyes ?? '#2a1d1a',
     white: '#f4f1ea',
   };
-  const H = app.height === 'short' ? 18 : app.height === 'tall' ? 22 : 20;
-  const legLen = H === 18 ? 7 : H === 22 ? 9 : 8;
-  const torsoLen = H - legLen - 6;
+  const { H, legLen, torsoLen } = figureOf(app);
   for (let f = 0; f < FRAME_COUNT; f++) {
     g.save();
     g.translate(f * CELL_W, 0);
@@ -122,6 +120,18 @@ export function generateCharacterSheet(app: Appearance, opts: { coat?: boolean }
   };
   shift(FRAME.sitLean, -1, 0);
   shift(FRAME.frontSitSlouch, 0, 1);
+  // немного сутулится: в профиль голова и плечи подаются вперёд, анфас — голова чуть ниже
+  if (app.accessories.includes('stoop')) {
+    const headRows = CELL_H - H + 6;
+    const lean = (frame: number, dx: number, dyy: number) => {
+      const x0 = frame * CELL_W;
+      const tmp = makeCanvas(CELL_W, headRows);
+      tmp.getContext('2d')!.drawImage(canvas, x0, 0, CELL_W, headRows, 0, 0, CELL_W, headRows);
+      g.clearRect(x0, 0, CELL_W, headRows);
+      g.drawImage(tmp, x0 + dx, dyy);
+    };
+    for (const f of [FRAME.stand, FRAME.walk0, FRAME.walk1, FRAME.walk2, FRAME.walk3, FRAME.work, FRAME.workUp, FRAME.sit, FRAME.sitArm, FRAME.sitArmUp]) lean(f, 1, 0);
+  }
   return canvas;
 }
 
@@ -205,7 +215,11 @@ function drawFrame(
       px(g, tw1, ty, 1, 1, coat ? p.top : p.white);
       if (acc.has('tie')) px(g, tw1, ty + 1, 1, 3, app.outfit.tie ?? '#7a1f2b');
     }
-    if (acc.has('scarf') || coat) px(g, C - 2, ty, 5, 1, coat ? shade(p.top, 0.25) : '#b8423a');
+    if (acc.has('scarf') && app.scarfColor) {
+      px(g, C - 2, ty, 5, 1, app.scarfColor); // длинный шарф: конец свисает до пояса
+      px(g, C + 2, ty + 1, 1, torsoLen - 1, app.scarfColor);
+      px(g, C + 2, ty + torsoLen - 1, 1, 1, shade(app.scarfColor, -0.2));
+    } else if (acc.has('scarf') || coat) px(g, C - 2, ty, 5, 1, coat ? shade(p.top, 0.25) : '#b8423a');
     if (acc.has('shawl')) {
       px(g, tw0 - 1, ty, tw1 - tw0 + 3, 3, '#7a3a4a');
       px(g, tw0 - 1, ty + 3, 1, 2, '#7a3a4a');
@@ -262,7 +276,17 @@ function drawFrame(
       px(g, C, hy + 1, 3, 1, shade(p.hair, -0.45)); // сведённые брови
       px(g, C + 2, hy + 4, 1, 1, shade(p.skin, -0.35)); // опущенный уголок рта
     }
+    if (acc.has('glasses_round')) {
+      px(g, C, hy + 2, 1, 1, '#4a3a2a'); // круглая оправа в профиль
+      px(g, C + 2, hy + 2, 1, 1, '#4a3a2a');
+      px(g, C + 1, hy + 1, 1, 1, '#4a3a2a');
+      px(g, C + 1, hy + 3, 1, 1, '#4a3a2a');
+      px(g, C - 1, hy + 2, 1, 1, '#4a3a2a'); // дужка
+    }
+    if (acc.has('smile')) px(g, C + 2, hy + 4, 1, 1, shade(p.skin, -0.4)); // уголок рта приподнят
     drawHairSide(g, app.hair.style, p, y0 + dy);
+    if (acc.has('gray_temples')) px(g, C - 2, hy + 1, 1, 2, '#c8c4bc'); // седина на виске
+    if (acc.has('pencil_ear') && !coat) px(g, C - 1, hy, 1, 3, '#e0b040'); // карандаш за ухом
     drawHeadwearSide(g, acc, y0 + dy, app.hatColor);
     if (acc.has('headphones')) {
       px(g, C - 2, hy - 1, 4, 1, '#2b2b2b');
@@ -328,7 +352,13 @@ function drawFrame(
     px(g, C - 2, ty, 1, 1, p.white);
     px(g, C, ty, 1, 1, p.white);
   }
-  if (acc.has('scarf') || coat) px(g, C - 3, ty, 6, 1, coat ? shade(p.top, 0.25) : '#b8423a');
+  if (acc.has('scarf') && app.scarfColor) {
+    px(g, C - 3, ty, 6, 1, app.scarfColor);
+    if (!back) {
+      px(g, C, ty + 1, 1, torsoLen, app.scarfColor); // концы шарфа поверх пальто
+      px(g, C + 1, ty + 1, 1, torsoLen - 2, shade(app.scarfColor, -0.15));
+    }
+  } else if (acc.has('scarf') || coat) px(g, C - 3, ty, 6, 1, coat ? shade(p.top, 0.25) : '#b8423a');
   if (acc.has('shawl')) {
     px(g, tw0 - 1, ty, tw1 - tw0 + 3, 3, '#7a3a4a');
     px(g, C - 1, ty + 3, 2, 2, '#7a3a4a'); // узел
@@ -400,6 +430,11 @@ function drawFrame(
       px(g, C + 3, hy + 3, 1, 1, '#e8c547');
     }
     drawHairBack(g, app.hair.style, p, y0 + dy);
+    if (acc.has('gray_temples')) {
+      px(g, C - 3, hy + 2, 1, 1, '#c8c4bc');
+      px(g, C + 2, hy + 2, 1, 1, '#c8c4bc');
+    }
+    if (acc.has('pencil_ear') && !coat) px(g, C - 4, hy - 1, 1, 3, '#e0b040');
     drawHeadwearFront(g, acc, y0 + dy, app.hatColor);
     return;
   }
@@ -439,7 +474,27 @@ function drawFrame(
     px(g, C - 4, hy + 3, 1, 1, '#e8c547');
     px(g, C + 3, hy + 3, 1, 1, '#e8c547');
   }
+  if (acc.has('glasses_round')) {
+    // две круглые линзы: ободок ромбиком, глаз внутри
+    const rim = '#4a3a2a';
+    for (const ex of [C - 2, C + 1]) {
+      px(g, ex, hy + 1, 1, 1, rim);
+      px(g, ex - 1, hy + 2, 1, 1, rim);
+      px(g, ex + 1, hy + 2, 1, 1, rim);
+      px(g, ex, hy + 3, 1, 1, rim);
+    }
+  }
+  if (acc.has('smile')) {
+    // улыбается уголком рта
+    px(g, C - 1, hy + 4, 2, 1, shade(p.skin, -0.4));
+    px(g, C + 1, hy + 3, 1, 1, shade(p.skin, -0.4));
+  }
   drawHairFront(g, app.hair.style, p, y0 + dy);
+  if (acc.has('gray_temples')) {
+    px(g, C - 3, hy + 1, 1, 2, '#c8c4bc');
+    px(g, C + 2, hy + 1, 1, 2, '#c8c4bc');
+  }
+  if (acc.has('pencil_ear') && !coat) px(g, C + 3, hy - 1, 1, 3, '#e0b040'); // карандаш за ухом
   drawHeadwearFront(g, acc, y0 + dy, app.hatColor);
   if (acc.has('headphones')) {
     px(g, C - 3, hy - 1, 6, 1, '#2b2b2b');
@@ -458,6 +513,12 @@ function drawHairSide(g: CanvasRenderingContext2D, style: string, p: Pal, y0: nu
   switch (style) {
     case 'short':
       top();
+      break;
+    case 'tousled':
+      top();
+      px(g, C - 1, y0 - 1, 1, 1, p.hair); // торчащие пряди
+      px(g, C + 1, y0 - 1, 1, 1, p.hairS);
+      px(g, C + 3, hy, 1, 1, p.hair); // чёлка вперёд
       break;
     case 'buzz':
       px(g, C - 2, hy, 5, 1, p.hairS);
@@ -534,6 +595,13 @@ function drawHairFront(g: CanvasRenderingContext2D, style: string, p: Pal, y0: n
     case 'short':
       top();
       break;
+    case 'tousled':
+      top();
+      px(g, C - 2, y0 - 1, 1, 1, p.hair); // торчащие пряди
+      px(g, C, y0 - 1, 1, 1, p.hairS);
+      px(g, C + 2, y0 - 1, 1, 1, p.hair);
+      px(g, C - 1, hy + 1, 1, 1, p.hair); // прядь на лоб
+      break;
     case 'buzz':
       px(g, C - 3, hy, 6, 1, p.hairS);
       break;
@@ -606,6 +674,11 @@ function drawHairBack(g: CanvasRenderingContext2D, style: string, p: Pal, y0: nu
     px(g, C - 1, hy + 1, 2, 1, p.hairS);
   };
   switch (style) {
+    case 'tousled':
+      crown();
+      px(g, C - 2, y0 - 1, 1, 1, p.hair);
+      px(g, C + 1, y0 - 1, 1, 1, p.hairS);
+      break;
     case 'buzz':
       px(g, C - 3, hy, 6, 3, p.hairS);
       break;

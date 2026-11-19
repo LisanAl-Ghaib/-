@@ -6,6 +6,7 @@ import { chronicle } from './chronicle/chronicle';
 import { addMoodlet } from './needs';
 import type { Step } from '../world/navigation';
 import type { VisitorState } from './state';
+import { seatKid } from './circle';
 
 export interface Walker {
   id: string;
@@ -24,15 +25,29 @@ import type { Simulation } from './simulation';
  * Приезжают на автобусе, идут к хозяину, сидят несколько часов и уезжают.
  */
 
+/** Праздники, на которые приезжает родня (месяц-день) */
+const HOLIDAYS = new Set(['01-01', '01-02', '01-07', '02-23', '03-08', '05-01', '05-09', '06-12', '11-04', '12-31']);
+
+export function isHoliday(sim: Simulation, who?: string): boolean {
+  const cal = sim.calendar();
+  const md = `${String(cal.month).padStart(2, '0')}-${String(cal.day).padStart(2, '0')}`;
+  if (HOLIDAYS.has(md)) return true;
+  const def = who ? sim.defs.residentById.get(who) : undefined;
+  return !!def && def.birthday.slice(5) === md;
+}
+
 /** Раз в сутки: не пора ли кому-то приехать */
 export function scheduleVisits(sim: Simulation, who: string): void {
   const def = sim.defs.residentById.get(who)!;
   const cal = sim.calendar();
   def.contacts.forEach((c, idx) => {
-    if (!c.visitEveryDays) return;
+    if (!c.visitEveryDays && !c.holidays) return;
     if (sim.state.visitors.some((v) => v.owner === who && v.contact === idx && v.phase !== 'gone')) return;
     const weekend = cal.weekday >= 6 ? 2.2 : 0.7;
-    if (!sim.rng.chance(Math.min(0.9, weekend / c.visitEveryDays))) return;
+    // «приезжает на праздники» — почти наверняка в праздник
+    const holiday = c.holidays && isHoliday(sim, who);
+    const p = holiday ? 0.8 : c.visitEveryDays ? Math.min(0.9, weekend / c.visitEveryDays) : 0;
+    if (!sim.rng.chance(p)) return;
     const start = sim.time + sim.rng.int(8 * 60, 12 * 60) * 60; // планирование в 4 утра → приедет с 12 до 16
     sim.state.visitors.push({
       id: `vis${sim.state.nextId++}`, owner: who, contact: idx, phase: 'scheduled', startAt: start, until: 0,
@@ -145,13 +160,27 @@ export function updateVisitors(sim: Simulation, dt: number): void {
         break;
       case 'arriving':
         if (!walk(sim, v, dt)) break;
-        if (hostHome(sim, v)) beginVisit(sim, v);
+        if (v.kid !== undefined && hostHome(sim, v)) beginKid(sim, v);
+        else if (hostHome(sim, v)) beginVisit(sim, v);
         else {
           v.phase = 'waiting';
           v.until = sim.time + 20 * 60;
         }
         break;
       case 'waiting':
+        if (v.kid !== undefined) {
+          if (hostHome(sim, v)) beginKid(sim, v);
+          else if (sim.time >= v.startAt + 40 * 60) {
+            const key = `circle-missed:${v.owner}:${sim.calendar().dayIndex}`;
+            if (!s.flags[key]) {
+              s.flags[key] = sim.time;
+              chronicle(sim, 'circle.missed', [v.owner], 1, {});
+            }
+            v.phase = 'leaving';
+            pathTo(sim, v, { level: 0, x: 0, away: true });
+          }
+          break;
+        }
         if (hostHome(sim, v)) beginVisit(sim, v);
         else if (sim.time >= v.until) {
           chronicle(sim, 'relative.missed', [v.owner], 2, contactData(sim, v));
@@ -168,6 +197,14 @@ export function updateVisitors(sim: Simulation, dt: number): void {
           v.y = sim.defs.layout.floorY(apt.level) - v.seat.dy;
         }
         const late = sim.calendar().hourOfDay >= 21;
+        if (v.kid !== undefined) {
+          if (sim.time >= v.until || !host || host.away) {
+            v.phase = 'leaving';
+            v.seat = null;
+            pathTo(sim, v, { level: 0, x: 0, away: true });
+          }
+          break;
+        }
         if (sim.time >= v.until || late || !host || host.away) endVisit(sim, v);
         break;
       }
@@ -183,7 +220,21 @@ function contactData(sim: Simulation, v: VisitorState) {
   const def = sim.defs.residentById.get(v.owner)!;
   const c = def.contacts[v.contact];
   const seenKey = `seen:${v.owner}:${v.contact}`;
-  return { kind: c.kind, gender: c.gender, age: c.age ?? 40, name: c.name ?? null, first: !sim.state.flags[seenKey] };
+  return {
+    kind: c.kind, gender: c.gender, age: c.age ?? 40, name: c.name ?? null, first: !sim.state.flags[seenKey],
+    laconic: c.tags.some((t) => /немногослов|одной фразой/i.test(t)),
+    short: c.stay === 'short',
+    holiday: c.holidays && isHoliday(sim, v.owner),
+  };
+}
+
+/** Ребёнок пришёл на кружок: сесть к столу */
+function beginKid(sim: Simulation, v: VisitorState): void {
+  const def = sim.defs.residentById.get(v.owner)!;
+  const apt = sim.defs.layout.aptById.get(def.apartment)!;
+  v.phase = 'visiting';
+  seatKid(sim, v);
+  pathTo(sim, v, { level: apt.level, x: v.seat ? v.seat.x : apt.insideX + 14 + (v.kid ?? 0) * 6 });
 }
 
 function beginVisit(sim: Simulation, v: VisitorState): void {
@@ -195,7 +246,8 @@ function beginVisit(sim: Simulation, v: VisitorState): void {
   chronicle(sim, 'relative.arrive', [v.owner], 2, data);
   v.phase = 'visiting';
   v.carrying = false;
-  v.until = sim.time + sim.rng.int(90, 240) * 60;
+  // кто-то гостит полчаса, кто-то — до вечера
+  v.until = sim.time + (def.contacts[v.contact]?.stay === 'short' ? sim.rng.int(25, 60) : sim.rng.int(90, 240)) * 60;
   // хозяйка усаживает гостя: два места рядом (стол на кухне или диван)
   const order = ['kitchen', 'living', 'studio', 'bedroom', 'study'];
   const seats = apt.slots

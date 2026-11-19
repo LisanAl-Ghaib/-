@@ -7,9 +7,9 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 /** версии сохранений, которые можно дополнить до текущей (недостающие поля заполнит Simulation) */
-export const MIGRATABLE_VERSIONS = [7, 8, 9, 10, 11];
+export const MIGRATABLE_VERSIONS = [7, 8, 9, 10, 11, 12];
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -94,7 +94,7 @@ export interface ResidentState {
   /** участвует во взаимодействии (визит, разговор) */
   interaction: number | null;
   /** намерение навестить кого-то (подарок, извинение…) */
-  intents: { target: string; kind: string; until: number }[];
+  intents: { target: string; kind: string; until: number; gift?: string }[];
   /** что несёт в руках — видно на улице и в подъезде */
   carrying: 'bags' | 'trash' | 'gift' | 'flowers' | null;
   /** жест: кивнула, помахала */
@@ -190,7 +190,8 @@ export interface PetState {
 
 /** Жест без слов: кивнул, помахал (видно пару секунд) */
 export interface Gesture {
-  kind: 'wave' | 'nod';
+  /** write — записывает в блокнот (стоя, сидя, на ходу) */
+  kind: 'wave' | 'nod' | 'write';
   until: number;
   /** кому — в его сторону и повернётся */
   toX: number;
@@ -255,6 +256,8 @@ export interface VisitorState {
   /** сидит (в гостях) */
   seat: { x: number; dy: number; front: boolean } | null;
   carrying: boolean;
+  /** ребёнок, пришедший на кружок к хозяину (номер ребёнка; contact = −1) */
+  kid?: number;
 }
 
 export interface WorldState {

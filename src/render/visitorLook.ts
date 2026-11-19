@@ -58,3 +58,19 @@ export function nightHeadphones(def: ResidentDef, r: { action: { id: string; pha
   if (r.pose === 'lie' || (r.action?.id === 'sleep' && r.action.phase === 'perform')) return false;
   return def.traits.tags.some((t) => /ночью .*наушник|в наушниках ночью/i.test(t));
 }
+
+/** Ребёнок из соседнего дома (приходит на кружок): каждую неделю один и тот же — облик от ключа */
+export function kidAppearance(key: string): Appearance {
+  const h = hashString(key);
+  const pick = <T,>(arr: readonly T[], k = 0) => arr[(h >>> k) % arr.length];
+  const girl = h % 2 === 0;
+  return {
+    skin: pick(['#f0cfb4', '#eac1a0', '#e3b896', '#f4d6bc'], 3),
+    hair: { style: girl ? pick(['pigtails', 'ponytail', 'braid', 'bob'] as const, 5) : pick(['short', 'buzz', 'curly'] as const, 5), color: pick(['#3a2a20', '#7a4a2a', '#a8743a', '#d8b070', '#2a2420'], 7) },
+    height: 'child',
+    build: 'slim',
+    outfit: { top: pick(['#d84a4a', '#3a8ad8', '#e8b030', '#4aa860', '#9a5ac8', '#e87a3a'], 9), bottom: pick(['#2d3f6d', '#3a3540', '#5a4a3a', '#4a5a6a'], 11), shoes: '#3a2a20', style: girl ? pick(['casual', 'dress'] as const, 13) : pick(['casual', 'hoodie'] as const, 13), coat: pick(['#c84a3a', '#3a6ab0', '#4a8a4a', '#e8a030'], 15), pattern: 'plain', variants: [], variantChance: 0 },
+    accessories: h % 5 === 0 ? ['glasses'] : [],
+    hatColor: pick(['#c84a3a', '#3a6ab0', '#e8d040'], 17),
+  };
+}

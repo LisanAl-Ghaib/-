@@ -6,6 +6,14 @@ import { loadRawDataNode } from '../src/data/loadNode';
 
 /** тестовый дом с пятью жильцами (tests/fixtures/data) + общий каталог мебели */
 const FIXTURE = (): ReturnType<typeof loadRawDataNode> => loadRawDataNode('tests/fixtures/data', 'data');
+/** настоящий дом до сдачи третьего этажа: стройка идёт, Клода Антроповича ещё нет */
+const beforeClaude = (): ReturnType<typeof loadRawDataNode> => {
+  const raw = loadRawDataNode();
+  (raw.world as { building: { construction: { finished: boolean } } }).building.construction.finished = false;
+  raw.residents = raw.residents.filter((r) => r.file !== 'claude-opusov');
+  raw.apartments = raw.apartments.filter((a) => a.file !== 'apt-3-right');
+  return raw;
+};
 import { Simulation } from '../src/sim/simulation';
 import { createWorldState } from '../src/sim/state';
 
@@ -105,11 +113,11 @@ describe('Ольга Дмитриевна (настоящий дом)', () => {
     const { createWorldState: create } = await import('../src/sim/state');
     const d = build(loadRawDataNode()).defs!;
     const sim = new Sim(d, create(d, 77));
-    expect(Object.keys(sim.state.pets)).toHaveLength(2);
+    expect(Object.keys(sim.state.pets).filter((k) => k.startsWith('olga-shpak:'))).toHaveLength(2);
     const xs = new Set<number>();
     for (let i = 0; i < (150 * 86400) / 10; i++) {
       sim.step();
-      if (i % 360 === 0) xs.add(Math.round(Object.values(sim.state.pets)[0].x));
+      if (i % 360 === 0) xs.add(Math.round(sim.state.pets['olga-shpak:0'].x));
     }
     expect(xs.size).toBeGreaterThan(5); // кошка не стоит на месте
     const kinds = new Set(sim.state.chronicle.map((e) => e.kind));
@@ -125,7 +133,7 @@ describe('быт и мастера (настоящий дом)', () => {
     const { buildDefs: build } = await import('../src/data/defs');
     const { Simulation: Sim } = await import('../src/sim/simulation');
     const { createWorldState: create } = await import('../src/sim/state');
-    const d = build(loadRawDataNode()).defs!;
+    const d = build(beforeClaude()).defs!;
     const sim = new Sim(d, create(d, 5));
     const started: Record<string, number> = {};
     sim.bus.on('action.start', (e) => (started[e.actionId] = (started[e.actionId] ?? 0) + 1));
@@ -163,7 +171,7 @@ describe('старое сохранение', () => {
     const { Simulation: Sim } = await import('../src/sim/simulation');
     const { createWorldState: create, MIGRATABLE_VERSIONS } = await import('../src/sim/state');
     expect(MIGRATABLE_VERSIONS).toContain(7);
-    const d = build(loadRawDataNode()).defs!;
+    const d = build(beforeClaude()).defs!;
     const old = new Sim(d, create(d, 3));
     for (let i = 0; i < 8640; i++) old.step();
     const st = JSON.parse(JSON.stringify(old.state));
@@ -248,7 +256,7 @@ describe('стройка третьего этажа (настоящий дом)
     const { buildDefs: build } = await import('../src/data/defs');
     const { Simulation: Sim } = await import('../src/sim/simulation');
     const { createWorldState: create } = await import('../src/sim/state');
-    const d = build(loadRawDataNode()).defs!;
+    const d = build(beforeClaude()).defs!;
     // старое сохранение: бригада ещё числится на ремонте второго этажа и сейчас там работает
     const st = create(d, 9);
     st.workers = [0, 1].map((i) => ({
@@ -293,7 +301,7 @@ describe('Павел Муров (настоящий дом)', () => {
       const r = sim.state.residents['pavel-murov'];
       if (!r.away && r.level === 0 && r.x > d.layout.buildingX1 && r.dressed) streetOutside++;
     }
-    expect(started.go_to_work).toBeGreaterThanOrEqual(13); // три рабочие недели
+    expect(started.go_to_work).toBeGreaterThanOrEqual(11); // три рабочие недели (минус больничный)
     expect(started.smoke_window).toBeGreaterThan(20);
     expect(started.smoke).toBeGreaterThan(5);
     expect(started.feed_fish).toBeGreaterThan(10);
@@ -327,4 +335,73 @@ describe('сохранение со старой геометрией', () => {
     expect(b.state.elevator.y).toBeCloseTo(a.state.elevator.y, 5);
     expect(b.state.groundY).toBe(d.layout.groundY);
   });
+});
+
+describe('Клод Антропович (настоящий дом)', () => {
+  it('кружок по субботам, вопросы соседей, шарлотка, сестра звонит, блокнот, ни с кем не ссорится', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const { Simulation: Sim } = await import('../src/sim/simulation');
+    const { createWorldState: create } = await import('../src/sim/state');
+    const d = build(loadRawDataNode()).defs!;
+    const sim = new Sim(d, create(d, 8));
+    // этаж сдан сразу: ни крана, ни бригады
+    expect(sim.state.construction?.done).toBe(true);
+    expect(sim.state.workers).toHaveLength(0);
+    const started: Record<string, number> = {};
+    const labels: string[] = [];
+    sim.bus.on('action.start', (e) => {
+      if (e.residentId !== 'claude-opusov') return;
+      started[e.actionId] = (started[e.actionId] ?? 0) + 1;
+      labels.push(e.label);
+    });
+    let kidsAtHost = 0;
+    const wakes: number[] = [];
+    let wasAsleep = false;
+    for (let i = 0; i < (28 * 86400) / 10; i++) {
+      sim.step();
+      if (sim.state.visitors.some((v) => v.kid !== undefined && v.phase === 'visiting' && !v.path.length)) kidsAtHost++;
+      const r = sim.state.residents['claude-opusov'];
+      const asleep = r.action?.id === 'sleep' && r.action.phase === 'perform';
+      if (wasAsleep && !asleep) wakes.push(sim.calendar().hourOfDay);
+      wasAsleep = asleep;
+    }
+    const kinds = (k: string) => sim.state.chronicle.filter((e) => e.kind === k && e.actors.includes('claude-opusov'));
+    expect(started.circle).toBeGreaterThanOrEqual(3); // четыре субботы
+    expect(kidsAtHost).toBeGreaterThan(500);
+    expect(kinds('circle.start').length).toBeGreaterThanOrEqual(3);
+    expect(kinds('ask-help').length).toBeGreaterThan(0);
+    expect(kinds('baked').length).toBeGreaterThanOrEqual(2); // воскресная шарлотка
+    expect(sim.state.chronicle.some((e) => e.kind === 'visit' && e.actors[0] === 'claude-opusov' && String(e.data.gift).includes('шарлотк'))).toBe(true);
+    expect(labels.some((l) => l.includes('с сестрой'))).toBe(true);
+    expect(labels.some((l) => /библиотек|букинист|гулять по городу/.test(l))).toBe(true);
+    expect(started.board).toBeGreaterThan(0);
+    // встаёт около 6:30
+    const morning = wakes.filter((h) => h >= 5 && h < 9);
+    expect(morning.length).toBeGreaterThan(15);
+    expect(morning.reduce((a, b) => a + b, 0) / morning.length).toBeLessThan(7.2);
+    // ни грубости, ни ссор, ни сплетен
+    expect(kinds('quarrel').length + kinds('gossip').length).toBe(0);
+    expect(sim.state.chronicle.some((e) => e.kind === 'chat' && e.actors.includes('claude-opusov') && e.data.quarrel)).toBe(false);
+  }, 120_000);
+});
+
+describe('сохранение со стройкой в разгаре', () => {
+  it('этаж сдают сразу, бригада уходит, Клод Антропович въезжает', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const { Simulation: Sim } = await import('../src/sim/simulation');
+    const { createWorldState: create } = await import('../src/sim/state');
+    const before = build(beforeClaude()).defs!;
+    const old = new Sim(before, create(before, 21));
+    for (let i = 0; i < (3 * 86400) / 10; i++) old.step();
+    expect(old.state.construction?.done).toBe(false);
+    const st = JSON.parse(JSON.stringify(old.state));
+    const d = build(loadRawDataNode()).defs!;
+    const sim = new Sim(d, st);
+    expect(sim.state.construction?.done).toBe(true);
+    expect(sim.state.residents['claude-opusov']).toBeDefined();
+    expect(sim.state.chronicle.some((e) => e.kind === 'moved-in' && e.actors[0] === 'claude-opusov')).toBe(true);
+    expect(sim.state.chronicle.filter((e) => e.kind === 'construction').map((e) => e.data.stage)).toContain('done');
+    for (let i = 0; i < 8640; i++) sim.step();
+    expect(sim.state.workers).toHaveLength(0);
+  }, 60_000);
 });

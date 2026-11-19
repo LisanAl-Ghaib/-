@@ -21,6 +21,8 @@ export const WorldConfigSchema = z.object({
           floor: z.number().int().min(2).max(16),
           /** сколько рабочих дней бригады займёт стройка */
           workdays: z.number().int().min(3).max(200).default(30),
+          /** стройка сдана досрочно (пользователь сказал «закончена»): этаж сразу готов */
+          finished: z.boolean().default(false),
         })
         .optional(),
     })
@@ -37,6 +39,8 @@ export const SlotUseSchema = z.enum([
   'pets',
   /** унитаз */
   'toilet',
+  /** грифельная доска: писать мелом */
+  'board',
 ]);
 export type SlotUse = z.infer<typeof SlotUseSchema>;
 
@@ -49,7 +53,7 @@ export const FurnitureDefSchema = z.object({
   /** вид процедурной отрисовки (см. src/render/sprites/furniture.ts) */
   draw: z.string(),
   w: z.number().int().min(2).max(64),
-  h: z.number().int().min(1).max(36),
+  h: z.number().int().min(1).max(60),
   /** на какой высоте над полом висит (картины, полки, телевизор на стене) */
   elevation: z.number().int().min(0).max(48).default(0),
   /** рисовать позади жильцов (по умолчанию) или перед ними (одеяло, стол) */
@@ -146,6 +150,8 @@ export const ApartmentSchema = z.object({
   palette: PaletteSchema,
   wallpaper: WallpaperSchema.default('plain'),
   flooring: FlooringSchema.default('boards'),
+  /** паркет скрипит: соседям снизу слышно, как тут ходят */
+  creaky: z.boolean().default(false),
   /** комнаты слева направо, как на экране */
   rooms: z.array(RoomSchema).min(1),
 });
@@ -176,6 +182,8 @@ export const HairStyleSchema = z.enum([
   'short', 'buzz', 'long', 'bob', 'ponytail', 'bun', 'curly', 'bald', 'balding', 'mohawk', 'braid', 'pigtails',
   /** каре, убранное за уши, концы чуть вьются */
   'bob_tucked',
+  /** короткие, чуть взъерошенные */
+  'tousled',
 ]);
 
 export const AccessorySchema = z.enum([
@@ -186,6 +194,16 @@ export const AccessorySchema = z.enum([
   'shawl',
   /** большие квадратные очки */
   'glasses_big',
+  /** круглые очки */
+  'glasses_round',
+  /** первая седина на висках */
+  'gray_temples',
+  /** улыбается уголком рта */
+  'smile',
+  /** немного сутулится */
+  'stoop',
+  /** карандаш за ухом */
+  'pencil_ear',
 ]);
 
 /** Домашнее животное (живёт в квартире хозяина) */
@@ -200,6 +218,10 @@ export const PetSchema = z.object({
   pattern: z.enum(['solid', 'tabby', 'tuxedo', 'calico', 'spotted']).default('solid'),
   /** вторая краска (полосы, пятна, грудка) */
   color2: hexColor.optional(),
+  /** кот или кошка (для хроники: «устроился» / «устроилась») */
+  gender: z.enum(['m', 'f']).default('f'),
+  /** характер и привычки словами: «ленивый», «обжора», «спит на клавиатуре», «спит на нужной книге» */
+  tags: z.array(z.string()).default([]),
 });
 export type PetDef = z.infer<typeof PetSchema>;
 
@@ -215,9 +237,23 @@ export const ContactSchema = z.object({
   visitEveryDays: z.number().int().min(1).optional(),
   /** созваниваются */
   phone: z.boolean().default(false),
+  /** звонит примерно раз в N дней (сестра — раз в неделю) */
+  callEveryDays: z.number().int().min(1).optional(),
   note: z.string().default(''),
   /** id жильца, если этот человек потом поселится в доме (тогда контакт переносится в relationships) */
   futureResident: z.string().optional(),
+  /** приезжает на праздники (Новый год, 8 Марта, 9 Мая…) и на день рождения */
+  holidays: z.boolean().default(false),
+  /** сколько обычно гостит: short — полчаса-час, normal — несколько часов */
+  stay: z.enum(['short', 'normal']).default('normal'),
+  /** о чём говорят по телефону */
+  topics: z.array(z.string()).default([]),
+  /** каким его видят соседи: «немногословный» и т. п. (хроника) */
+  tags: z.array(z.string()).default([]),
+  /** встречаются вне дома раз в N дней: жилец уходит к нему (в кафе, в парк) */
+  meetEveryDays: z.number().int().min(1).optional(),
+  /** куда и зачем: «в кафе играть в шахматы» */
+  meetLabel: z.string().optional(),
 });
 export type ContactDef = z.infer<typeof ContactSchema>;
 
@@ -232,6 +268,12 @@ export const MANNERISMS = [
   'coffee_lover', // за чтением и работой чаще с чашкой
   'phone_in_hand', // в свободную минуту — в телефон
   'cross_legged', // любит сидеть нога на ногу
+  'pencil_tap', // думая, постукивает карандашом по подбородку
+  'draws_in_air', // объясняя, рисует схемы в воздухе
+  'notebook', // записывает в блокнот (в разговоре, на ходу)
+  'reads_everywhere', // с книгой и на лавочке, и в кресле, и у окна
+  'sore_back', // спина ноет: встаёт, потягивается, держится за поясницу
+  'tilts_head', // слушает, слегка наклонив голову
 ] as const;
 export type Mannerism = (typeof MANNERISMS)[number];
 
@@ -243,6 +285,8 @@ export const ResidentSchema = z.object({
     patronymic: z.string().optional(),
     /** как его/её зовут в быту (в хронике) */
     short: z.string().optional(),
+    /** как зовут дети («дядя Клод») */
+    kids: z.string().optional(),
     /** падежи короткого имени: родительный, дательный, винительный, творительный, предложный */
     cases: z
       .object({
@@ -289,6 +333,8 @@ export const ResidentSchema = z.object({
     outlook: z.enum(['gloomy', 'neutral', 'cheerful']).default('neutral'),
     activity: z.enum(['lazy', 'normal', 'active']).default('normal'),
     tags: z.array(z.string()).default([]),
+    /** свой режим сна (иначе — по хронотипу): во сколько встаёт и ложится */
+    sleep: z.object({ wake: hhmm, bed: hhmm }).optional(),
   }),
   habits: z
     .array(
@@ -300,6 +346,21 @@ export const ResidentSchema = z.object({
     )
     .default([]),
   backstory: z.string().default(''),
+  /** словечки, которые соседи от него слышат (хроника цитирует) */
+  sayings: z.array(z.string()).default([]),
+  /** куда выбирается в свободные дни («в библиотеку», «к букинистам», «долго гулять по городу») */
+  outings: z.array(z.string()).default([]),
+  /** ведёт кружок у себя дома: дети из округи приходят в эти дни и часы */
+  circle: z
+    .object({
+      title: z.string(),
+      game: z.enum(['chess']).default('chess'),
+      days: z.array(z.number().int().min(1).max(7)),
+      start: hhmm,
+      end: hhmm,
+      kids: z.number().int().min(1).max(6).default(3),
+    })
+    .optional(),
   /**
    * Личные манеры — добавки к общим анимациям (src/render/anim/personal.ts).
    * Многие выводятся сами (очки → поправляет очки); здесь — то, что пользователь описал явно.
@@ -308,7 +369,7 @@ export const ResidentSchema = z.object({
   appearance: z.object({
     skin: hexColor,
     hair: z.object({ style: HairStyleSchema, color: hexColor }),
-    height: z.enum(['short', 'average', 'tall']).default('average'),
+    height: z.enum(['child', 'short', 'average', 'tall']).default('average'),
     build: z.enum(['slim', 'average', 'heavy']).default('average'),
     outfit: z.object({
       top: hexColor,
@@ -341,6 +402,8 @@ export const ResidentSchema = z.object({
     eyes: hexColor.optional(),
     /** цвет кепки/шапки/берета (если не задан — обычный) */
     hatColor: hexColor.optional(),
+    /** цвет шарфа (длинный шарф — на улице) */
+    scarfColor: hexColor.optional(),
     /** на улицу одевается иначе, чем дома: что меняет (низ, обувь, верх) и что добавляет (кепка) */
     street: z
       .object({
@@ -359,6 +422,8 @@ export const ResidentSchema = z.object({
         affinity: z.number().min(-100).max(100).default(20),
         familiarity: z.number().min(0).max(100).default(50),
         note: z.string().default(''),
+        /** о чём давно и добродушно спорят при встрече («как правильно заваривать чай») */
+        dispute: z.string().optional(),
       }),
     )
     .default([]),

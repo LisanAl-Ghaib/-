@@ -196,7 +196,7 @@ export function endInteraction(sim: Simulation, it: Interaction): void {
       music: it.notes.includes('music'),
       meal: meta.meal ?? 'ужин',
     }, it.startedAt);
-  } else if (minutes >= 6 || it.quarrel) {
+  } else if ((minutes >= 6 || it.quarrel) && !it.notes.includes('help')) {
     chronicle(sim, 'chat', [a, b], it.quarrel ? 3 : minutes >= 15 ? 2 : 1, {
       place: it.place,
       minutes,
@@ -204,9 +204,43 @@ export function endInteraction(sim: Simulation, it: Interaction): void {
       endMin: endCal.minuteOfDay,
       quarrel: it.quarrel,
       cause: meta.cause ?? null,
-      topic: meta.topic ?? quitTopic(sim, a, b),
+      topic: meta.topic ?? chatTopic(sim, a, b, minutes),
     }, it.startedAt);
   }
+  // кто всё записывает — после разговора достаёт блокнот (и пишет на ходу)
+  for (const id of it.members) {
+    const d = sim.defs.residentById.get(id);
+    const r = s.residents[id];
+    if (d?.mannerisms?.includes('notebook') && r && !r.away) r.gesture = { kind: 'write', until: sim.time + 150, toX: r.x };
+  }
+}
+
+/** О чём был разговор (что слышно со стороны) */
+function chatTopic(sim: Simulation, a: string, b: string, minutes: number): string | null {
+  // давний добродушный спор
+  const dispute = disputeOf(sim, a, b);
+  if (dispute && sim.rng.chance(0.55)) return `снова заспорили, ${dispute}, — и разошлись, кажется, довольные друг другом`;
+  for (const id of sim.rng.chance(0.5) ? [a, b] : [b, a]) {
+    const d = sim.defs.residentById.get(id);
+    if (!d) continue;
+    const who = nameCase(d, 'nom');
+    // «Если коротко…» — и дальше длинно
+    if (minutes >= 12 && d.traits.tags.some((t) => /лекци/i.test(t)) && sim.rng.chance(0.4)) {
+      const say = d.sayings.length ? sim.rng.pick(d.sayings) : 'Если коротко…';
+      return `на простой вопрос ${who} ответил${v(d)} «${say.replace(/[.…!]+$/, '')}…» — и объяснял ещё минут двадцать, рисуя в воздухе схемы`;
+    }
+    if (d.traits.tags.some((t) => /политик/i.test(t)) && sim.rng.chance(0.15)) return `о политике ${who} выслушал${v(d)} всё и своё мнение навязывать не стал${v(d)}`;
+  }
+  return quitTopic(sim, a, b);
+}
+
+const v = (d: { gender: string }) => (d.gender === 'f' ? 'а' : '');
+
+/** О чём двое давно и добродушно спорят (из relationships любой стороны) */
+export function disputeOf(sim: Simulation, a: string, b: string): string | null {
+  const da = sim.defs.residentById.get(a);
+  const db = sim.defs.residentById.get(b);
+  return da?.relationships.find((x) => x.with === b)?.dispute ?? db?.relationships.find((x) => x.with === a)?.dispute ?? null;
 }
 
 /** «Уже пятый год говорит, что уволится» — слышно в разговорах с соседями */

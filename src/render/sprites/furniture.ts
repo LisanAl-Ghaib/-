@@ -1098,6 +1098,92 @@ const drawers: Record<string, Drawer> = {
     R(c, 2, 1, w - 5, h - 3, '#2a3a50');
     R(c, 0, h - 1, w, 1, shade(main, -0.2));
   },
+  bookcase_tall(c) {
+    // стеллаж от пола до потолка: полки битком, книги стоят и лежат поверх
+    const { w, h, main, rng } = c;
+    R(c, 0, 0, w, h, main);
+    R(c, 1, 1, w - 2, h - 2, shade(main, -0.35));
+    const sh = 9;
+    for (let y = 1; y + sh <= h; y += sh) {
+      R(c, 0, y + sh - 1, w, 1, main);
+      let x = 1;
+      while (x < w - 1) {
+        if (rng.chance(0.2) && x < w - 5) {
+          // стопка лёжа
+          for (let k = 0; k < rng.int(2, 3); k++) R(c, x, y + sh - 2 - k, 4, 1, rng.pick(BOOK_COLORS));
+          x += 4;
+          continue;
+        }
+        const bw = rng.int(1, 2);
+        R(c, x, y + sh - 1 - rng.int(sh - 4, sh - 2), Math.min(bw, w - 1 - x), rng.int(sh - 4, sh - 2), rng.pick(BOOK_COLORS));
+        x += bw;
+      }
+    }
+    R(c, 0, 0, w, 1, shade(main, 0.15));
+  },
+  chalkboard(c) {
+    // грифельная доска: формулы, список дел с галочками и нарисованный кот
+    const { w, h, main } = c;
+    R(c, 0, 0, w, h, main);
+    R(c, 1, 1, w - 2, h - 3, '#2f3a33');
+    const ch = '#d8dcd4';
+    const dim = '#8a948c';
+    // формула: ∫ … = …
+    R(c, 3, 3, 1, 4, ch);
+    R(c, 4, 3, 1, 1, ch);
+    R(c, 2, 6, 1, 1, ch);
+    R(c, 6, 4, 4, 1, ch);
+    R(c, 11, 4, 2, 1, ch);
+    R(c, 11, 6, 2, 1, ch);
+    R(c, 14, 4, 3, 1, ch);
+    R(c, 14, 5, 1, 1, dim);
+    // ещё строчка
+    R(c, 3, 9, 6, 1, dim);
+    R(c, 10, 9, 1, 1, ch);
+    R(c, 12, 9, 4, 1, dim);
+    // список дел с галочками
+    for (let i = 0; i < 3; i++) {
+      R(c, 19, 3 + i * 3, 1, 1, i < 2 ? '#a8d8a0' : ch);
+      R(c, 21, 3 + i * 3, w - 23 - (i % 2) * 2, 1, dim);
+    }
+    // кот: уши, мордочка, хвост
+    R(c, 4, 12, 1, 1, ch);
+    R(c, 7, 12, 1, 1, ch);
+    R(c, 4, 13, 4, 3, ch);
+    R(c, 5, 14, 1, 1, '#2f3a33');
+    R(c, 7, 14, 1, 1, '#2f3a33');
+    R(c, 8, 15, 3, 1, ch);
+    R(c, 10, 14, 1, 1, ch);
+    // мел и тряпка на полочке
+    R(c, 1, h - 2, w - 2, 2, shade(main, 0.15));
+    R(c, 5, h - 3, 2, 1, '#f4f4f0');
+    R(c, w - 8, h - 3, 4, 1, '#9a8a7a');
+  },
+  tea_set(c) {
+    // заварочный чайник и банки с разными чаями
+    const { h } = c;
+    R(c, 0, h - 5, 4, 4, '#f2efe4');
+    R(c, 1, h - 6, 2, 1, '#f2efe4');
+    R(c, 4, h - 4, 1, 1, '#f2efe4'); // носик
+    R(c, 1, h - 3, 2, 1, '#3a6aa8'); // гжельская полоска
+    R(c, 5, h - 6, 2, 5, '#b86a3a');
+    R(c, 5, h - 7, 2, 1, '#6a4630');
+    R(c, 7, h - 5, 2, 4, '#5a8a5a');
+    R(c, 7, h - 6, 2, 1, '#6a4630');
+    R(c, 9, h - 4, 1, 3, '#c8a050');
+    R(c, 0, h - 1, 10, 1, '#8a7a6a');
+  },
+  geranium(c) {
+    // герань в горшках: красные шапки соцветий
+    const { w, h } = c;
+    for (let x = 1; x < w - 3; x += 7) {
+      R(c, x, h - 3, 5, 3, '#b8653a');
+      R(c, x - 1, h - 6, 7, 3, '#3f7a45');
+      R(c, x, h - 7, 2, 2, '#d8343a');
+      R(c, x + 3, h - 8, 2, 2, '#e8484a');
+      R(c, x + 2, h - 7, 1, 1, '#f07070');
+    }
+  },
   books_stack(c) {
     const { w, rng } = c;
     for (let y = 0; y < 6; y += 2) R(c, rng.int(0, 1), y, w - 1, 2, rng.pick(BOOK_COLORS));

@@ -201,6 +201,27 @@ export function drawProp(
     case 'food':
       rect(g, x, y, 2, 1, '#d8a050');
       break;
+    case 'notebook':
+      // блокнот в клетку, карандаш ходит по странице
+      rect(g, x - 1, y - 1, 3, 3, '#f2efe4');
+      rect(g, x - 1, y, 3, 1, '#a8c0d8');
+      rect(g, x - 1, y - 1, 1, 3, '#3a5a7a');
+      rect(g, x + 1 + (tick % 2) * d, y - 2, 1, 2, '#e0b040');
+      break;
+    case 'pencil':
+      // карандаш постукивает по подбородку
+      rect(g, x, y - (tick % 2), 1, 3, '#e0b040');
+      rect(g, x, y + 3 - (tick % 2), 1, 1, '#3a3a3a');
+      break;
+    case 'chalk':
+      rect(g, x, y, 1, 2, '#f4f4f0');
+      break;
+    case 'pie':
+      // шарлотка на тарелке
+      rect(g, x - 3, y + 1, 7, 1, '#f4f2ec');
+      rect(g, x - 2, y - 1, 5, 2, '#d8a050');
+      rect(g, x - 2, y - 1, 5, 1, '#f0d8a0');
+      break;
   }
 }
 

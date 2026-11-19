@@ -24,7 +24,7 @@ const PROP_FOR: Partial<Record<Place, string>> = {
   table: 'kitchen_table', desk: 'desk', seat: 'armchair', recliner: 'recliner',
   stove: 'stove', sink: 'kitchen_counter', fridge: 'fridge', window: 'window_plants', plant: 'plant_big',
   aquarium: 'aquarium', bowls: 'cat_bowls', piano: 'digital_piano', amp: 'eguitar_amp', bar: 'pullup_bar',
-  mat: 'exercise_mat', bike: 'exercise_bike', easel: 'easel',
+  mat: 'exercise_mat', bike: 'exercise_bike', easel: 'easel', board: 'chalkboard',
 };
 /** запасные сцены по позе — на чём сидеть/лежать */
 const POSTURE_PROP: Record<string, string | undefined> = { sit: 'armchair', lie: 'bed_single', stand: undefined };

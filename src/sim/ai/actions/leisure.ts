@@ -1,5 +1,6 @@
 import type { HabitKind, RoomType } from '../../../data/schemas';
 import { gain } from '../../needs';
+import { chronicle } from '../../chronicle/chronicle';
 import { fitDuration, gv, habit, homeSlot, minutesToBed, minutesToLeave, novelty, randomRoom, roomOfType, roomPoint, sleepTime } from '../helpers';
 import type { ActionDef, AgentCtx } from '../types';
 
@@ -83,6 +84,13 @@ export const read = leisure({
   id: 'read', icon: 'book', use: 'read', rooms: ['living', 'bedroom', 'study', 'studio'], habit: 'reading', requiresHabit: true, orIf: hasBooks,
   base: 1.4, label: () => 'читает', rates: { mood: 6 }, minutes: [25, 80], cooldown: 3 * 3600, bonus: beforeBed,
 });
+
+// «зачитавшись, забывает поесть»: от книги не оторвать, пока не проголодается всерьёз
+read.continueScore = (ctx, a) => {
+  const base = Number(a.data.score ?? 1);
+  if (!ctx.def.traits.tags.some((t) => /забывает поесть/i.test(t)) || ctx.r.needs.food < 15 || ctx.r.needs.bladder < 20) return base;
+  return base * 4 + 8;
+};
 
 const musicBase = leisure({
   id: 'music', icon: 'music', use: 'music', habit: 'music', requiresHabit: true,
@@ -183,12 +191,79 @@ export const phone = leisure({
 });
 // звонить можно только тем, с кем созваниваются (contacts с phone)
 const phoneBase = phone.plan;
-phone.plan = (ctx) => (ctx.def.contacts.some((c) => c.phone) ? phoneBase(ctx) : null);
+phone.plan = (ctx) => {
+  if (!ctx.def.contacts.some((c) => c.phone)) return null;
+  const plan = phoneBase(ctx);
+  // кто звонит регулярно («сестра — раз в неделю») — пора бы и созвониться
+  const due = dueCall(ctx);
+  if (due === null) return plan;
+  const h = ctx.cal.hourOfDay;
+  if (sleepTime(ctx) || h < 10 || h >= 22 || minutesToLeave(ctx) < 40) return plan;
+  const c = ctx.def.contacts[due];
+  const base = plan ?? { score: 1, target: roomPoint(ctx, roomOfType(ctx.home, 'living', 'kitchen', 'studio') ?? ctx.home.rooms[0]), duration: 20 * 60, label: '' };
+  return { ...base, score: base.score + 7, duration: ctx.sim.rng.int(20, 50) * 60, label: `говорит по телефону — ${relLabel(c.kind, c.gender)}`, data: { ...(base.data ?? {}), contact: due } };
+};
+phone.onEnd = (ctx, a, interrupted) => {
+  const idx = a.data.contact;
+  if (typeof idx !== 'number' || (interrupted && ctx.now - a.performStart < 5 * 60)) return;
+  ctx.sim.state.flags[`call:${ctx.r.id}:${idx}`] = ctx.now;
+  const c = ctx.def.contacts[idx];
+  if (c && ctx.sim.rng.chance(0.5)) chronicle(ctx.sim, 'phone-call', [ctx.r.id], 1, { name: c.name ?? null, gender: c.gender, kind: c.kind, topic: c.topics.length ? ctx.sim.rng.pick(c.topics) : 'как дела', family: true });
+};
 
-export const lookOutside = leisure({
+/** Кому из регулярно звонящих пора созвониться (индекс контакта) */
+function dueCall(ctx: AgentCtx): number | null {
+  let best: number | null = null;
+  ctx.def.contacts.forEach((c, i) => {
+    if (!c.phone || !c.callEveryDays) return;
+    const last = ctx.sim.state.flags[`call:${ctx.r.id}:${i}`] ?? -Infinity;
+    if (ctx.now - last >= c.callEveryDays * 86400 * 0.9) best = i;
+  });
+  return best;
+}
+
+function relLabel(kind: string, gender: string): string {
+  const f = gender === 'f';
+  const w: Record<string, string> = { sibling: f ? 'с сестрой' : 'с братом', child: f ? 'с дочерью' : 'с сыном', parent: f ? 'с мамой' : 'с отцом', friend: f ? 'с подругой' : 'с другом' };
+  return w[kind] ?? 'с родными';
+}
+
+const lookBase = leisure({
   id: 'window', icon: 'dots', use: 'look', habit: 'plants',
   base: 0.9, label: () => 'смотрит в окно', rates: { mood: 3 }, minutes: [5, 15], cooldown: 3 * 3600,
+  bonus: (ctx) => (watcher(ctx) ? 3 : 0),
 });
+/** «Подолгу смотрит из окна на жизнь двора» */
+const watcher = (ctx: AgentCtx) => ctx.def.traits.tags.some((t) => /смотрит .*окн|из окна на/i.test(t));
+export const lookOutside: ActionDef = {
+  ...lookBase,
+  plan(ctx) {
+    const p = lookBase.plan(ctx);
+    if (!p || !watcher(ctx)) return p;
+    return { ...p, duration: fitDuration(ctx, ctx.sim.rng.int(15, 45) * 60), label: 'подолгу смотрит в окно на двор' };
+  },
+};
+
+/** Грифельная доска: пишет формулы, дописывает список дел, рисует кота */
+export const board: ActionDef = {
+  id: 'board',
+  icon: 'chalk',
+  plan(ctx) {
+    if (sleepTime(ctx) || minutesToLeave(ctx) < 25) return null;
+    const spot = homeSlot(ctx, 'board');
+    if (!spot) return null;
+    const what = ctx.sim.rng.pick(['пишет на доске формулу', 'дописывает на доске список дел', 'рисует мелом на доске кота', 'вычёркивает на доске сделанное']);
+    return {
+      score: (1.6 + habit(ctx, 'reading') * 1.5 + (100 - ctx.r.needs.mood) / 30) * novelty(ctx, 'board', 4 * 3600),
+      target: spot.target,
+      duration: fitDuration(ctx, ctx.sim.rng.int(6, 18) * 60),
+      label: what,
+    };
+  },
+  perform(ctx, _a, dt) {
+    gain(ctx.r, 'mood', 6, dt);
+  },
+};
 
 export const chores = leisure({
   id: 'chores', icon: 'wash', use: null,
@@ -229,6 +304,8 @@ export const tea = leisure({
     const h = ctx.cal.hourOfDay;
     // любители кофе по утрам: первым делом — чашка
     if (h >= 6 && h < 11 && ctx.def.traits.tags.some((t) => /кофе/i.test(t)) && ctx.now - (ctx.r.recent.tea ?? -1e9) > 5 * 3600) return 6;
+    // «пьёт чай литрами» — чашка за чашкой весь день
+    if (ctx.def.traits.tags.some((t) => /чай литрами/i.test(t)) && ctx.now - (ctx.r.recent.tea ?? -1e9) > 75 * 60) return 4.5;
     return (h >= 7 && h < 10) || (h >= 15.5 && h < 17.5) ? 1.8 : 0;
   },
 });

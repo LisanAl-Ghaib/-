@@ -3,6 +3,7 @@ import { convQuarrel, deepTalk, dinnerTogether, gossip, playMusic, talk } from '
 import { avoid, chatEvent, conciergeRemark, elevatorMeet, greet, quarrelMeet, reconcileMeet } from './defs/encounter';
 import { familyChat, familyQuarrel, familyReconcile } from './defs/household';
 import { recovery } from './defs/hourly';
+import { askHelp, creak, honest, notebookLose, notebookLostMeet } from './defs/helper';
 import type { EventDef } from './types';
 
 /**
@@ -12,6 +13,10 @@ import type { EventDef } from './types';
 export const EVENTS: readonly EventDef[] = [
   // встречи в подъезде и во дворе
   greet, chatEvent, avoid, reconcileMeet, quarrelMeet, elevatorMeet, conciergeRemark,
+  // сосед-«справочник»: вопросы, блокнот-память
+  askHelp, notebookLostMeet, honest, notebookLose,
+  // звуки дома
+  creak,
   // темы разговоров в гостях и на лавочке
   talk, deepTalk, gossip, convQuarrel, dinnerTogether, playMusic,
   // жизнь семьи

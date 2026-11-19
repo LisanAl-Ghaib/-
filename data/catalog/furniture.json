@@ -1272,7 +1272,17 @@
    "w": 7,
    "h": 8,
    "paletteKey": "wood",
-   "slots": []
+   "slots": [
+    {
+     "use": [
+      "sit"
+     ],
+     "dx": 3,
+     "pose": "sit",
+     "dy": 5,
+     "face": 0
+    }
+   ]
   },
   {
    "id": "round_table",
@@ -1650,6 +1660,70 @@
    "h": 2,
    "paletteKey": "metal",
    "elevation": 24
+  },
+  {
+   "id": "bookcase_tall",
+   "name": "Стеллаж с книгами от пола до потолка",
+   "draw": "bookcase_tall",
+   "w": 16,
+   "h": 56,
+   "paletteKey": "wood",
+   "rooms": [
+    "living",
+    "study",
+    "bedroom",
+    "studio",
+    "hall"
+   ]
+  },
+  {
+   "id": "chalkboard",
+   "name": "Грифельная доска с формулами, списками дел и котом",
+   "draw": "chalkboard",
+   "w": 28,
+   "h": 20,
+   "elevation": 27,
+   "paletteKey": "wood",
+   "slots": [
+    {
+     "use": [
+      "board"
+     ],
+     "dx": 14,
+     "pose": "stand",
+     "face": 0
+    }
+   ]
+  },
+  {
+   "id": "tea_set",
+   "name": "Заварочный чайник и банки с чаями",
+   "draw": "tea_set",
+   "w": 10,
+   "h": 7,
+   "elevation": 24,
+   "paletteKey": "accent",
+   "slots": []
+  },
+  {
+   "id": "geranium",
+   "name": "Герань на подоконнике",
+   "draw": "geranium",
+   "w": 16,
+   "h": 7,
+   "elevation": 23,
+   "paletteKey": "accent",
+   "slots": [
+    {
+     "use": [
+      "plants",
+      "look"
+     ],
+     "dx": 8,
+     "pose": "stand",
+     "face": 0
+    }
+   ]
   }
  ]
 }

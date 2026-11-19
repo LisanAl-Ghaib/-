@@ -9,7 +9,8 @@ import type { Simulation } from './simulation';
  * забираются хозяину на колени. Из квартиры не выходят.
  */
 interface Spot {
-  kind: 'sleep' | 'window' | 'bowl' | 'tray' | 'tree' | 'floor';
+  /** keyboard — на клавиатуре (на письменном столе), book — на стопке книг */
+  kind: 'sleep' | 'window' | 'bowl' | 'tray' | 'tree' | 'floor' | 'keyboard' | 'book';
   x: number;
   h: number;
 }
@@ -33,6 +34,10 @@ function spotsOf(sim: Simulation, aptId: string): Spot[] {
       if (f.def.draw === 'cat_bowls') spots.push({ kind: 'bowl', x: f.x + 4, h: 0 });
       if (f.def.draw === 'cat_tray') spots.push({ kind: 'tray', x: f.x + 6, h: 1 });
       if (f.def.draw === 'cat_bed') spots.push({ kind: 'sleep', x: f.x + 6, h: 2 });
+      // письменный стол с ноутбуком/клавиатурой и стопки книг — тёплые места для кота
+      const floorY = sim.defs.layout.floorY(apt.level);
+      if (f.slots.some((sl) => sl.use.includes('work'))) spots.push({ kind: 'keyboard', x: f.x + Math.round(f.w / 2) - 2, h: floorY - (f.y - f.h) });
+      if (f.def.draw === 'books_stack') spots.push({ kind: 'book', x: f.x + 3, h: floorY - (f.y - f.h) });
       for (const sl of f.slots) {
         if (sl.use.includes('sleep') || sl.use.includes('nap') || (sl.use.includes('sit') && sl.pose === 'sit' && f.def.draw !== 'chair' && f.def.draw !== 'concierge_desk'))
           spots.push({ kind: 'sleep', x: sl.x + (sl.pose === 'lie' ? -6 : 0), h: sl.dy + 2 });
@@ -74,7 +79,7 @@ export function petName(sim: Simulation, p: PetState): string {
   const pet = def.pets[p.idx];
   if (pet.name) return pet.name;
   const same = def.pets.filter((x) => x.species === pet.species);
-  const word = pet.species === 'cat' ? 'кошка' : pet.species === 'fish' ? 'рыбка' : 'собака';
+  const word = pet.species === 'cat' ? (pet.gender === 'm' ? 'кот' : 'кошка') : pet.species === 'fish' ? 'рыбка' : 'собака';
   if (same.length < 2) return word;
   const older = same.every((x) => x === pet || x.born >= pet.born);
   return `${older ? 'старшая' : 'младшая'} ${word}`;
@@ -99,6 +104,16 @@ function decide(sim: Simulation, p: PetState): void {
   const lapTaken = Object.values(sim.state.pets).some((o) => o.id !== p.id && o.aptId === p.aptId && (o.mode === 'lap' || o.next === 'lap'));
   const cooking = ownerHome && owner.action?.id === 'cook' && owner.action.phase === 'perform';
 
+  // характер кота из данных: ленивый, обжора, спит на клавиатуре и на нужной книге
+  const tags = sim.defs.residentById.get(p.owner)!.pets[p.idx].tags ?? [];
+  const has = (re: RegExp) => tags.some((t) => re.test(t));
+  const lazy = has(/ленив/i);
+  const glutton = has(/обжор|ест всё/i);
+  const keyboard = has(/клавиатур/i);
+  const bookish = has(/книг/i);
+  const ownerEating = ownerHome && (owner.action?.id === 'eat' || owner.action?.id === 'snack' || owner.action?.id === 'tea') && owner.action.phase === 'perform';
+  const ownerAtDesk = ownerHome && owner.action?.phase === 'perform' && (owner.action.id === 'work' || owner.action.id === 'computer' || owner.action.id === 'side_work');
+  const ownerReading = ownerHome && owner.action?.id === 'read' && owner.action.phase === 'perform';
   type Opt = { w: number; go: () => void };
   // места, где сидит или лежит человек, заняты (для этого есть колени)
   const people = Object.values(sim.state.residents).filter((r) => !r.away && r.level === p.level && r.pose !== 'stand');
@@ -114,11 +129,17 @@ function decide(sim: Simulation, p: PetState): void {
     p.until = sim.time + rng.int(minutes[0], minutes[1]) * 60;
   };
   const opts: Opt[] = [
-    { w: dawn ? 1 : 6, go: () => { const s = pick('sleep') ?? pick('floor')!; goTo(s.x, s.h, 'sleep', [40, 150]); } },
-    { w: 2.2, go: () => { const s = pick('window'); if (s) goTo(s.x, s.h, 'window', [15, 60]); else goTo(p.x, p.h, 'groom', [5, 10]); } },
+    { w: (dawn ? 1 : 6) * (lazy ? 1.8 : 1), go: () => { const s = pick('sleep') ?? pick('floor')!; goTo(s.x, s.h, 'sleep', [40, lazy ? 220 : 150]); } },
+    { w: 2.2 * (lazy ? 0.6 : 1), go: () => { const s = pick('window'); if (s) goTo(s.x, s.h, 'window', [15, 60]); else goTo(p.x, p.h, 'groom', [5, 10]); } },
     { w: 1.5, go: () => goTo(p.x, p.h, 'groom', [5, 15]) },
-    { w: young ? (dawn ? 6 : 2.5) : dawn ? 2 : 0.5, go: () => { const s = pick('floor')!; goTo(s.x, 0, 'play', [5, 15]); } },
-    { w: food > 0 && p.food < 60 ? 6 : 0, go: () => { const s = pick('bowl'); if (s) goTo(s.x, 0, 'eat', [3, 6]); } },
+    { w: (young ? (dawn ? 6 : 2.5) : dawn ? 2 : 0.5) * (lazy ? 0.3 : 1), go: () => { const s = pick('floor')!; goTo(s.x, 0, 'play', [5, 15]); } },
+    { w: food > 0 && p.food < (glutton ? 90 : 60) ? (glutton ? 9 : 6) : 0, go: () => { const s = pick('bowl'); if (s) goTo(s.x, 0, 'eat', [3, glutton ? 9 : 6]); } },
+    // обжора: хозяин ест или пьёт чай — сидит рядом и смотрит в рот
+    { w: glutton && ownerEating ? 7 : 0, go: () => goTo(owner!.x + (rng.chance(0.5) ? -7 : 7), 0, 'watch', [5, 15]) },
+    // спит на клавиатуре — особенно когда хозяин как раз собрался работать
+    { w: keyboard ? (ownerAtDesk ? 3 : 2.5) : 0, go: () => { const s = spots.find((x) => x.kind === 'keyboard'); if (s) goTo(s.x, s.h, 'sleep', [30, 120]); } },
+    // и на самой нужной книге — хозяин как раз читает
+    { w: bookish ? (ownerReading ? 3 : 1.5) : 0, go: () => { const s = pick('book'); if (s) goTo(s.x, s.h, 'sleep', [30, 120]); } },
     { w: 0.35, go: () => { const s = pick('tray'); if (s) goTo(s.x, s.h, 'tray', [2, 3]); } },
     { w: spots.some((s) => s.kind === 'tree') ? 1.2 : 0, go: () => { const s = pick('tree')!; goTo(s.x, s.h, young ? 'play' : 'sleep', [10, 50]); } },
     { w: ownerSitting && !lapTaken ? (young ? 2 : 5) : 0, go: () => goTo(owner!.x, 0, 'lap', [20, 90]) },
@@ -196,9 +217,15 @@ export function petNotes(sim: Simulation): void {
     else if (p.mode === 'lap') kind = 'lap';
     else if (p.mode === 'play' && (cal.hourOfDay < 6 || cal.hourOfDay >= 23)) kind = 'night-run';
     else if (p.mode === 'watch') kind = 'beg';
+    else if (p.mode === 'sleep') {
+      const sp = spotsOf(sim, p.aptId).find((x) => Math.abs(x.x - p.x) < 2 && Math.abs(x.h - p.h) < 2 && (x.kind === 'keyboard' || x.kind === 'book'));
+      if (sp) kind = sp.kind;
+    }
     if (!kind) continue;
+    const pd = sim.defs.residentById.get(p.owner)!.pets[p.idx];
+    if (kind === 'beg' && pd.tags.some((t) => /обжор|ест всё/i.test(t))) kind = 'glutton';
     s.flags[key] = s.time;
-    chronicle(sim, 'pet', [p.owner], 1, { pet: petName(sim, p), what: kind, species: sim.defs.residentById.get(p.owner)!.pets[p.idx].species });
+    chronicle(sim, 'pet', [p.owner], 1, { pet: petName(sim, p), what: kind, species: pd.species, male: pd.gender === 'm' });
   }
 }
 

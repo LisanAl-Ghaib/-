@@ -1,3 +1,4 @@
+import { circleWindow } from '../circle';
 import type { HabitKind, ResidentDef, RoomType } from '../../data/schemas';
 import type { ApartmentModel, RoomModel, SlotInstance } from '../../world/layout';
 import type { Target } from '../../world/navigation';
@@ -120,8 +121,11 @@ export function minutesToBed(ctx: AgentCtx): number {
 /** Не пора ли уже собираться на работу (чтобы не затевать долгое) */
 export function minutesToLeave(ctx: AgentCtx): number {
   const p = ctx.r.plan;
-  if (!p || !p.workday || p.leaveAt === null || ctx.r.today.worked) return 9999;
-  return (p.leaveAt - ctx.now) / 60;
+  // свой кружок дома («по субботам шахматы с детьми») — к этому часу надо быть дома
+  const w = ctx.def.circle ? circleWindow(ctx.sim, ctx.def.id) : null;
+  const circle = w && ctx.now < w.end ? Math.max(0, (w.start - 15 * 60 - ctx.now) / 60) : 9999;
+  if (!p || !p.workday || p.leaveAt === null || ctx.r.today.worked) return circle;
+  return Math.min(circle, (p.leaveAt - ctx.now) / 60);
 }
 
 /** Длительность, обрезанная так, чтобы успеть к выходу на работу/ко сну */

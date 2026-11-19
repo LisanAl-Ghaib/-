@@ -1,7 +1,8 @@
 import type { ActionDef } from '../types';
 import { cook, eat, shopping, snack } from './food';
 import { makeBed, takeOutTrash, unpack, washDishes } from './home';
-import { chess, chores, computer, crafts, fitness, gaming, idle, lookOutside, music, phone, plants, read, tea, watchTv } from './leisure';
+import { board, chess, chores, computer, crafts, fitness, gaming, idle, lookOutside, music, phone, plants, read, tea, watchTv } from './leisure';
+import { circleAction } from '../../circle';
 import { bench, goOut, jog, smoke, snowman, walkYard } from './outside';
 import { nap, sleep, toilet, wash } from './rest';
 import { chat, guest, host, visit } from './social';
@@ -23,7 +24,9 @@ export const ACTIONS: readonly ActionDef[] = [
   // работа
   goToWork, workFromHome, sideWork,
   // досуг дома
-  watchTv, read, tea, music, gaming, computer, crafts, plants, fitness, phone, lookOutside, chores, chess, idle,
+  watchTv, read, tea, music, gaming, computer, crafts, plants, fitness, phone, lookOutside, chores, chess, board, idle,
+  // кружок у себя дома (дети приходят в гости)
+  circleAction,
   // на улице
   walkYard, bench, smoke, jog, goOut, snowman,
   // общение

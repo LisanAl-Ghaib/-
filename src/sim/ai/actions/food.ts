@@ -57,6 +57,18 @@ export const cook: ActionDef = {
     if (sleepTime(ctx)) return null;
     const st = aptState(ctx);
     const people = householdIds(ctx).length;
+    // «по воскресеньям печёт шарлотку и угощает соседей»
+    const weekly = weeklyBake(ctx);
+    const wspot = weekly ? homeSlot(ctx, 'cook', ['kitchen', 'studio']) : null;
+    if (weekly && ctx.cal.weekday === 7 && daytime(ctx, 11, 17) && !sim.state.flags[`bake:${r.id}:${ctx.cal.dayIndex}`] && st.groceries >= 1 && wspot && !mealDue(ctx, 30 * 60)) {
+      return {
+        score: 9,
+        target: wspot.target,
+        duration: fitDuration(ctx, sim.rng.int(60, 80) * 60),
+        label: `печёт ${weekly}`,
+        data: { baking: true, dish: weekly, portions: people + 4 } as Record<string, string | number | boolean>,
+      };
+    }
     if (st.groceries < 1 || st.meals >= people) return null;
     const soon = mealDue(ctx, 45 * 60);
     const love = habit(ctx, 'cooking');
@@ -94,9 +106,19 @@ export const cook: ActionDef = {
       st.trash += 0.4;
     }
     if (habit(ctx, 'cooking') > 0.5) addMoodlet(ctx, 'cooked', 'Приготовил(а) что-то вкусное', 5, 5);
-    ctx.sim.emit({ type: 'cooked', t: ctx.now, residentId: ctx.r.id, baking: !!a.data.baking, portions: Number(a.data.portions ?? 2) });
+    if (a.data.dish) ctx.sim.state.flags[`bake:${ctx.r.id}:${ctx.cal.dayIndex}`] = ctx.now;
+    ctx.sim.emit({ type: 'cooked', t: ctx.now, residentId: ctx.r.id, baking: !!a.data.baking, portions: Number(a.data.portions ?? 2), dish: a.data.dish ? String(a.data.dish) : undefined });
   },
 };
+
+/** Что печёт по воскресеньям («печёт шарлотку») — или null */
+export function weeklyBake(ctx: { def: { traits: { tags: string[] } } }): string | null {
+  for (const t of ctx.def.traits.tags) {
+    const m = /по воскресеньям печ[её]т ([а-яё]+)/i.exec(t);
+    if (m) return m[1];
+  }
+  return null;
+}
 
 /** Перехватить что-нибудь из холодильника */
 export const snack: ActionDef = {

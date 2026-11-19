@@ -27,13 +27,14 @@ import { warmth } from './social/social';
 import { addMoodlet } from './needs';
 import { petNotes, syncPets, updatePets } from './pets';
 import { scheduleVisits, updateVisitors } from './visitors';
+import { updateCircles } from './circle';
 import { syncConstruction, syncWorkers, updateWorkers } from './workers';
 import { joinCooking, planTogether, updateFarewells } from './couple';
 import { updateDressing } from './dressing';
 
 export type SimEvent =
   | { type: 'action.start'; t: number; residentId: string; actionId: string; label: string }
-  | { type: 'cooked'; t: number; residentId: string; baking: boolean; portions: number }
+  | { type: 'cooked'; t: number; residentId: string; baking: boolean; portions: number; dish?: string }
   | { type: 'shopped'; t: number; residentId: string }
   | { type: 'left-for-work'; t: number; residentId: string }
   | { type: 'back-from-work'; t: number; residentId: string }
@@ -75,7 +76,7 @@ export class Simulation {
     for (const d of defs.residents) if (d.traits.tags.some((t) => /стоик|стоиц/i.test(t))) STOICS.add(d.id);
     initRelations(this);
     if (fresh) chronicle(this, 'world.start', [], 3);
-    this.bus.on('cooked', (e) => this.onCooked(e.residentId, e.baking));
+    this.bus.on('cooked', (e) => this.onCooked(e.residentId, e.baking, e.dish));
     this.bus.on('action.end', (e) => this.onActionEnd(e.residentId, e.actionId, e.interrupted));
     this.bus.on('action.start', (e) => {
       if (e.actionId === 'cook') joinCooking(this, e.residentId);
@@ -85,10 +86,22 @@ export class Simulation {
     syncWorkers(this);
   }
 
-  private onCooked(id: string, baking: boolean): void {
+  private onCooked(id: string, baking: boolean, dish?: string): void {
     this.cookExperiment(id);
     if (!baking) return;
-    chronicle(this, 'baked', [id], 2);
+    chronicle(this, 'baked', [id], 2, { dish: dish ?? null });
+    if (dish) {
+      // испёк по традиции — разносит соседям: всем, с кем ладит
+      const def = this.defs.residentById.get(id)!;
+      const piece = `кусок ${dish === 'шарлотку' ? 'шарлотки' : dish} на тарелке`;
+      const seen = new Set<string>();
+      for (const d of this.defs.residents) {
+        if (d.id === id || d.apartment === def.apartment || seen.has(d.apartment) || inConflict(this, id, d.id) || warmth(this, id, d.id) < 0.05) continue;
+        seen.add(d.apartment); // одна тарелка на квартиру
+        this.state.residents[id].intents.push({ target: d.id, kind: 'treat', until: this.time + 7 * 3600, gift: piece });
+      }
+      return;
+    }
     const def = this.defs.residentById.get(id)!;
     const friends = this.defs.residents
       .filter((d) => d.id !== id && d.apartment !== def.apartment && !inConflict(this, id, d.id))
@@ -105,11 +118,11 @@ export class Simulation {
     if ((actionId === 'gaming' || actionId === 'computer') && !interrupted) this.onlineHeard(id, actionId);
     if (actionId !== 'phone' || interrupted) return;
     const def = this.defs.residentById.get(id);
-    const friends = def?.contacts.filter((c) => c.phone) ?? [];
+    const friends = def?.contacts.filter((c) => c.phone && !c.callEveryDays) ?? [];
     if (!def || !friends.length || !this.rng.chance(0.3)) return;
     const c = this.rng.pick(friends);
-    const topic = this.rng.pick(['цены на рынке', 'давление и погоду', 'новых соседей', 'вчерашний сериал', 'рецепт засолки', 'общих знакомых', 'внуков']);
-    chronicle(this, 'phone-call', [id], 1, { name: c.name ?? null, gender: c.gender, kind: c.kind, topic });
+    const topic = c.topics.length ? this.rng.pick(c.topics) : this.rng.pick(['цены на рынке', 'давление и погоду', 'новых соседей', 'вчерашний сериал', 'рецепт засолки', 'общих знакомых', 'внуков']);
+    chronicle(this, 'phone-call', [id], 1, { name: c.name ?? null, gender: c.gender, kind: c.kind, topic, family: c.kind !== 'friend' && !!c.name });
   }
 
   /** Голоса из-за стены: играет по сети, созванивается; ночь за компьютером видна по свету */
@@ -393,6 +406,7 @@ export class Simulation {
     }
     updateInteractions(this, DT);
     updatePets(this, DT);
+    updateCircles(this);
     updateVisitors(this, DT);
     updateWorkers(this, DT);
     updateFarewells(this);

@@ -106,7 +106,13 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
 
   // жест: кивнул или помахал кому-то (мастерам из окошка, уходящему из окна)
   const gest = r.gesture && r.gesture.until > tGame ? r.gesture : null;
-  if (gest) {
+  if (gest?.kind === 'write' && r.path.length === 0) {
+    // записывает в блокнот: блокнот в руке, карандаш бегает
+    const look = Math.floor((nowMs + h) / 1500) % 4 === 0; // поднял глаза, подумал
+    if (r.pose === 'sit') return { frame: look ? FRAME.sitArmUp : FRAME.sitArm, prop: look ? { kind: 'pencil', at: 'mouth' } : { kind: 'notebook', at: 'hands' }, bob: breathe, blink };
+    return { frame: look ? FRAME.workUp : FRAME.work, prop: look ? { kind: 'pencil', at: 'mouth' } : { kind: 'notebook', at: 'fwd' }, facing: r.facing, blink };
+  }
+  if (gest && gest.kind !== 'write') {
     const toward: 1 | -1 = gest.toX >= r.x ? 1 : -1;
     const k = Math.floor(nowMs / (gest.kind === 'wave' ? 260 : 220)) % 2;
     if (r.pose === 'sit') {
@@ -155,8 +161,12 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
     let o: Orient = v.o && !env.tableBack ? v.o : base;
     let g: Gesture = v.g;
     if (v.alt && Math.floor((nowMs * P.tempo) / v.alt.ms + h) % 2 === 1) g = v.alt.g;
-    // в разговоре — жестикулирует
-    if (talkOk && Math.floor(nowMs / 900 + h) % 4 === 0) g = 'handUp';
+    // в разговоре — жестикулирует; кто объясняет руками — рисует в воздухе схемы
+    if (talkOk) {
+      const ph = Math.floor(nowMs / (P.talk.explain ? 600 : 900) + h);
+      if (P.talk.explain && ph % 5 < 3) g = ph % 5 === 1 ? 'hands' : 'handUp';
+      else if (ph % 4 === 0) g = 'handUp';
+    }
     let dx = (mixHash(seg, h ^ 0x33) % 3) - 1; // поёрзал (раз в такт)
     // мелкие движения
     switch (micro) {
@@ -165,6 +175,7 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
       case 'beard': if (o !== 'back') g = 'handUp'; break;
       case 'shawl': if (o === 'front') g = 'hands'; break; // запахнула шаль
       case 'slouch': g = 'slouch'; break;
+      case 'stretch': if (o !== 'back') { o = 'front'; g = 'handUp'; } break; // потянулся, потёр поясницу
       case 'shift': dx = -dx || 1; break;
     }
     let frame = SIT_FRAMES[o][g] ?? SIT_FRAMES[o].rest!;
@@ -181,7 +192,18 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
 
   // стоит
   if (talkOk) {
-    const g: Gesture = Math.floor(nowMs / 700 + h) % 3 === 0 ? 'talk' : 'stand';
+    // говорит (жестикулирует) и слушает по очереди
+    const turn = Math.floor((nowMs + h * 7) / 2600) % 2 === 0; // его очередь говорить
+    if (!turn && P.talk.tilt) {
+      // слушает, чуть наклонив голову к собеседнику, кивает
+      return { frame: FRAME.stand, facing: faceTo, bob: Math.floor((nowMs + h) / 900) % 3 === 0 ? 1 : 0, blink };
+    }
+    if (turn && P.talk.explain) {
+      // объясняет: рисует в воздухе схему — рука то вверх, то в сторону, то к груди
+      const k = Math.floor((nowMs + h) / 420) % 4;
+      return { frame: [FRAME.frontTalk, FRAME.frontWave, FRAME.standHandUp, FRAME.frontWave][k], blink };
+    }
+    const g: Gesture = turn && Math.floor(nowMs / 700 + h) % 3 === 0 ? 'talk' : 'stand';
     const o: Orient = micro === 'look' ? 'side' : 'front';
     return { frame: STAND_FRAMES[o][g]!, facing: faceTo, blink };
   }

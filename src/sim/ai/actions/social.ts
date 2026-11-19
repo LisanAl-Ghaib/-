@@ -95,6 +95,7 @@ export const visit: ActionDef = {
 function resolveVisit(ctx: AgentCtx, host: string, intent: string): void {
   const { sim, r } = ctx;
   const hdef = sim.defs.residentById.get(host)!;
+  const planned = r.intents.find((i) => i.target === host && i.kind === intent);
   r.intents = r.intents.filter((i) => !(i.target === host && i.kind === intent));
   if (!hostAvailable(ctx, host)) {
     if (sim.rng.chance(intent === 'chat' ? 0.4 : 0.9)) chronicle(sim, 'visit.nobody', [r.id, host], 1);
@@ -106,6 +107,8 @@ function resolveVisit(ctx: AgentCtx, host: string, intent: string): void {
   const hour = ctx.cal.hourOfDay;
   let p = 0.6 + hostRel.affinity / 220 + (100 - rh.needs.social) / 320 + (rh.needs.mood - 50) / 260 - (hour >= 21 ? 0.2 : 0);
   if (intent === 'congratulate' || intent === 'care' || intent === 'treat') p += 0.3;
+  // кто «рад помочь» и со всеми ладит — дверь открывает почти всегда
+  if (hdef.traits.tags.some((t) => /рад помочь|со всеми ладит/i.test(t))) p += 0.35;
   if (intent === 'apologize') {
     const days = hostRel.conflict ? (ctx.now - hostRel.conflict.since) / 86400 : 1;
     const temper = { calm: 0.15, even: 0, hot: -0.12 }[hdef.traits.temper];
@@ -129,7 +132,7 @@ function resolveVisit(ctx: AgentCtx, host: string, intent: string): void {
   const meta: Record<string, string> = {};
   if (intent === 'congratulate') meta.gift = sim.rng.pick(GIFTS);
   if (intent === 'care') meta.gift = sim.rng.pick(CARE_GIFTS);
-  if (intent === 'treat') meta.gift = sim.rng.pick(['кусок пирога', 'тарелку пирожков', 'полпирога ещё тёплым']);
+  if (intent === 'treat') meta.gift = planned?.gift ?? sim.rng.pick(['кусок пирога', 'тарелку пирожков', 'полпирога ещё тёплым']);
   startVisit(sim, r.id, host, intent, meta);
 }
 

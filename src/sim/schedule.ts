@@ -44,8 +44,13 @@ export function makePlan(ctx: AgentCtx, day: number): DailyPlan {
   const age = sim.age(def);
   const weekend = weekday >= 6;
 
-  let wake = ch.wake + rng.gauss(0, 12) + (workday ? 0 : weekend ? 50 : 25) - (age >= 65 ? 30 : 0);
-  let bed = ch.bed + rng.gauss(0, 18) + (weekday === 5 || weekday === 6 ? 40 : 0) - (age >= 70 ? 30 : 0);
+  // свой режим («встаёт в 6:30, ложится около полуночи») — точнее хронотипа, без выходных поблажек
+  const own = def.traits.sleep;
+  let wake = own ? parseHHMM(own.wake) + rng.gauss(0, 8) : ch.wake + rng.gauss(0, 12) + (workday ? 0 : weekend ? 50 : 25) - (age >= 65 ? 30 : 0);
+  let bed = own ? parseHHMM(own.bed) + rng.gauss(0, 15) : ch.bed + rng.gauss(0, 18) + (weekday === 5 || weekday === 6 ? 40 : 0) - (age >= 70 ? 30 : 0);
+  if (own && bed < 12 * 60) bed += 1440; // «в полночь» — это уже следующие сутки
+  // засиживается за книгой — иногда ложится ещё позже
+  if (def.traits.tags.some((t) => /засиживается за книгой/i.test(t)) && rng.chance(0.3)) bed += rng.range(20, 60);
   // бессонница: многие ночи ложится сильно позже
   if (def.traits.tags.some((t) => /бессонн|не спится|плохо спит/i.test(t)) && rng.chance(0.65)) bed += rng.range(60, 200);
   // «иногда играет ночами до четырёх утра» — а потом всё равно ложится

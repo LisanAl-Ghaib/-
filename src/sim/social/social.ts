@@ -23,6 +23,8 @@ export function tension(sim: Simulation, a: string, b: string): number {
   if (aff < 0) t += -aff / 250;
   else t -= aff / 900;
   if (rel(sim, a, b).conflict) t += 0.12;
+  // «ни с кем не в ссоре», «никакой грубости»: с таким не поругаешься
+  if ([da, db].some((d) => d.traits.tags.some((x) => /ни с кем не в ссоре|никакой грубости/i.test(x)))) return 0;
   return clamp(t, 0, 0.8);
 }
 

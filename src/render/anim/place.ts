@@ -12,7 +12,7 @@ const BY_DRAW: Record<string, Place> = {
   fridge: 'fridge', fridge_old: 'fridge', mini_fridge: 'fridge',
   window_plants: 'window', plant: 'plant', plant_big: 'plant', aquarium: 'aquarium', cat_bowls: 'bowls',
   piano: 'piano', digital_piano: 'piano', eguitar_amp: 'amp', guitar: 'seat',
-  pullup_bar: 'bar', exercise_mat: 'mat', exercise_bike: 'bike', easel: 'easel',
+  pullup_bar: 'bar', exercise_mat: 'mat', exercise_bike: 'bike', easel: 'easel', chalkboard: 'board',
 };
 
 /**

@@ -352,6 +352,26 @@ export const LIBRARY: Record<string, ActivityAnim> = {
     stand: stand('стоит, оглядывается, потягивается', STAND_IDLE),
   },
 
+  board: {
+    board: stand('у грифельной доски спиной к нам: пишет мелом (рука ходит), отступает на шаг посмотреть, стирает, дописывает', [
+      { g: 'workUp', o: 'back', alt: { g: 'work', ms: 320 }, w: 3 },
+      { g: 'workUp', o: 'side', prop: { kind: 'chalk', at: 'up' }, alt: { g: 'work', ms: 380 }, w: 2 },
+      { g: 'stand', o: 'back' },
+      { g: 'stand', o: 'side' },
+    ], { orient: 'back', micro: BUSY_MICRO, talk: false }),
+    stand: stand('пишет на доске', [{ g: 'workUp', o: 'back', alt: { g: 'work', ms: 320 } }]),
+  },
+  circle: {
+    table: sit('ведёт кружок за столом: двигает фигуру, объясняет, показывает на доску, слушает детей', [
+      { g: 'hands', alt: { g: 'rest', ms: 1400 }, w: 2 },
+      { g: 'handUp' },
+      { g: 'rest' },
+      { g: 'hands' },
+    ]),
+    sit: sit('ведёт кружок', [{ g: 'hands', alt: { g: 'rest', ms: 1400 } }, { g: 'handUp' }]),
+    stand: stand('ведёт кружок стоя у доски', [{ g: 'talk', o: 'front' }, { g: 'workUp', o: 'back' }]),
+  },
+
   // ─── люди
   host: { sit: sit('принимает гостей: сидит, разговаривает, жестикулирует', SIT_IDLE) },
   guest: { sit: sit('в гостях: сидит, разговаривает', SIT_IDLE), stand: stand('в гостях', STAND_IDLE) },

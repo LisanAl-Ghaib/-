@@ -148,19 +148,41 @@ export const goOut: ActionDef = {
     const free = !r.plan?.workday;
     const out = SOCIAL_BONUS[def.traits.sociability] + (def.traits.activity === 'active' ? 1 : 0);
     const score = ((free ? 1.4 : 0.3) + out + (100 - r.needs.social) / 30) * Math.max(0.3, weather(ctx)) * novelty(ctx, 'go_out', 30 * 3600);
-    const where = sim.rng.pick(
-      def.traits.sociability === 'outgoing'
-        ? ['к подруге', 'в кино', 'в кафе с друзьями', 'в парк', 'на рынок']
-        : ['в парк', 'в библиотеку', 'прогуляться по району', 'на рынок'],
-    );
+    // встреча с другом вне дома («раз в месяц — шахматы в кафе»)
+    const meet = dueMeeting(ctx);
+    if (meet !== null) {
+      const c = def.contacts[meet];
+      return {
+        score: score + 6,
+        target: { level: 0, x: sim.defs.layout.yard.offscreenX, away: true },
+        duration: sim.rng.int(120, 200) * 60,
+        label: `${gv(def, 'ушёл', 'ушла')} ${c.meetLabel ?? 'встретиться с другом'}`,
+        via: sim.rng.chance(0.5) ? 'bus' : 'walk',
+        data: { out: true, meet } as Record<string, number | boolean>,
+      };
+    }
+    // свои места: библиотека, букинисты, долгие прогулки — особенно в выходные
+    const own = def.outings;
+    const where = own.length
+      ? sim.rng.pick(own)
+      : sim.rng.pick(
+          def.traits.sociability === 'outgoing'
+            ? ['к подруге', 'в кино', 'в кафе с друзьями', 'в парк', 'на рынок']
+            : ['в парк', 'в библиотеку', 'прогуляться по району', 'на рынок'],
+        );
+    // свои выходные маршруты — почти каждый выходной (если погода не совсем плохая)
+    const weekend = ctx.cal.weekday >= 6 && own.length ? 6 : 0;
     return {
-      score,
+      score: score + weekend * Math.max(0.6, weather(ctx)) * novelty(ctx, 'go_out', 20 * 3600),
       target: { level: 0, x: sim.defs.layout.yard.offscreenX, away: true },
-      duration: sim.rng.int(90, 210) * 60,
+      duration: sim.rng.int(90, /гулять/.test(where) ? 240 : 210) * 60,
       label: `${gv(def, 'ушёл', 'ушла')} ${where.replace('к подруге', def.gender === 'm' ? 'к другу' : 'к подруге')}`,
-      via: sim.rng.chance(0.5) ? 'bus' : 'walk',
+      via: /гулять/.test(where) ? 'walk' : sim.rng.chance(0.5) ? 'bus' : 'walk',
       data: { out: true },
     };
+  },
+  onEnd(ctx, a, interrupted) {
+    if (typeof a.data.meet === 'number' && !interrupted) ctx.sim.state.flags[`meet:${ctx.r.id}:${a.data.meet}`] = ctx.now;
   },
   perform(ctx, _a, dt) {
     gain(ctx.r, 'mood', 6, dt);
@@ -169,6 +191,17 @@ export const goOut: ActionDef = {
     gain(ctx.r, 'food', 2, dt);
   },
 };
+
+/** С кем из друзей пора встретиться вне дома (индекс контакта) */
+function dueMeeting(ctx: AgentCtx): number | null {
+  let out: number | null = null;
+  ctx.def.contacts.forEach((c, i) => {
+    if (!c.meetEveryDays) return;
+    const last = ctx.sim.state.flags[`meet:${ctx.r.id}:${i}`] ?? -Infinity;
+    if (ctx.now - last >= c.meetEveryDays * 86400 * 0.9) out = i;
+  });
+  return out;
+}
 
 function minutesToBedSafe(ctx: AgentCtx): number {
   const p = ctx.r.plan;

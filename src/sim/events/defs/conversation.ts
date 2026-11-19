@@ -33,6 +33,9 @@ export const gossip: EventDef = {
     const others = c.sim.defs.residents.filter((d) => d.id !== c.a && d.id !== c.b);
     if (!others.length) return 0;
     const da = c.sim.defs.residentById.get(c.a!)!;
+    const db = c.sim.defs.residentById.get(c.b!)!;
+    // кто не умеет врать и строг к вранью — сплетни не поддерживает
+    if ([da, db].some((d) => d.traits.tags.some((t) => /не умеет врать|строг к вранью/i.test(t)))) return 0;
     return 1.2 + (da.traits.tags.some((t) => /знает|сплет|болтлив/i.test(t)) ? 3 : 0);
   },
   apply(c) {

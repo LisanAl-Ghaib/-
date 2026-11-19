@@ -19,7 +19,7 @@ import { generateIcon, generatePlate } from './sprites/icons';
 import { hashString } from '../core/rng';
 import { LifeDetails } from './lifeDetails';
 import { generatePetSheet, PET_FRAME, PET_H, PET_W } from './sprites/pet';
-import { nightHeadphones, outfitOfDay, visitorAppearance, withOutfitVariant, withStreet } from './visitorLook';
+import { kidAppearance, nightHeadphones, outfitOfDay, visitorAppearance, withOutfitVariant, withStreet } from './visitorLook';
 import { animatePose, smokePhase, type AnimEnv, type Pose } from './animation';
 import { placeOf } from './anim/place';
 import { cigaretteTip, drawCover, drawProp, eyesOf } from './props';
@@ -479,9 +479,9 @@ export class Renderer {
       if (v.away) continue;
       const owner = this.defs.residentById.get(v.owner);
       const c = owner?.contacts[v.contact];
-      if (!owner || !c) continue;
-      const key = `visitor:${v.owner}:${v.contact}`;
-      const app = visitorAppearance(owner, c, key);
+      if (!owner || (!c && v.kid === undefined)) continue;
+      const key = v.kid !== undefined ? `kid:${v.owner}:${v.kid}` : `visitor:${v.owner}:${v.contact}`;
+      const app = c ? visitorAppearance(owner, c, key) : kidAppearance(key);
       const coat = this.env.coats && (v.phase === 'arriving' || v.phase === 'leaving');
       const sheet = this.sprites.get(`${key}${coat ? ':coat' : ''}`, () => generateCharacterSheet(app, { coat }));
       const ix = Math.round(v.x);
@@ -935,7 +935,9 @@ export class Renderer {
               if (!awake || cal.hour < 6 || cal.hour >= 23) break;
               const ph = (nowMs / 1000 + f.x) % 7;
               rect(g, f.x + 6, top + 2, 3, 1, Math.floor(nowMs / 600) % 2 ? '#ffe9a0' : '#e8d8a0');
-              if (ph < 3) {
+              // то классика (ноты), то новости (волны голоса) — каждые полчаса по-разному
+              const news = Math.floor((cal.hour * 60 + cal.minute) / 30 + f.x) % 3 === 0;
+              if (ph < 3 && !news) {
                 const k = Math.floor(ph * 3);
                 const nx = f.x + 3 + (k % 3);
                 const ny = top - 3 - k;
@@ -943,6 +945,14 @@ export class Renderer {
                 rect(g, nx, ny, 1, 3, '#4a3a30');
                 rect(g, nx - 1, ny + 2, 1, 1, '#4a3a30');
                 rect(g, nx + 1, ny, 1, 1, '#4a3a30');
+                g.globalAlpha = 1;
+              } else if (news && Math.floor(nowMs / 250) % 4 !== 0) {
+                // диктор говорит: дуги звука
+                const k = Math.floor(nowMs / 250) % 3;
+                g.globalAlpha = 0.7;
+                rect(g, f.x + f.w + 1 + k, top + 1, 1, 1, '#4a3a30');
+                rect(g, f.x + f.w + 2 + k, top + 2, 1, 2, '#4a3a30');
+                rect(g, f.x + f.w + 1 + k, top + 4, 1, 1, '#4a3a30');
                 g.globalAlpha = 1;
               }
               break;
@@ -1242,6 +1252,8 @@ export class Renderer {
         }
       }
       // реквизит в руках
+      // записывает в блокнот прямо на ходу
+      if (moving && r.gesture?.kind === 'write' && r.gesture.until > this.sim.time) drawProp(g, def.appearance, frame, 'notebook', 'fwd', sx, top, flip, nowMs, hashString(r.id));
       if (pose?.prop && !(pose.cover && frame === FRAME.lie)) drawProp(g, def.appearance, frame, pose.prop.kind, pose.prop.at, sx, top, flip && !PROP_FRONT.has(frame), nowMs, hashString(r.id));
       // где кончик сигареты — оттуда пойдёт дым (рисуется после ночного затемнения)
       if (pose?.prop?.kind === 'cigarette') this.cigTips.set(r.id, cigaretteTip(def.appearance, frame, sx, top, flip && !PROP_FRONT.has(frame)));
@@ -1298,7 +1310,8 @@ export class Renderer {
       }
       // сначала — самочувствие (зевает, вздыхает) и события (заболел, кошмар), иначе — чем занят
       const mood = this.moodIcon(r, nowMs) ?? (r.bubble && EVENT_ICONS.has(r.bubble.icon) ? r.bubble.icon : null);
-      const name = mood ?? iconFor(r);
+      const writing = r.gesture?.kind === 'write' && r.gesture.until > this.sim.time;
+      const name = mood ?? (writing ? 'notebook' : iconFor(r));
       if (!name) continue;
       const icon = this.sprites.get(`plate:${name}:${mood ? 1 : 0}`, () => generatePlate(name, !!mood));
       const bob = Math.floor(nowMs / 600 + r.x) % 2;
@@ -1603,7 +1616,10 @@ export function iconFor(r: ResidentState): string | null {
     case 'nightmare':
       return 'shock';
     case 'chess':
+    case 'circle':
       return 'chess';
+    case 'board':
+      return 'chalk';
     case 'wave_window':
       return 'hand';
     case 'together':

@@ -50,7 +50,20 @@ export function syncConstruction(sim: Simulation): void {
     s.construction = null;
     return;
   }
-  if (s.construction && s.construction.floor === cfg.floor) return;
+  if (s.construction && s.construction.floor === cfg.floor) {
+    // стройку объявили законченной — этаж сдают сразу, бригада уходит
+    if (cfg.finished && !s.construction.done) {
+      s.construction.progress = 1;
+      s.construction.done = true;
+      chronicle(sim, 'construction', [], 3, { stage: 'done', floor: cfg.floor });
+    }
+    return;
+  }
+  if (cfg.finished) {
+    // новый мир, а этаж уже стоит
+    s.construction = { floor: cfg.floor, progress: 1, startedAt: s.time, done: true };
+    return;
+  }
   s.construction = { floor: cfg.floor, progress: 0, startedAt: s.time, done: false };
   chronicle(sim, 'construction', [], 3, { stage: 'start', floor: cfg.floor });
 }
