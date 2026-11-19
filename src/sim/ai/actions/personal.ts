@@ -88,7 +88,8 @@ export const smokeWindow: ActionDef = {
       // днём, если погода не совсем дрянь, примерно через раз выходит к подъезду
       score: (1 + h * 4 + (night ? 2 : 0) + (woke ? 3 : 0)) * crave * (!night && ctx.sim.outdoorAppeal(ctx.def) > 0.2 ? 0.42 : 1) + (afterNightmare ? 14 : 0),
       target: spot,
-      duration: ctx.sim.rng.int(5, 9) * 60,
+      // не торопясь: 13–18 минут (столько же реальных секунд)
+      duration: ctx.sim.rng.int(13, 18) * 60,
       label: onBalcony ? 'курит на балконе' : 'курит в окно',
       data: { balcony: onBalcony },
     };
