@@ -1,5 +1,6 @@
 import { calendar, formatDateLong, hhmm } from '../core/time';
 import type { ChronicleEntry } from '../sim/state';
+import { chronicleRevision } from '../sim/chronicle/chronicle';
 import { el } from './dom';
 import type { PanelView, UiHost } from './ui';
 
@@ -34,6 +35,15 @@ export function chronicleView(host: UiHost): PanelView {
         listBox.append(el('div', { class: 'chron-day' }, formatDateLong(c)));
       }
       const row = el('div', { class: `chron-entry imp${e.importance}`, title: e.actors.length ? 'Найти взглядом' : '' }, el('span', { class: 't' }, hhmm(c.minuteOfDay)), e.text);
+      // что было сказано вслух (дописала нейросеть, если она запущена)
+      if (typeof e.data.voice === 'string' && e.data.voice) {
+        const box = el('div', { class: 'chron-voice' });
+        for (const line of e.data.voice.split('\n')) {
+          const k = line.indexOf(': ');
+          box.append(el('div', {}, k > 0 ? el('span', { class: 'who-says' }, `${line.slice(0, k)}: `) : '', `«${k > 0 ? line.slice(k + 2) : line}»`));
+        }
+        row.append(box);
+      }
       if (e.actors.length) {
         row.style.cursor = 'pointer';
         let k = 0;
@@ -61,7 +71,7 @@ export function chronicleView(host: UiHost): PanelView {
     },
     update() {
       const ch = host.sim.state.chronicle;
-      const key = `${ch.length}:${ch[ch.length - 1]?.id ?? 0}`;
+      const key = `${ch.length}:${ch[ch.length - 1]?.id ?? 0}:${chronicleRevision()}`;
       if (key === lastKey) return;
       lastKey = key;
       renderList();

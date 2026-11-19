@@ -56,6 +56,8 @@ main { flex: 1; display: flex; min-height: 0; }
 .chron-day { color: var(--accent); margin: 10px 0 4px; border-bottom: 1px dashed var(--line); padding-bottom: 2px; }
 .chron-entry { padding: 3px 0 5px; line-height: 1.4; border-bottom: 1px solid rgba(255,255,255,.03); }
 .chron-entry .t { color: var(--muted); margin-right: 6px; }
+.chron-voice { margin: 3px 0 0 42px; padding-left: 8px; border-left: 2px solid rgba(255,255,255,.12); color: #d8d2c4; font-style: italic; }
+.chron-voice .who-says { color: var(--muted); font-style: normal; }
 .chron-entry.imp2 { color: #fff; }
 .chron-entry.imp3 { color: var(--accent); }
 .chron-entry .who { color: var(--accent2); cursor: pointer; text-decoration: underline dotted; }

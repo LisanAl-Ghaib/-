@@ -6,6 +6,15 @@ export const CHRONICLE_LIMIT = 800;
 
 let narrator: Narrator = new TemplateNarrator();
 
+/** Записи хроники меняются задним числом (нейросеть дописала реплики) — ленте пора перерисоваться */
+let revision = 0;
+export function touchChronicle(): void {
+  revision++;
+}
+export function chronicleRevision(): number {
+  return revision;
+}
+
 /** Подменить нарратор (например, на LLM) */
 export function setNarrator(n: Narrator): void {
   narrator = n;

@@ -8,6 +8,7 @@ import { computeEnvironment } from './render/season';
 import { Simulation } from './sim/simulation';
 import { createWorldState, type WorldState } from './sim/state';
 import { $, el, escapeHtml } from './ui/dom';
+import { Voices } from './ai/voices';
 import { Ui, type UiHost } from './ui/ui';
 import { installViews } from './ui/views';
 import { closeBoard, openBoard } from './ui/board';
@@ -47,6 +48,15 @@ async function boot() {
   if (!state) state = createWorldState(defs, seed);
   const sim = new Simulation(defs, state);
   state.dataHash = defs.dataHash;
+
+  // ── голоса жильцов: если на компьютере запущена локальная нейросеть (LM Studio / Ollama),
+  // она дописывает в хронику, что именно соседи сказали друг другу; если нет — всё по-старому
+  // ищем её только когда игра открыта с этого же компьютера (файлом или с localhost):
+  // со страницы в интернете браузер стал бы спрашивать доступ к локальной сети
+  const localPage = location.protocol === 'file:' || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  const voices = new Voices(sim);
+  const helpEl = $('#help');
+  const helpBase = helpEl.textContent ?? '';
 
   // ── рендер
   const canvas = $('#view') as HTMLCanvasElement;
@@ -245,6 +255,7 @@ async function boot() {
     const total = Math.floor(Math.min(gameSeconds, MAX_CATCHUP) / DT);
     if (total <= 0) return;
     catching = true;
+    voices.live = false; // пропущенное — шаблонами, нейросеть зовём только «вживую»
     const days = Math.max(1, Math.round((total * DT) / 86400));
     const big = total > 3000;
     if (big) away.hidden = false;
@@ -259,6 +270,7 @@ async function boot() {
     }
     away.hidden = true;
     catching = false;
+    voices.live = true;
     prev.clear();
     if (big) ui.toast('Пока вас не было, жизнь шла своим чередом — загляните в хронику', 4000);
   };
@@ -315,13 +327,17 @@ async function boot() {
     if (now - lastUi > 250) {
       lastUi = now;
       ui.update();
+      if (localPage) void voices.tick();
+      const vs = voices.status();
+      const helpText = vs ? `${helpBase} · голоса жильцов: ${vs.server} (${vs.model})` : helpBase;
+      if (helpEl.textContent !== helpText) helpEl.textContent = helpText;
     }
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
 
   // для отладки из консоли
-  Object.assign(window, { dom: { sim, defs, renderer, save, host } });
+  Object.assign(window, { dom: { sim, defs, renderer, save, host, voices } });
 }
 
 boot();

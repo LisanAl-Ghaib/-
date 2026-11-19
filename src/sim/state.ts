@@ -7,9 +7,9 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 /** версии сохранений, которые можно дополнить до текущей (недостающие поля заполнит Simulation) */
-export const MIGRATABLE_VERSIONS = [7, 8, 9, 10, 11, 12];
+export const MIGRATABLE_VERSIONS = [7, 8, 9, 10, 11, 12, 13];
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -298,6 +298,8 @@ export interface WorldState {
   pendingChronicle: { at: number; kind: string; actors: string[]; importance: 1 | 2 | 3; data: ChronicleEntry['data'] }[];
   /** предметы во дворе, которые появляются сами (снеговик) */
   yard: { snowman: { x: number; builtAt: number; by: string } | null };
+  /** дневники жильцов для «голосов» (локальная нейросеть); симуляция их не читает */
+  diaries?: Record<string, string[]>;
 }
 
 export function createResidentState(defs: WorldDefs, id: string, rngNext: () => number): ResidentState {

@@ -66,6 +66,7 @@ export class Simulation {
     state.pendingChronicle ??= [];
     state.visitors ??= [];
     state.workers ??= [];
+    state.diaries ??= {};
     shiftGeometry(state, defs);
     for (const r of Object.values(state.residents)) {
       r.needs.bladder ??= 70;
