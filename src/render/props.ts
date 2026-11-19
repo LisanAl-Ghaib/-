@@ -1,5 +1,5 @@
 import type { ResidentDef } from '../data/schemas';
-import type { PropAt, PropKind } from './animation';
+import type { Cover, PropAt, PropKind } from './animation';
 import { rect } from './pixel';
 import { CELL_H, CELL_W, FRAME, figureOf } from './sprites/character';
 
@@ -73,6 +73,10 @@ export function drawProp(
   nowMs: number,
   seed: number,
 ): void {
+  if (frame === FRAME.lie) {
+    drawLieProp(g, app, kind, at, ix, top, flip, nowMs, seed);
+    return;
+  }
   const [cx, cy] = anchor(app, frame, at);
   const x = flip ? ix + CELL_W / 2 - 1 - cx : ix - CELL_W / 2 + cx;
   const y = top + cy;
@@ -170,7 +174,85 @@ export function drawProp(
     case 'eguitar':
       drawEGuitar(g, app, frame, ix, top, flip, nowMs, seed, at);
       break;
+    case 'toothbrush':
+      // щётка у рта ходит туда-сюда
+      rect(g, x + (tick % 2) * d, y, 1, 3, '#e8eef4');
+      rect(g, x + (tick % 2) * d, y - 1, 1, 1, '#4a9ad8');
+      break;
+    case 'towel':
+      rect(g, x - 1, y - 1, 3, 4, '#f2f0ea');
+      rect(g, x - 1, y + 1, 3, 1, '#c84a5a');
+      break;
+    case 'knife':
+      rect(g, x, y - 2, 1, 2, '#d8d8dc');
+      rect(g, x, y, 1, 1, '#4a3a2a');
+      break;
+    case 'plate':
+      rect(g, x - 2, y, 5, 1, '#f4f2ec');
+      rect(g, x - 1, y - 1, 3, 1, ['#c8783a', '#d8b040', '#8aa050', '#b84a3a'][seed % 4]);
+      break;
+    case 'shirt':
+      rect(g, x - 1, y, 3, 2, ['#5a7ab0', '#d8d0c0', '#b05a5a'][seed % 3]);
+      break;
+    case 'bag':
+      rect(g, x - 1, y, 3, 4, '#c8a878');
+      rect(g, x - 1, y, 3, 1, '#a88858');
+      break;
+    case 'food':
+      rect(g, x, y, 2, 1, '#d8a050');
+      break;
   }
+}
+
+/** Вещь в руках у лежащего (голова справа, если не перевёрнут): книга над лицом или на груди */
+function drawLieProp(g: CanvasRenderingContext2D, app: ResidentDef['appearance'], kind: PropKind, at: PropAt, ix: number, top: number, flip: boolean, nowMs: number, seed: number) {
+  if (kind !== 'book') return;
+  const { H } = figureOf(app);
+  const y = CELL_H - 5; // строка головы
+  const x1 = C + Math.floor(H / 2);
+  const cx = x1 - 8; // над грудью, ближе к лицу
+  const X = (c: number) => (flip ? ix + CELL_W / 2 - 1 - c : ix - CELL_W / 2 + c);
+  const cover = ['#8a2a2a', '#2a4a7a', '#3a6a3a', '#7a5a2a'][seed % 4];
+  if (at === 'low') {
+    // положил раскрытую книгу на грудь
+    rect(g, Math.min(X(cx - 1), X(cx + 2)), top + y, 4, 1, cover);
+    return;
+  }
+  // держит над собой: видна обложка, руки от плеч к книге
+  rect(g, Math.min(X(cx - 2), X(cx + 2)), top + y - 4, 5, 3, cover);
+  rect(g, Math.min(X(cx - 1), X(cx + 1)), top + y - 4, 3, 1, mixPage(Math.floor(nowMs / 150 + seed) % 40 === 0));
+  rect(g, X(cx - 1), top + y - 1, 1, 2, app.skin);
+  rect(g, X(cx + 1), top + y - 1, 1, 2, app.skin);
+}
+function mixPage(flash: boolean) {
+  return flash ? '#ffffff' : '#f3efe2';
+}
+
+/** Одеяло (целиком или до пояса) / вода в ванне поверх лежащего */
+export function drawCover(g: CanvasRenderingContext2D, cover: Cover, app: ResidentDef['appearance'], ix: number, iy: number, flip: boolean, textile: string, nowMs: number, seed: number) {
+  const { H } = figureOf(app);
+  const w = H - 6;
+  const bx = flip ? ix - Math.floor(H / 2) + 6 : ix - Math.floor(H / 2);
+  if (cover === 'water') {
+    // вода по плечи, пена и пузырьки
+    rect(g, bx, iy - 3, w, 4, '#9fd3ef');
+    rect(g, bx, iy - 3, w, 1, '#d8eef8');
+    for (let i = 0; i < 3; i++) {
+      const k = Math.floor(nowMs / 900 + seed + i * 7) % w;
+      if ((Math.floor(nowMs / 450) + i) % 3 !== 0) rect(g, bx + k, iy - 4, 1, 1, '#ffffff');
+    }
+    return;
+  }
+  const half = cover === 'blanketHalf';
+  const cw = half ? Math.ceil(w * 0.55) : w;
+  const cx = half && flip ? bx + w - cw : bx;
+  rect(g, cx, iy - 3, cw, 4, textile);
+  rect(g, cx, iy - 3, cw, 1, lighten(textile));
+}
+function lighten(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  const f = (v: number) => Math.min(255, Math.round(v + (255 - v) * 0.25));
+  return `#${[f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
 /**

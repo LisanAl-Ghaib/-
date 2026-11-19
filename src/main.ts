@@ -23,6 +23,13 @@ async function boot() {
     return;
   }
   const defs = built.defs;
+  // инструмент разработки: атлас анимаций (в мире его нет)
+  if (params.has('atlas')) {
+    const { runAtlas } = await import('./dev/atlas');
+    // ?atlas=read,wash — только эти занятия
+    runAtlas(defs, (params.get('atlas') ?? '').split(',').filter((x) => x && x !== '1'));
+    return;
+  }
 
   // ── мир: сохранение или новый
   const seedParam = params.get('seed');
@@ -188,6 +195,12 @@ async function boot() {
     }
   });
   window.addEventListener('resize', () => renderer.resize());
+  // панель спрятали/показали — область холста меняется без resize окна:
+  // пересчитываем буфер, иначе картинка растягивается
+  new ResizeObserver(() => {
+    renderer.resize();
+    syncInset();
+  }).observe(canvas);
   // телефон: панель — нижний лист, камера центрирует то, что над ним
   function syncInset() {
     const panel = $('#panel');

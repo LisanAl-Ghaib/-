@@ -2,79 +2,43 @@ import { hashString } from '../core/rng';
 import type { ResidentDef } from '../data/schemas';
 import type { ResidentState } from '../sim/state';
 import { FRAME, figureOf } from './sprites/character';
+import { sceneFor } from './anim/library';
+import { personalOf, type Personal } from './anim/personal';
+import type { AnimEnv, Beat, Gesture, Micro, Orient, Pose, Scene } from './anim/types';
+
+export type { AnimEnv, Cover, Place, Pose, PropAt, PropKind } from './anim/types';
+export { smokePhase, type SmokePhase } from './anim/library';
 
 /**
- * Живые позы (чистая косметика рендера, симуляцию не трогает).
+ * ДВИЖОК ПОЗ (чистая косметика рендера, симуляцию не трогает).
+ *
+ * Поза = базовая сцена занятия в этом месте (anim/library.ts, одинакова для всех)
+ *      + личные добавки (anim/personal.ts, только добавляют)
+ *      + общие для всех слои: жест из окна, одевание в прихожей, разговор, мелкие движения.
  *
  * Три уровня движения:
- *  1. Поза занятия меняется каждые несколько игровых минут: откинулся, закинул ногу на ногу,
+ *  1. Такт сцены меняется каждые несколько игровых минут: откинулся, закинул ногу на ногу,
  *     взял чашку, уткнулся в телефон.
- *  2. Ракурс: человек сидит лицом, боком (к телевизору, к собеседнику) или спиной
- *     (за столом, у плиты, у окна) — мир не плоский.
+ *  2. Ракурс: лицом, боком (к телевизору, к собеседнику) или спиной (за столом, у плиты).
  *  3. Мелкие движения каждые пару секунд: дышит, моргает, поворачивает голову,
- *     поправляет очки, ёрзает на месте.
+ *     поправляет очки, ёрзает.
  */
-export type PropKind =
-  | 'phone' | 'cup' | 'book' | 'remote' | 'fork' | 'pen' | 'knitting' | 'guitar'
-  | 'spoon' | 'rag' | 'can' | 'sponge' | 'paper' | 'hoop' | 'laptop' | 'headset' | 'eguitar' | 'cigarette';
 
-export type PropAt = 'hands' | 'ear' | 'mouth' | 'fwd' | 'up' | 'low';
-
-export interface Pose {
-  frame: number;
-  prop?: { kind: PropKind; at: PropAt };
-  /** перевернуться во сне */
-  turn?: boolean;
-  /** приподнять спрайт (дыхание, подпрыгивание) */
-  bob?: number;
-  /** сдвиг по горизонтали — поёрзал на месте */
-  dx?: number;
-  /** куда смотрит в боковом ракурсе (переопределяет facing жильца) */
-  facing?: 1 | -1;
-  /** моргнул */
-  blink?: boolean;
-}
-
-/** Что известно об окружении (считает рендер) */
-export interface AnimEnv {
-  /** на что смотреть боком: телевизор, собеседник */
-  faceToX?: number;
-  /** сидит за столом лицом к стене — со спины */
-  tableBack?: boolean;
-  /** окно/плита/мойка перед ним у стены — стоит спиной */
-  wallWork?: boolean;
-  /** на чём играет: за пианино сидят спиной, электрогитару держат в руках */
-  instrument?: 'piano' | 'guitar';
-  /** подтягивается на турнике: y перекладины в мире */
-  pullup?: number;
-  /** развалился в кресле-реклайнере */
-  recline?: boolean;
-  /** переговаривается с тем, кто рядом (пара в одной комнате) */
-  chatter?: boolean;
-}
-
-type Orient = 'front' | 'side' | 'back';
-type Gesture = 'rest' | 'slouch' | 'hands' | 'handUp' | 'cross' | 'stand' | 'work' | 'workUp' | 'phoneStand' | 'talk' | 'wave';
-
-interface Variant {
-  g: Gesture;
-  o?: Orient;
-  prop?: { kind: PropKind; at: PropAt };
-  alt?: { g: Gesture; ms: number };
-}
-
-const SIT_FRAMES: Record<Orient, Partial<Record<Gesture, number>>> = {
+export const SIT_FRAMES: Record<Orient, Partial<Record<Gesture, number>>> = {
   front: { rest: FRAME.frontSit, slouch: FRAME.frontSitSlouch, hands: FRAME.frontSitHands, handUp: FRAME.frontSitHandUp, cross: FRAME.frontSitCross },
   side: { rest: FRAME.sit, slouch: FRAME.sitLean, hands: FRAME.sitArm, handUp: FRAME.sitArmUp, cross: FRAME.sitLean },
   back: { rest: FRAME.backSit, slouch: FRAME.backSit, hands: FRAME.backSitWork, handUp: FRAME.backSitWork, cross: FRAME.backSit },
 };
-const STAND_FRAMES: Record<Orient, Partial<Record<Gesture, number>>> = {
+export const STAND_FRAMES: Record<Orient, Partial<Record<Gesture, number>>> = {
   front: { stand: FRAME.frontStand, work: FRAME.frontStand, workUp: FRAME.frontWave, phoneStand: FRAME.standHandUp, talk: FRAME.frontTalk, wave: FRAME.frontWave },
   side: { stand: FRAME.stand, work: FRAME.work, workUp: FRAME.workUp, phoneStand: FRAME.standHandUp, talk: FRAME.frontTalk, wave: FRAME.workUp },
   back: { stand: FRAME.backStand, work: FRAME.backWork, workUp: FRAME.backWork, phoneStand: FRAME.backStand, talk: FRAME.backStand, wave: FRAME.backWork },
 };
+const SIT_G = new Set<Gesture>(['rest', 'slouch', 'hands', 'handUp', 'cross']);
+const STAND_G = new Set<Gesture>(['stand', 'work', 'workUp', 'phoneStand', 'talk', 'wave']);
 
-const SEG_MIN = 5; // поза меняется каждые ~5 игровых минут (≈ 5 секунд)
+const NOT_IN_TALK = new Set<string>(['phone', 'book', 'paper', 'laptop']);
+const SEG_MIN = 5; // такт меняется каждые ~5 игровых минут (≈ 5 секунд)
 
 function mixHash(a: number, b: number): number {
   let h = (a ^ Math.imul(b + 0x9e3779b9, 0x85ebca6b)) >>> 0;
@@ -82,175 +46,65 @@ function mixHash(a: number, b: number): number {
   return (h ^ (h >>> 16)) >>> 0;
 }
 
-const CUP = { kind: 'cup', at: 'mouth' } as const;
-const SIT_IDLE: Variant[] = [
-  { g: 'rest' },
-  { g: 'slouch' },
-  { g: 'cross' },
-  { g: 'handUp', prop: CUP },
-  { g: 'hands', prop: { kind: 'phone', at: 'hands' } },
-  { g: 'rest', o: 'side' },
-];
+/** id занятия для библиотеки (у пары — `together:<kind>`) */
+export function activityKey(r: ResidentState): string {
+  const a = r.action;
+  if (!a || a.phase !== 'perform') return '';
+  return a.id === 'together' ? `together:${a.data.kind}` : a.id;
+}
 
-const SIT: Record<string, Variant[]> = {
-  watch_tv: [
-    { g: 'rest', prop: { kind: 'remote', at: 'low' } },
-    { g: 'slouch' },
-    { g: 'cross' },
-    { g: 'handUp', prop: CUP },
-    { g: 'hands', prop: { kind: 'phone', at: 'hands' } },
-    { g: 'slouch', prop: { kind: 'remote', at: 'low' } },
-    { g: 'rest', o: 'front' },
-  ],
-  read: [
-    { g: 'hands', prop: { kind: 'book', at: 'hands' } },
-    { g: 'hands', prop: { kind: 'book', at: 'hands' }, o: 'side' },
-    { g: 'slouch', prop: { kind: 'book', at: 'low' } },
-    { g: 'handUp', prop: CUP },
-    { g: 'cross', prop: { kind: 'book', at: 'low' } },
-  ],
-  work: [
-    { g: 'hands', alt: { g: 'rest', ms: 260 } },
-    { g: 'hands', alt: { g: 'rest', ms: 320 } },
-    { g: 'slouch' },
-    { g: 'handUp', prop: CUP },
-    { g: 'handUp', prop: { kind: 'phone', at: 'ear' } },
-    { g: 'rest', prop: { kind: 'paper', at: 'hands' }, o: 'front' },
-    { g: 'hands', prop: { kind: 'pen', at: 'fwd' }, alt: { g: 'rest', ms: 700 } },
-  ],
-  gaming: [
-    { g: 'hands', alt: { g: 'rest', ms: 160 } },
-    { g: 'hands', alt: { g: 'slouch', ms: 220 } },
-    { g: 'slouch' },
-    { g: 'handUp', prop: CUP },
-  ],
-  computer: [
-    { g: 'hands', alt: { g: 'rest', ms: 700 } },
-    { g: 'slouch' },
-    { g: 'rest', prop: { kind: 'phone', at: 'hands' } },
-  ],
-  phone: [
-    { g: 'handUp', prop: { kind: 'phone', at: 'ear' } },
-    { g: 'handUp', prop: { kind: 'phone', at: 'ear' }, o: 'side' },
-    { g: 'handUp', prop: { kind: 'phone', at: 'ear' }, alt: { g: 'slouch', ms: 2600 } },
-    { g: 'hands', prop: { kind: 'phone', at: 'hands' } },
-  ],
-  eat: [
-    { g: 'hands', prop: { kind: 'fork', at: 'fwd' }, alt: { g: 'handUp', ms: 700 } },
-    { g: 'hands', alt: { g: 'handUp', ms: 900 } },
-    { g: 'rest' },
-    { g: 'handUp', prop: CUP },
-  ],
-  tea: [
-    { g: 'handUp', prop: CUP, alt: { g: 'rest', ms: 2200 } },
-    { g: 'slouch', prop: { kind: 'cup', at: 'low' } },
-    { g: 'hands', prop: { kind: 'paper', at: 'hands' } },
-    { g: 'cross', prop: { kind: 'cup', at: 'low' } },
-  ],
-  crafts: [
-    { g: 'hands', prop: { kind: 'knitting', at: 'hands' }, alt: { g: 'hands', ms: 400 } },
-    { g: 'hands', prop: { kind: 'knitting', at: 'hands' }, o: 'side' },
-    { g: 'handUp', prop: CUP },
-    { g: 'slouch' },
-  ],
-  music: [
-    { g: 'hands', prop: { kind: 'guitar', at: 'hands' }, alt: { g: 'rest', ms: 330 } },
-    { g: 'hands', prop: { kind: 'guitar', at: 'hands' }, alt: { g: 'handUp', ms: 500 } },
-  ],
-  bench: SIT_IDLE.concat([{ g: 'hands', prop: { kind: 'paper', at: 'hands' } }]),
-  night_watch: [
-    { g: 'slouch' },
-    { g: 'handUp', prop: CUP },
-    { g: 'rest' },
-    { g: 'hands', prop: { kind: 'paper', at: 'hands' } },
-    { g: 'rest', o: 'front' },
-  ],
-  idle: SIT_IDLE,
-  side_work: [
-    { g: 'hands', alt: { g: 'rest', ms: 260 } },
-    { g: 'hands', alt: { g: 'rest', ms: 400 } },
-    { g: 'handUp', prop: CUP },
-    { g: 'slouch' },
-    { g: 'rest', o: 'front', prop: { kind: 'phone', at: 'hands' } },
-  ],
-  chess: [
-    { g: 'hands', alt: { g: 'rest', ms: 1900 } },
-    { g: 'handUp' },
-    { g: 'slouch' },
-    { g: 'rest', o: 'front' },
-    { g: 'cross', o: 'front' },
-  ],
-  'together:chess': [
-    { g: 'hands', alt: { g: 'rest', ms: 2300 } },
-    { g: 'handUp' },
-    { g: 'rest' },
-    { g: 'slouch' },
-  ],
-  'together:film': [
-    { g: 'hands', o: 'front', prop: { kind: 'laptop', at: 'hands' } },
-    { g: 'cross', o: 'front' },
-    { g: 'slouch', o: 'front' },
-    { g: 'handUp', o: 'front', prop: CUP },
-    { g: 'rest', o: 'side' },
-  ],
-  host: SIT_IDLE,
-  guest: SIT_IDLE,
-  family_visit: SIT_IDLE,
-};
+/** Ракурсы, которые есть в базовой сцене (личные добавки не могут их расширить) */
+function sceneOrients(s: Scene, base: Orient): Set<Orient> {
+  const out = new Set<Orient>([s.orient ?? base]);
+  for (const b of s.beats ?? []) out.add(b.o ?? s.orient ?? base);
+  return out;
+}
 
-const STAND: Record<string, Variant[]> = {
-  cook: [
-    { g: 'workUp', o: 'back', alt: { g: 'work', ms: 350 } },
-    { g: 'work', o: 'back', alt: { g: 'stand', ms: 600 } },
-    { g: 'workUp', o: 'side', prop: { kind: 'spoon', at: 'up' }, alt: { g: 'work', ms: 400 } },
-    { g: 'stand', o: 'side' },
-  ],
-  wash: [{ g: 'work', o: 'back', alt: { g: 'workUp', ms: 280 } }, { g: 'work', o: 'side', prop: { kind: 'sponge', at: 'fwd' }, alt: { g: 'workUp', ms: 280 } }],
-  wash_dishes: [{ g: 'work', o: 'back', alt: { g: 'workUp', ms: 280 } }, { g: 'work', o: 'side', prop: { kind: 'sponge', at: 'fwd' }, alt: { g: 'workUp', ms: 280 } }],
-  plants: [{ g: 'workUp', o: 'side', prop: { kind: 'can', at: 'up' } }, { g: 'work', o: 'back' }],
-  chores: [{ g: 'work', o: 'side', prop: { kind: 'rag', at: 'fwd' }, alt: { g: 'workUp', ms: 400 } }, { g: 'work', o: 'back', alt: { g: 'workUp', ms: 380 } }, { g: 'stand', o: 'front' }],
-  make_bed: [{ g: 'workUp', o: 'side', alt: { g: 'work', ms: 450 } }, { g: 'work', o: 'back', alt: { g: 'workUp', ms: 450 } }],
-  unpack: [{ g: 'work', o: 'side', alt: { g: 'stand', ms: 700 } }, { g: 'work', o: 'back', alt: { g: 'workUp', ms: 600 } }],
-  snack: [{ g: 'work', o: 'back', alt: { g: 'workUp', ms: 900 } }],
-  feed_pets: [{ g: 'work', o: 'side', alt: { g: 'workUp', ms: 500 } }],
-  phone: [{ g: 'phoneStand', o: 'front', prop: { kind: 'phone', at: 'ear' } }, { g: 'phoneStand', o: 'side', prop: { kind: 'phone', at: 'ear' } }],
-  window: [{ g: 'stand', o: 'back' }, { g: 'stand', o: 'back' }, { g: 'stand', o: 'front' }],
-  wave_window: [{ g: 'stand', o: 'side' }, { g: 'stand', o: 'side' }],
-  feed_fish: [{ g: 'workUp', o: 'side', alt: { g: 'work', ms: 600 } }, { g: 'stand', o: 'side' }, { g: 'talk', o: 'side' }],
-  look: [{ g: 'stand', o: 'back' }],
-  idle: [{ g: 'stand', o: 'front' }, { g: 'stand', o: 'side' }, { g: 'stand', o: 'back' }],
-  'together:help_cook': [
-    { g: 'work', o: 'back', alt: { g: 'workUp', ms: 420 } },
-    { g: 'stand', o: 'side', prop: CUP },
-    { g: 'talk', o: 'front' },
-  ],
-  'together:gift': [{ g: 'talk', o: 'side' }, { g: 'wave', o: 'side' }],
-};
+/**
+ * Такты сцены: база + личные добавки той же позы и тех же ракурсов.
+ * Экспортируется для атласа и тестов.
+ */
+export function mergedBeats(scene: Scene, p: Personal, id: string, place: string | undefined, base: Orient): Beat[] {
+  const beats = scene.beats ?? [];
+  if (!beats.length) return beats;
+  const allowedG = scene.posture === 'sit' ? SIT_G : STAND_G;
+  const orients = sceneOrients(scene, base);
+  const extra = [...(p.extra[id] ?? []), ...(place ? p.extra[`${id}@${place}`] ?? [] : []), ...(p.extra[`*${scene.posture}`] ?? [])];
+  const ok = extra.filter((b) => allowedG.has(b.g) && (!b.alt || allowedG.has(b.alt.g)) && orients.has(b.o ?? scene.orient ?? base));
+  return ok.length ? beats.concat(ok) : beats;
+}
+
+function pickWeighted(list: Beat[], r: number): Beat {
+  let total = 0;
+  for (const b of list) total += b.w ?? 1;
+  let k = r % total;
+  for (const b of list) {
+    k -= b.w ?? 1;
+    if (k < 0) return b;
+  }
+  return list[0];
+}
 
 /** Поза жильца прямо сейчас */
 export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, nowMs: number, env: AnimEnv = {}): Pose {
   const h = hashString(r.id);
   const a = r.action;
-  const id = a?.phase === 'perform' ? (a.id === 'together' ? `together:${a.data.kind}` : a.id) : '';
+  const id = activityKey(r);
+  const P = personalOf(def);
   const seg = Math.floor((tGame / 60 + (h % 13)) / SEG_MIN);
-  const pick = <T,>(list: T[]) => list[mixHash(seg, h) % list.length];
   const talking = a?.data.talking === true || r.interaction !== null || !!env.chatter;
-  // мелкие движения: окно ~2.6 с, активная часть — первые ~1.1 с
-  // непоседы (активные) ёрзают и оглядываются чаще
-  const P = def.traits.activity === 'active' ? 1700 : def.traits.activity === 'lazy' ? 3400 : 2600;
-  const win = Math.floor((nowMs + (h % P)) / P);
-  const inWin = (nowMs + (h % P)) % P;
-  const micro = inWin < 1100 ? mixHash(win, h ^ 0x55) % 12 : -1;
+  // мелкие движения: окно ~2.6 с, активная часть — первые ~1.1 с; непоседы — чаще
+  const per = Math.round(2600 / P.tempo);
+  const win = Math.floor((nowMs + (h % per)) / per);
+  const inWin = (nowMs + (h % per)) % per;
+  const roll = inWin < 1100 ? mixHash(win, h ^ 0x55) % 12 : 99;
   const blink = (nowMs + h * 53) % 3700 < 140;
   const faceTo: 1 | -1 | undefined = env.faceToX !== undefined ? (env.faceToX >= r.x ? 1 : -1) : undefined;
+  const breathe = Math.floor((nowMs + h) / 1900) % 2;
 
-  if (r.pose === 'lie') {
-    // во сне иногда переворачивается, одеяло поднимается от дыхания
-    const turn = id === 'sleep' && mixHash(Math.floor(seg / 4), h) % 3 === 0;
-    return { frame: FRAME.lie, turn, bob: Math.floor((nowMs + h) / 2200) % 2 };
-  }
+  // ── общие слои (одинаковы для всех и для любого занятия)
 
-  // жест: кивнула или помахала кому-то (мастерам из окошка)
+  // жест: кивнул или помахал кому-то (мастерам из окошка, уходящему из окна)
   const gest = r.gesture && r.gesture.until > tGame ? r.gesture : null;
   if (gest) {
     const toward: 1 | -1 = gest.toX >= r.x ? 1 : -1;
@@ -259,125 +113,95 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
       if (gest.kind === 'wave') return { frame: k ? FRAME.sitArmUp : FRAME.sitArm, facing: toward };
       return { frame: k ? FRAME.sitLean : FRAME.sit, bob: k, facing: toward };
     }
-    // из окна во двор — боком к нам, рукой в окно
     if (gest.kind === 'wave' && gest.side) return { frame: k ? FRAME.workUp : FRAME.work, facing: toward };
     if (gest.kind === 'wave') return { frame: k ? FRAME.frontWave : FRAME.frontStand };
     return { frame: FRAME.stand, bob: k, facing: toward };
   }
-
-  if (r.pose === 'sit') {
-    let base: Orient = env.tableBack ? 'back' : r.front ? 'front' : 'side';
-    if (faceTo !== undefined && !env.tableBack) base = 'side';
-    const breathe = Math.floor((nowMs + h) / 1900) % 2;
-    const dx = (mixHash(seg, h ^ 0x33) % 3) - 1; // поёрзал
-    if (id === 'sleep' || id === 'nap') return { frame: SIT_FRAMES[base].slouch!, bob: breathe };
-    if (id === 'fitness') return { frame: FRAME.sit, bob: Math.floor(nowMs / 250) % 2 };
-    if (env.recline && id === 'night_watch') {
-      // не спится: сидит в кресле с телефоном, качает головой в такт музыке в наушниках
-      const beat = Math.floor((nowMs + h) / 520) % 2;
-      return { frame: micro === 2 ? FRAME.sitArmUp : FRAME.sitArm, prop: { kind: 'phone', at: 'hands' }, bob: beat, blink };
-    }
-    if (env.recline && (id === 'watch_tv' || id === 'idle' || id === 'eat' || id === 'read')) {
-      // развалился в реклайнере: откинулся, иногда тянется к пульту или подносит ко рту
-      const k = mixHash(seg, h) % 5;
-      const frame = k === 3 ? FRAME.sitArmUp : k === 4 ? FRAME.sitArm : FRAME.sitLean;
-      return { frame, bob: breathe, facing: env.faceToX !== undefined ? (env.faceToX >= r.x ? 1 : -1) : undefined, prop: id === 'eat' ? { kind: 'fork', at: 'fwd' } : k === 4 ? { kind: 'remote', at: 'hands' } : undefined };
-    }
-    if (id === 'music' && env.instrument === 'piano') {
-      // за пианино — спиной, руки бегают по клавишам, иногда замирает
-      const pause = micro === 3 || micro === 4;
-      return { frame: pause ? FRAME.backSit : Math.floor(nowMs / 230 + h) % 3 ? FRAME.backSitWork : FRAME.backSit, bob: breathe, dx: Math.floor(nowMs / 1700) % 2 };
-    }
-    let list = talking ? SIT_IDLE.slice(0, 4) : SIT[id] ?? SIT_IDLE;
-    // кино вдвоём: ноутбук у одного, второй — рядом, откинувшись или нога на ногу
-    if (id === 'together:film' && !a?.data.lead) list = list.filter((x) => x.prop?.kind !== 'laptop');
-    const v = pick(list);
-    let o: Orient = v.o && !env.tableBack ? v.o : base;
-    let g: Gesture = v.g;
-    if (v.alt && Math.floor(nowMs / v.alt.ms + h) % 2 === 1) g = v.alt.g;
-    // в разговоре — жестикулирует
-    if (talking && Math.floor(nowMs / 900 + h) % 4 === 0) g = 'handUp';
-    // мелкие движения
-    if (micro === 0 || micro === 1) o = o === 'front' ? 'side' : o === 'side' ? 'front' : 'side'; // повернул голову
-    else if (micro === 2 && o !== 'back') g = 'handUp'; // поправил очки, почесал затылок
-    else if (micro === 3) g = 'slouch';
-    let frame = SIT_FRAMES[o][g] ?? SIT_FRAMES[o].rest!;
-    let prop = v.prop;
-    if (g !== v.g && !(v.alt && g === v.alt.g)) prop = undefined;
-    if (o === 'back') prop = undefined;
-    // вышивальщица держит пяльцы, а не спицы
-    if (prop?.kind === 'knitting' && def.habits.some((hb) => hb.kind === 'crafts' && /выши/i.test(hb.note))) prop = { kind: 'hoop', at: prop.at };
-    if (frame === FRAME.frontSitCross && prop?.at === 'hands') frame = FRAME.frontSitHands;
-    const facing = o === 'side' ? faceTo ?? (micro === 0 ? (-r.facing as 1 | -1) : undefined) : undefined;
-    return { frame, prop, bob: breathe, dx, facing, blink: blink && o !== 'back' };
-  }
-
-  // стоит
   // в прихожей: надевает куртку, обувается (или раздевается, вернувшись)
-  if (a?.phase === 'travel' && a.data.dressing && Number(a.data.pauseUntil ?? 0) > tGame) {
+  if (r.pose === 'stand' && a?.phase === 'travel' && a.data.dressing && Number(a.data.pauseUntil ?? 0) > tGame) {
     const left = Number(a.data.pauseUntil) - tGame;
     const k = Math.floor(nowMs / 380) % 3;
     if (left < 25) return { frame: FRAME.frontStand, blink }; // готов — поправил воротник
     if (a.data.dressing === 'on' && left > 60) return { frame: k === 2 ? FRAME.work : FRAME.workUp, facing: r.facing }; // снимает куртку с вешалки
-    return { frame: k === 0 ? FRAME.frontWave : k === 1 ? FRAME.standHandUp : FRAME.frontStand, bob: k === 2 ? 1 : 0 }; // руки в рукава, нагнулся завязать шнурки
+    return { frame: k === 0 ? FRAME.frontWave : k === 1 ? FRAME.standHandUp : FRAME.frontStand, bob: k === 2 ? 1 : 0 }; // руки в рукава, шнурки
   }
-  if (r.path.length > 0) return { frame: FRAME.stand };
-  if (talking) {
+  if (r.pose === 'stand' && r.path.length > 0) return { frame: FRAME.stand };
+
+  // ── базовая сцена
+  const scene = sceneFor(id, env.place, r.pose);
+  // мелкое движение из допустимых для сцены + личные
+  const pool: Micro[] = [...(scene.micro ?? []), ...P.micro.filter((m) => (scene.micro ?? []).length > 0 || m === 'look')];
+  const micro: Micro | null = roll < P.fidget && pool.length ? pool[mixHash(win, h ^ 0x77) % pool.length] : null;
+
+  if (scene.script) {
+    const pose = scene.script({ nowMs, tGame, seed: h, seg, micro, blink, breathe, env, figH: figureOf(def.appearance).H, y: r.y, tempo: P.tempo, data: a?.data ?? {}, faceTo });
+    if (pose.prop && P.swaps[pose.prop.kind]) pose.prop = { kind: P.swaps[pose.prop.kind]!, at: pose.prop.at };
+    return pose;
+  }
+
+  const talkOk = scene.talk !== false && talking;
+
+  if (r.pose === 'sit') {
+    let base: Orient = env.tableBack ? 'back' : r.front ? 'front' : 'side';
+    if (faceTo !== undefined && !env.tableBack) base = 'side';
+    if (scene.orient && !env.tableBack && faceTo === undefined) base = scene.orient;
+    const all = mergedBeats(scene, P, id, env.place, base);
+    // в разговоре не утыкается в телефон и книгу
+    let list = talkOk ? all.filter((b) => !b.prop || !NOT_IN_TALK.has(b.prop.kind)) : all;
+    if (!list.length) list = all;
+    // кино вдвоём: ноутбук у одного, второй — рядом
+    if (id === 'together:film' && !a?.data.lead) list = list.filter((x) => x.prop?.kind !== 'laptop');
+    const v = pickWeighted(list, mixHash(seg, h));
+    let o: Orient = v.o && !env.tableBack ? v.o : base;
+    let g: Gesture = v.g;
+    if (v.alt && Math.floor((nowMs * P.tempo) / v.alt.ms + h) % 2 === 1) g = v.alt.g;
+    // в разговоре — жестикулирует
+    if (talkOk && Math.floor(nowMs / 900 + h) % 4 === 0) g = 'handUp';
+    let dx = (mixHash(seg, h ^ 0x33) % 3) - 1; // поёрзал (раз в такт)
+    // мелкие движения
+    switch (micro) {
+      case 'look': o = o === 'front' ? 'side' : 'front'; break; // повернул голову
+      case 'hand': case 'glasses': if (o !== 'back') g = 'handUp'; break; // почесал затылок, поправил очки
+      case 'beard': if (o !== 'back') g = 'handUp'; break;
+      case 'shawl': if (o === 'front') g = 'hands'; break; // запахнула шаль
+      case 'slouch': g = 'slouch'; break;
+      case 'shift': dx = -dx || 1; break;
+    }
+    let frame = SIT_FRAMES[o][g] ?? SIT_FRAMES[o].rest!;
+    let prop = v.prop;
+    if (g !== v.g && !(v.alt && g === v.alt.g)) prop = undefined;
+    if (o === 'back') prop = undefined;
+    if (prop && P.swaps[prop.kind]) prop = { kind: P.swaps[prop.kind]!, at: prop.at };
+    if (frame === FRAME.frontSitCross && prop?.at === 'hands') frame = FRAME.frontSitHands;
+    const facing = o === 'side' ? faceTo ?? (micro === 'look' ? (-r.facing as 1 | -1) : undefined) : undefined;
+    return { frame, prop, bob: breathe, dx, facing, blink: blink && o !== 'back' };
+  }
+
+  if (r.pose === 'lie') return { frame: FRAME.lie, bob: breathe, cover: 'blanketHalf' };
+
+  // стоит
+  if (talkOk) {
     const g: Gesture = Math.floor(nowMs / 700 + h) % 3 === 0 ? 'talk' : 'stand';
-    const o: Orient = micro === 0 ? 'side' : 'front';
+    const o: Orient = micro === 'look' ? 'side' : 'front';
     return { frame: STAND_FRAMES[o][g]!, facing: faceTo, blink };
   }
-  if (id === 'smoke' || id === 'smoke_window') {
-    // курит: у окна — чаще спиной (смотрит на улицу), у подъезда — лицом или боком
-    const ph = smokePhase(nowMs, h);
-    const atWindow = id === 'smoke_window';
-    const k = mixHash(seg, h) % 4;
-    const o: Orient = atWindow ? (k === 0 ? 'side' : 'back') : k === 3 ? 'side' : 'front';
-    const cig = { kind: 'cigarette' as const, at: (ph === 'drag' ? 'mouth' : 'hands') as PropAt };
-    if (o === 'back') return { frame: ph === 'drag' ? FRAME.backWork : FRAME.backStand, bob: ph === 'drag' ? 0 : 0 };
-    if (o === 'side') return { frame: ph === 'drag' ? FRAME.workUp : FRAME.work, prop: cig, facing: atWindow ? 1 : undefined, blink };
-    return { frame: ph === 'drag' ? FRAME.frontSmoke : FRAME.frontHold, prop: cig, blink: ph !== 'drag' && blink };
-  }
-  if (id === 'music') {
-    // электрогитара: стоит лицом к нам, гитара поперёк корпуса, качает головой в такт;
-    // иногда замирает, подкручивает колок, поворачивается к комбику
-    const beat = Math.floor((nowMs + h) / 420) % 2;
-    if (micro === 0 && env.faceToX === undefined) return { frame: FRAME.stand, prop: { kind: 'eguitar', at: 'low' }, facing: 1 };
-    return { frame: FRAME.frontStand, prop: { kind: 'eguitar', at: micro === 1 ? 'up' : 'hands' }, bob: micro === 2 ? 0 : beat, blink };
-  }
-  if (id === 'fitness' && env.pullup) {
-    // подтягивания: висит на турнике обеими руками, подтягивается до перекладины и опускается;
-    // между подходами — стоит, переводит дух
-    const cyc = (nowMs + h) % 9000;
-    if (cyc > 6800) return { frame: FRAME.frontStand, bob: 0, blink };
-    // руки дотягиваются до перекладины (зависит от роста), дальше — подбородок к перекладине
-    const { H } = figureOf(def.appearance);
-    const hang = Math.max(0, Math.round(r.y) - H - 1 - env.pullup);
-    const ph = [0, 1, 2, 3, 4, 4, 3, 2, 1, 0][Math.floor(cyc / 140) % 10];
-    return { frame: FRAME.frontHang, bob: hang + ph };
-  }
-  if (id === 'fitness') {
-    const k = Math.floor(nowMs / 300) % 2;
-    return { frame: k ? FRAME.frontWave : FRAME.frontStand, bob: k };
-  }
-  const list = STAND[id] ?? STAND.idle;
-  const v = pick(list);
-  let o: Orient = v.o ?? (r.front ? 'front' : 'side');
-  if (env.wallWork && (id === 'cook' || id === 'wash' || id === 'wash_dishes') && v.o === 'side' && mixHash(seg, h) % 2) o = 'back';
+  const base: Orient = scene.orient ?? (r.front ? 'front' : 'side');
+  const v = pickWeighted(mergedBeats(scene, P, id, env.place, base), mixHash(seg, h));
+  let o: Orient = v.o ?? base;
   let g: Gesture = v.g;
-  if (v.alt && Math.floor(nowMs / v.alt.ms + h) % 2 === 1) g = v.alt.g;
-  // постоял — переступил, обернулся
-  if (micro === 0 && !id) o = o === 'back' ? 'side' : 'back';
-  else if (micro === 1 && o === 'back') o = 'side';
-  else if (micro === 2 && (!id || id === 'window')) g = 'wave'; // потянулся
+  if (v.alt && Math.floor((nowMs * P.tempo) / v.alt.ms + h) % 2 === 1) g = v.alt.g;
+  let dx = 0;
+  switch (micro) {
+    case 'turn': o = o === 'back' ? 'side' : 'back'; break; // обернулся
+    case 'look': if (o === 'back') o = 'side'; else if (!id) o = o === 'front' ? 'side' : 'front'; break;
+    case 'stretch': if (!id || id === 'window' || id === 'idle') g = 'wave'; break; // потянулся
+    case 'hand': case 'glasses': case 'beard': case 'shawl': if (!id || id === 'idle' || id === 'window') { o = 'front'; g = 'phoneStand'; } break;
+    case 'shift': dx = (win % 2) * 2 - 1; break; // переступил
+  }
   const frame = STAND_FRAMES[o][g] ?? STAND_FRAMES[o].stand!;
-  const prop = o === 'back' ? undefined : v.prop;
-  return { frame, prop, blink: blink && o !== 'back' };
+  let prop = o === 'back' ? undefined : v.prop;
+  if (g !== v.g && !(v.alt && g === v.alt.g) && g !== 'phoneStand') prop = undefined;
+  if (prop && P.swaps[prop.kind]) prop = { kind: P.swaps[prop.kind]!, at: prop.at };
+  return { frame, prop, dx: dx || undefined, blink: blink && o !== 'back' };
 }
 
-/** Курение по кругу: держит сигарету у груди → затяжка (рука у рта) → выдох облачком */
-export type SmokePhase = 'hold' | 'drag' | 'exhale';
-export function smokePhase(nowMs: number, seed: number): SmokePhase {
-  const t = (nowMs + (seed % 997) * 37) % 6200;
-  return t < 3700 ? 'hold' : t < 4700 ? 'drag' : 'exhale';
-}

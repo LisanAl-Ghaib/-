@@ -21,7 +21,8 @@ import { LifeDetails } from './lifeDetails';
 import { generatePetSheet, PET_FRAME, PET_H, PET_W } from './sprites/pet';
 import { nightHeadphones, outfitOfDay, visitorAppearance, withOutfitVariant, withStreet } from './visitorLook';
 import { animatePose, smokePhase, type AnimEnv, type Pose } from './animation';
-import { cigaretteTip, drawProp, eyesOf } from './props';
+import { placeOf } from './anim/place';
+import { cigaretteTip, drawCover, drawProp, eyesOf } from './props';
 import type { FurnitureInstance } from '../world/layout';
 import { partnerOf } from '../sim/couple';
 import { drawScreen, type ScreenKind } from './screens';
@@ -143,6 +144,7 @@ export class Renderer {
   private conKey = -1;
 
   resize(): void {
+    const wasOverview = this.atOverview();
     const dpr = window.devicePixelRatio || 1;
     const w = Math.max(1, Math.round(this.canvas.clientWidth * dpr));
     const h = Math.max(1, Math.round(this.canvas.clientHeight * dpr));
@@ -152,6 +154,8 @@ export class Renderer {
     }
     this.camera.setViewport(w, h);
     this.camera.clampCenter();
+    // смотрели на весь дом — после смены размера (спрятали хронику, повернули телефон) снова вписать дом
+    if (wasOverview) this.overview(0, false);
   }
 
   /** Обзор всего дома */
@@ -171,7 +175,16 @@ export class Renderer {
     const y = (top + bottom) / 2;
     if (animate) cam.animateTo(x, y, z, now);
     else this.camera.jumpTo(x, y, z);
+    this.overviewAt = animate ? { x, y, z } : { x: cam.cx, y: cam.cy, z: cam.zoom };
   }
+
+  /** Камера сейчас там, куда её поставил обзор «весь дом» (пользователь её не трогал) */
+  atOverview(): boolean {
+    const o = this.overviewAt;
+    const c = this.camera;
+    return !!o && c.zoom === o.z && Math.abs(c.cx - o.x) < 3 && Math.abs(c.cy - o.y) < 3;
+  }
+  private overviewAt: { x: number; y: number; z: number } | null = null;
 
   focusApartment(apt: ApartmentModel, now: number): void {
     const L = this.defs.layout;
@@ -1112,7 +1125,6 @@ export class Renderer {
     }
     if (f && r.pose === 'sit' && /table/.test(f.def.draw) && (a?.id === 'eat' || a?.id === 'tea' || a?.id === 'idle' || a?.id === 'host' || a?.id === 'guest'))
       env.tableBack = hashString(slot!.key) % 2 === 0;
-    if (f && /stove|sink|window/.test(f.def.draw)) env.wallWork = true;
     // пара в одной комнате, каждый занят своим — время от времени перебрасываются словами
     const pid = partnerOf(this.sim, r.id);
     const p = pid ? this.sim.state.residents[pid] : undefined;
@@ -1127,10 +1139,8 @@ export class Renderer {
         }
       }
     }
-    if (f && (f.def.draw === 'piano' || f.def.draw === 'digital_piano')) env.instrument = 'piano';
-    if (f?.def.draw === 'eguitar_amp') env.instrument = 'guitar';
     if (f?.def.draw === 'pullup_bar') env.pullup = f.y - f.h + 1;
-    if (f?.def.draw === 'recliner') env.recline = true;
+    env.place = placeOf(f?.def.draw, a?.id, slot?.pose, r.level === 0 && (r.x < this.defs.layout.buildingX0 || r.x > this.defs.layout.buildingX1));
     return env;
   }
 
@@ -1175,12 +1185,6 @@ export class Renderer {
       const iy = Math.round(y);
       const moving = r.path.length > 0 && r.path[0].k === 'walk' && (p ? Math.abs(p.x - r.x) + Math.abs(p.y - r.y) > 0.01 : true);
       const def = this.defs.residentById.get(r.id)!;
-      if (r.action?.id === 'toilet' && r.action.phase === 'perform') {
-        // в туалете: дверь закрыта, в окошке над ней свет
-        this.drawWcDoor(r.level, r.x);
-        this.actorBoxes.push({ id: r.id, x: ix - 5, y: iy - 26, w: 10, h: 26 });
-        continue;
-      }
       let frame: number = FRAME.stand;
       let top = iy - CELL_H;
       let pose: Pose | null = null;
@@ -1192,18 +1196,21 @@ export class Renderer {
         else if (r.pose === 'sit') top = iy - 21;
         top -= pose.bob ?? 0;
       }
+      if (pose?.hidden === 'door') {
+        // в туалете: дверь закрыта, в окошке над ней свет
+        this.drawWcDoor(r.level, r.x);
+        this.actorBoxes.push({ id: r.id, x: ix - 5, y: iy - 26, w: 10, h: 26 });
+        continue;
+      }
       let dx = pose?.dx ?? 0;
       // идут вдвоём — рядом, а не друг в друге
       if (moving && r.action?.id === 'together' && r.action.data.kind === 'walk' && !r.action.data.lead) dx -= 6 * r.facing;
       const sx = ix + dx;
       let sheet = this.sheet(r);
       // в душе: за матовым стеклом только силуэт, одежда сложена рядом, идёт пар
-      const showerF = this.showerOf(r);
+      const showerF = pose?.glass ? this.showerOf(r) : null;
       if (showerF) {
         sheet = this.sprites.get(`resident:${r.id}:shower`, () => generateCharacterSheet(showerLook(def.appearance))) as HTMLCanvasElement;
-        const k = Math.floor((nowMs + hashString(r.id)) / 1400) % 4;
-        frame = k === 1 ? FRAME.frontWave : k === 3 ? FRAME.backStand : FRAME.frontStand;
-        pose = { frame };
         this.drawShowerExtras(def, showerF, nowMs);
       }
       const facing = pose?.facing ?? r.facing;
@@ -1235,18 +1242,15 @@ export class Renderer {
         }
       }
       // реквизит в руках
-      if (pose?.prop) drawProp(g, def.appearance, frame, pose.prop.kind, pose.prop.at, sx, top, flip && !PROP_FRONT.has(frame), nowMs, hashString(r.id));
+      if (pose?.prop && !(pose.cover && frame === FRAME.lie)) drawProp(g, def.appearance, frame, pose.prop.kind, pose.prop.at, sx, top, flip && !PROP_FRONT.has(frame), nowMs, hashString(r.id));
       // где кончик сигареты — оттуда пойдёт дым (рисуется после ночного затемнения)
       if (pose?.prop?.kind === 'cigarette') this.cigTips.set(r.id, cigaretteTip(def.appearance, frame, sx, top, flip && !PROP_FRONT.has(frame)));
       else this.cigTips.delete(r.id);
-      // одеяло / вода в ванне
-      if (r.pose === 'lie' && r.action?.phase === 'perform') {
+      // одеяло / вода в ванне (книгу держит над одеялом)
+      if (pose?.cover && frame === FRAME.lie) {
         const apt = L.apartmentAt(r.level, r.x);
-        const H = def.appearance.height === 'short' ? 18 : def.appearance.height === 'tall' ? 22 : 20;
-        const color = r.action.id === 'wash' ? '#9fd3ef' : apt?.def?.palette.textile ?? '#9a948a';
-        const bx = flip ? ix - Math.floor(H / 2) + 6 : ix - Math.floor(H / 2);
-        rect(g, bx, iy - 3, H - 6, 4, color);
-        rect(g, bx, iy - 3, H - 6, 1, mix(color, '#ffffff', 0.25));
+        drawCover(g, pose.cover, def.appearance, ix, iy, flip, apt?.def?.palette.textile ?? '#9a948a', nowMs, hashString(r.id));
+        if (pose.prop) drawProp(g, def.appearance, frame, pose.prop.kind, pose.prop.at, sx, top, flip, nowMs, hashString(r.id));
       }
       // в руках: пакеты из магазина, мусор
       if (r.carrying && r.pose === 'stand') this.life.drawCarry(g, r.carrying, ix, iy, r.facing);

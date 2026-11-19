@@ -221,6 +221,20 @@ export const ContactSchema = z.object({
 });
 export type ContactDef = z.infer<typeof ContactSchema>;
 
+/** Каталог личных манер (что каждая добавляет к анимациям — src/render/anim/personal.ts) */
+export const MANNERISMS = [
+  'fidgety', // непоседа: чаще ёрзает и оглядывается, всё делает быстрее
+  'unhurried', // неспешный: медленнее темп, реже мелкие движения
+  'adjusts_glasses', // поправляет очки
+  'adjusts_shawl', // поправляет шаль на плечах
+  'strokes_beard', // трёт бороду, когда думает
+  'embroiders', // в рукоделии — пяльцы с иглой вместо спиц
+  'coffee_lover', // за чтением и работой чаще с чашкой
+  'phone_in_hand', // в свободную минуту — в телефон
+  'cross_legged', // любит сидеть нога на ногу
+] as const;
+export type Mannerism = (typeof MANNERISMS)[number];
+
 export const ResidentSchema = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/, 'id — латиница, цифры, дефис'),
   name: z.object({
@@ -286,6 +300,11 @@ export const ResidentSchema = z.object({
     )
     .default([]),
   backstory: z.string().default(''),
+  /**
+   * Личные манеры — добавки к общим анимациям (src/render/anim/personal.ts).
+   * Многие выводятся сами (очки → поправляет очки); здесь — то, что пользователь описал явно.
+   */
+  mannerisms: z.array(z.enum(MANNERISMS)).optional(),
   appearance: z.object({
     skin: hexColor,
     hair: z.object({ style: HairStyleSchema, color: hexColor }),

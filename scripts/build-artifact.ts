@@ -18,6 +18,8 @@ await build({
     cssCodeSplit: false,
     assetsInlineLimit: 100_000_000,
     modulePreload: { polyfill: false },
+    // один файл: динамические импорты (атлас анимаций) — внутрь основного бандла
+    rollupOptions: { output: { inlineDynamicImports: true } },
   },
 });
 
