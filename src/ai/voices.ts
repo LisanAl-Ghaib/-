@@ -5,7 +5,7 @@ import { rel } from '../sim/social/relations';
 import type { ResidentDef } from '../data/schemas';
 import type { ChronicleEntry } from '../sim/state';
 import type { Simulation } from '../sim/simulation';
-import { detectLocalModel, type ChatMessage, type LocalModel } from './localModel';
+import { detectLocalModel, ModelError, type ChatMessage, type LocalModel } from './localModel';
 
 /**
  * «Голоса жильцов»: локальная нейросеть пишет, что именно соседи сказали друг другу.
@@ -33,6 +33,10 @@ export interface VoicesStatus {
   server: string;
   model: string;
   busy: boolean;
+  /** что пошло не так в последний раз (если последний ответ не удался) */
+  problem: string | null;
+  /** сколько реплик модель уже написала */
+  voiced: number;
 }
 
 export class Voices {
@@ -42,6 +46,8 @@ export class Voices {
   private failures = 0;
   private lastDetect = -Infinity;
   private detecting = false;
+  private problem: string | null = null;
+  private voiced = 0;
   /** мир досчитывает пропущенное — модель не зовём */
   live = true;
 
@@ -55,7 +61,7 @@ export class Voices {
   }
 
   status(): VoicesStatus | null {
-    return this.model ? { server: this.model.server, model: this.model.model, busy: this.busy } : null;
+    return this.model ? { server: this.model.server, model: this.model.model, busy: this.busy, problem: this.problem, voiced: this.voiced } : null;
   }
 
   /** Раз в минуту проверить, не запустили ли модель (или не выключили ли) */
@@ -100,18 +106,28 @@ export class Voices {
     const id = this.queue.shift();
     if (id === undefined) return;
     const entry = this.sim.state.chronicle.find((x) => x.id === id);
-    // устарело (больше двух игровых часов назад) — уже неинтересно
-    if (!entry || entry.data.voice || this.sim.time - entry.t > 2 * 3600) return void this.pump();
+    // устарело (больше восьми игровых часов — восьми реальных минут) — уже неинтересно
+    if (!entry || entry.data.voice || this.sim.time - entry.t > 8 * 3600) return void this.pump();
     this.busy = true;
     try {
+      console.info(`[голоса] → ${entry.kind}: ${entry.text}`);
       const raw = await this.model.chat(buildPrompt(this.sim, entry, this.model.model), { maxTokens: 450 });
       const parsed = parseReply(raw);
+      if (!parsed) {
+        this.problem = 'ответ модели не разобран';
+        console.warn('[голоса] не разобрал ответ модели:', raw.slice(0, 400));
+      }
       if (parsed) {
         const [a, b] = entry.actors;
         const other = entry.kind === 'circle.heard' ? 'Дети' : null;
         const name = (who: 'A' | 'B' | 'X') => (who === 'A' ? shortName(this.sim, a) : who === 'B' && b ? shortName(this.sim, b) : other);
         const lines = parsed.lines.filter((l) => name(l.who));
-        if (lines.length) entry.data.voice = lines.map((l) => `${name(l.who)}: ${l.text}`).join('\n');
+        if (lines.length) {
+          entry.data.voice = lines.map((l) => `${name(l.who)}: ${l.text}`).join('\n');
+          this.voiced++;
+          this.problem = null;
+          console.info(`[голоса] ← ${entry.data.voice.replace(/\n/g, ' | ')}`);
+        }
         if (parsed.memoryA) this.remember(a, entry.t, parsed.memoryA);
         if (parsed.memoryB && b) this.remember(b, entry.t, parsed.memoryB);
         touchChronicle();
@@ -119,8 +135,11 @@ export class Voices {
       this.failures = 0;
     } catch (err) {
       console.warn('[голоса]', err);
-      // модель выключили или она не отвечает — вернёмся к шаблонам и поищем снова позже
-      if (++this.failures >= 3) {
+      this.problem = err instanceof Error ? err.message : String(err);
+      // модель выключили или сервер пропал — вернёмся к шаблонам и поищем снова позже
+      // (если модель просто долго думала — не сдаёмся)
+      const network = !(err instanceof ModelError) || err.kind === 'network';
+      if (network && ++this.failures >= 3) {
         this.model = null;
         this.failures = 0;
         this.queue = [];

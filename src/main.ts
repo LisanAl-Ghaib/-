@@ -329,7 +329,9 @@ async function boot() {
       ui.update();
       if (localPage) void voices.tick();
       const vs = voices.status();
-      const helpText = vs ? `${helpBase} · голоса жильцов: ${vs.server} (${vs.model})` : helpBase;
+      const helpText = vs
+        ? `${helpBase} · голоса жильцов: ${vs.server} (${vs.model})${vs.busy ? ' — пишет…' : ''}${vs.problem ? ` — ${vs.problem}` : vs.voiced ? ` — реплик: ${vs.voiced}` : ''}`
+        : helpBase;
       if (helpEl.textContent !== helpText) helpEl.textContent = helpText;
     }
     requestAnimationFrame(frame);

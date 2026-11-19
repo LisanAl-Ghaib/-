@@ -96,3 +96,28 @@ describe('голоса: один говорящий', () => {
     expect(parseReply('{"lines":[{"who":"A","text":"Соня, это прекрасно"},{"who":"X","text":"..."}]}')?.lines).toHaveLength(2);
   });
 });
+
+describe('голоса: «думающие» модели', () => {
+  it('лишний параметр не понят — повтор без него; ответ в reasoning — тоже годится', async () => {
+    const { detectLocalModel } = await import('../src/ai/localModel');
+    const bodies: Record<string, unknown>[] = [];
+    const f = (async (url: string | URL | Request, init?: RequestInit) => {
+      const u = String(url);
+      const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json' } });
+      if (!u.startsWith('http://localhost:1234')) throw new TypeError('refused');
+      if (u.endsWith('/api/v0/models')) return json({ data: [{ id: 'qwen/qwen3.8-27b', type: 'vlm', state: 'loaded' }] });
+      const body = JSON.parse(String(init?.body));
+      bodies.push(body);
+      if (body.chat_template_kwargs) return json({ error: 'unknown field' }, 400);
+      return json({ choices: [{ finish_reason: 'stop', message: { content: '', reasoning_content: 'думаю... {"lines":[{"who":"A","text":"Привет"}]}' } }] });
+    }) as typeof fetch;
+    const m = (await detectLocalModel(f))!;
+    expect(m.model).toBe('qwen/qwen3.8-27b');
+    const out = await m.chat([{ role: 'user', content: 'x' }]);
+    expect(parseReply(out)?.lines[0].text).toBe('Привет');
+    expect(bodies[0].max_tokens).toBe(3000);
+    // второй раз лишний параметр уже не шлём
+    await m.chat([{ role: 'user', content: 'y' }]);
+    expect(bodies.filter((b) => b.chat_template_kwargs)).toHaveLength(1);
+  });
+});
