@@ -4,7 +4,7 @@ import { rect } from './pixel';
 import { CELL_H, CELL_W, FRAME, figureOf } from './sprites/character';
 
 const C = 12;
-const FRONT_FRAMES = new Set<number>([FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch, FRAME.standHandUp, FRAME.backStand, FRAME.backSit, FRAME.backWork, FRAME.backSitWork, FRAME.frontSitCross]);
+const FRONT_FRAMES = new Set<number>([FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch, FRAME.standHandUp, FRAME.backStand, FRAME.backSit, FRAME.backWork, FRAME.backSitWork, FRAME.frontSitCross, FRAME.frontSmoke, FRAME.frontHold, FRAME.frontHang]);
 const SIT_FRAMES = new Set<number>([FRAME.sit, FRAME.frontSit, FRAME.sitArm, FRAME.sitArmUp, FRAME.sitLean, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch, FRAME.backSit, FRAME.backSitWork, FRAME.frontSitCross]);
 
 /** Где глаза в этом кадре (для моргания); со спины — нет */
@@ -159,10 +159,14 @@ export function drawProp(
       rect(g, x - 1, y, 1, 1, '#3a2010');
       for (let i = 0; i < 5; i++) rect(g, x + (3 + i) * d, y - 1 - Math.floor(i / 2), 1, 1, '#3a2010');
       break;
-    case 'cigarette':
-      rect(g, x, y + 1, 2, 1, '#f4f2ec');
-      rect(g, x + (d > 0 ? 2 : -1), y + 1, 1, 1, Math.floor(nowMs / 700 + seed) % 2 ? '#ff7a3a' : '#c8402e');
+    case 'cigarette': {
+      // сигарета в пальцах: белая палочка и тлеющий кончик (на затяжке — ярче)
+      const tip = cigaretteTip(app, frame, ix, top, flip);
+      const dir = tip[2];
+      rect(g, tip[0] - dir * 2, tip[1], 2, 1, '#f4f2ec');
+      rect(g, tip[0], tip[1], 1, 1, frame === FRAME.frontSmoke || frame === FRAME.workUp ? '#ffb070' : Math.floor(nowMs / 700 + seed) % 2 ? '#ff7a3a' : '#c8402e');
       break;
+    }
     case 'eguitar':
       drawEGuitar(g, app, frame, ix, top, flip, nowMs, seed, at);
       break;
@@ -207,4 +211,32 @@ function drawEGuitar(g: CanvasRenderingContext2D, app: ResidentDef['appearance']
   const nx = flip ? bx - 1 : bx + 4;
   for (let i = 0; i < 4; i++) rect(g, nx + i * d, by - i, 1, 1, NECK);
   rect(g, bx + 1, by - 1 + strum, 1, 1, app.skin);
+}
+
+/** Где кончик сигареты (мировые координаты) и куда она смотрит: [x, y, ±1] */
+export function cigaretteTip(app: ResidentDef['appearance'], frame: number, ix: number, top: number, flip: boolean): [number, number, 1 | -1] {
+  const { H } = figureOf(app);
+  const y0 = CELL_H - H;
+  const hy = y0 + 1;
+  const ty = y0 + 6;
+  const armR = app.build === 'heavy' ? C + 4 : app.build === 'slim' ? C + 2 : C + 3;
+  let cx: number;
+  let cy: number;
+  let dir: 1 | -1 = 1;
+  if (frame === FRAME.frontSmoke) {
+    cx = armR - 1; // у губ, кончиком в сторону
+    cy = hy + 3;
+  } else if (frame === FRAME.frontHold) {
+    cx = armR + 3;
+    cy = ty + 2;
+  } else if (frame === FRAME.workUp) {
+    cx = C + 5; // в профиль у рта
+    cy = ty - 2;
+  } else {
+    cx = C + 5; // в профиль, рука вперёд
+    cy = ty + 2;
+  }
+  const x = flip ? ix + CELL_W / 2 - 1 - cx : ix - CELL_W / 2 + cx;
+  if (flip) dir = -1;
+  return [x, top + cy, dir];
 }

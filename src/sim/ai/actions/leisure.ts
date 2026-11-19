@@ -159,11 +159,22 @@ export const plants = leisure({
   bonus: (ctx) => (ctx.cal.hourOfDay < 11 ? 2 : 0),
 });
 
-export const fitness = leisure({
+const fitnessBase = leisure({
   id: 'fitness', icon: 'sport', use: 'exercise', habit: 'fitness', requiresHabit: true,
   base: 1, label: () => 'занимается спортом', rates: { mood: 8, energy: -6 }, minutes: [20, 45], cooldown: 12 * 3600,
   bonus: (ctx) => (ctx.r.needs.energy > 60 ? 1.5 : -3),
 });
+
+/** Спорт: на турнике — подтягивается, на коврике — делает зарядку */
+export const fitness: ActionDef = {
+  ...fitnessBase,
+  onArrive(ctx, a) {
+    const slot = a.target.slot ? ctx.sim.slotIndex.get(a.target.slot) : undefined;
+    const f = slot ? ctx.home.rooms[slot.roomIndex].furniture.find((x) => x.uid === slot.furnitureUid) : undefined;
+    a.label = f?.def.draw === 'pullup_bar' ? 'подтягивается на турнике' : f?.def.draw === 'exercise_bike' ? 'крутит велотренажёр' : 'делает зарядку';
+    return true;
+  },
+};
 
 export const phone = leisure({
   id: 'phone', icon: 'phone', use: 'sit', rooms: ['living', 'kitchen', 'bedroom', 'studio'], habit: 'phone',

@@ -35,6 +35,23 @@ const ICONS: Record<string, IconDef> = {
   gloom: { rows: ['..aaa..', '.aaaaa.', 'aaaaaaa', '.......', '.b.b.b.', 'b.b.b..', '.......'], colors: { a: '#8a92a0', b: '#7fb0e0' } },
   hungry: { rows: ['..aaa..', '.a...a.', 'a..b..a', 'a.bbb.a', 'a..b..a', '.a...a.', '..aaa..'], colors: { a: '#e8d8b0', b: '#c8402e' } },
   umbrella: { rows: ['..aaa..', '.aaaaa.', 'aaaaaaa', '...b...', '...b...', '...b...', '..bb...'], colors: { a: '#3a6fb0', b: '#444' } },
+  // ── значки занятий (в белой плашке)
+  cup: { rows: ['.c.c...', '..c.c..', '.......', 'aaaaa..', 'abbbaaa', 'abbba.a', '.aaa.aa'], colors: { a: '#8a5a3a', b: '#c8a070', c: '#b8b8b8' } },
+  cig: { rows: ['....c..', '...c...', '....c..', '.......', 'aaaaab.', 'aaaaab.', '.......'], colors: { a: '#e8e4dc', b: '#e8602a', c: '#a0a0a0' } },
+  chess: { rows: ['...a...', '..aaa..', '...a...', '..aaa..', '..aaa..', '.aaaaa.', '.aaaaa.'], colors: { a: '#2a2a30' } },
+  bed: { rows: ['.......', 'a......', 'abb....', 'accccca', 'aaaaaaa', 'a.....a', '.......'], colors: { a: '#7a5a3a', b: '#f4f2ec', c: '#5a8ac8' } },
+  trash: { rows: ['..aaa..', 'aaaaaaa', '.bbbbb.', '.b.b.b.', '.b.b.b.', '.b.b.b.', '.bbbbb.'], colors: { a: '#4a4a52', b: '#6a6a72' } },
+  moon: { rows: ['..aaa..', '.aa....', 'aa.....', 'aa...b.', 'aa.....', '.aa....', '..aaa..'], colors: { a: '#e8d070', b: '#e8e4dc' } },
+  fish: { rows: ['.......', '..aaa..', 'babbaa.', 'bbaaaaa', 'babbaa.', '..aaa..', '.......'], colors: { a: '#e8862e', b: '#c86a1e' } },
+  laptop: { rows: ['.aaaaa.', '.abbba.', '.abcba.', '.abbba.', '.aaaaa.', 'ddddddd', '.......'], colors: { a: '#3a3e48', b: '#7fc4f0', c: '#e8f6ff', d: '#9aa0a8' } },
+  film: { rows: ['a.a.a.a', 'aaaaaaa', 'abbbbba', 'abbbbba', 'aaaaaaa', 'a.a.a.a', '.......'], colors: { a: '#2a2a30', b: '#7fc4f0' } },
+  shoe: { rows: ['.......', '..aa...', '..aa...', '..aaaa.', 'aaaaaaa', 'bbbbbbb', '.......'], colors: { a: '#3a6ab0', b: '#e8e4dc' } },
+  broom: { rows: ['.....a.', '....a..', '...a...', '..a....', '.bbb...', 'bbbb...', 'b.b.b..'], colors: { a: '#8a5a3a', b: '#d8b860' } },
+  hand: { rows: ['.a.a.a.', '.a.a.a.', '.aaaaa.', 'aaaaaa.', '.aaaaa.', '..aaa..', '.......'], colors: { a: '#e8c0a0' } },
+  hoop: { rows: ['..aaa..', '.abbba.', 'abcbbba', 'abbcbba', 'abbbcba', '.abbba.', '..aaa..'], colors: { a: '#b8742e', b: '#f4efe0', c: '#c8402e' } },
+  eye: { rows: ['.......', '..aaa..', '.abbba.', 'abbcbba', '.abbba.', '..aaa..', '.......'], colors: { a: '#3a3a42', b: '#f4f2ec', c: '#3a6ab0' } },
+  guitar: { rows: ['......a', '.....a.', '....a..', '.bba...', 'bbbb...', 'bcbb...', '.bb....'], colors: { a: '#3a2a1a', b: '#c84a3a', c: '#2a1a10' } },
+  shock: { rows: ['...a...', '...a...', '...a...', '...a...', '.......', '...a...', '.......'], colors: { a: '#ff5a3c' } },
 };
 
 export const ICON_SIZE = 7;
@@ -59,5 +76,40 @@ export function generateIcon(name: string): HTMLCanvasElement {
   };
   for (const [ox, oy] of [[0, 1], [2, 1], [1, 0], [1, 2]]) draw(ox, oy, true);
   draw(1, 1, false);
+  return c;
+}
+
+/** Значок занятия в белой плашке с хвостиком (как подпись-картинка над человеком) */
+export function generatePlate(name: string, mood = false): HTMLCanvasElement {
+  const def = ICONS[name] ?? ICONS.dots;
+  const c = makeCanvas(ICON_SIZE + 4, ICON_SIZE + 6);
+  const g = ctx2d(c);
+  const W = ICON_SIZE + 4;
+  const H = ICON_SIZE + 4;
+  const bg = mood ? '#e8eef8' : '#fbf8f0';
+  const border = mood ? '#7a8aa8' : '#3a3440';
+  // плашка со скруглёнными углами
+  g.fillStyle = border;
+  g.fillRect(1, 0, W - 2, 1);
+  g.fillRect(1, H - 1, W - 2, 1);
+  g.fillRect(0, 1, 1, H - 2);
+  g.fillRect(W - 1, 1, 1, H - 2);
+  g.fillStyle = bg;
+  g.fillRect(1, 1, W - 2, H - 2);
+  // хвостик вниз
+  g.fillStyle = border;
+  g.fillRect(Math.floor(W / 2) - 1, H, 3, 1);
+  g.fillRect(Math.floor(W / 2), H + 1, 1, 1);
+  g.fillStyle = bg;
+  g.fillRect(Math.floor(W / 2), H - 1, 1, 1);
+  def.rows.forEach((row, y) => {
+    [...row].forEach((ch, x) => {
+      if (ch === '.') return;
+      // светлые части значка на светлой плашке — темнее, чтобы читались
+      const col = def.colors[ch] ?? '#333';
+      g.fillStyle = /^#(e|f|d)[0-9a-f]/i.test(col) && (col === '#f4f1ea' || col === '#e8e4dc' || col === '#f4f2ec' || col === '#e8f6ff' || col === '#e8e8e8' || col === '#d8dde2' || col === '#e8eef2' || col === '#cfe2ff') ? '#8a8a96' : col;
+      g.fillRect(x + 2, y + 2, 1, 1);
+    });
+  });
   return c;
 }

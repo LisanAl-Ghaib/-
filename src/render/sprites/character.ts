@@ -49,8 +49,14 @@ export const FRAME = {
   backSitWork: 23,
   /** сидит лицом, нога на ногу */
   frontSitCross: 24,
+  /** стоит лицом, рука у рта (затяжка) */
+  frontSmoke: 25,
+  /** стоит лицом, согнутая рука у груди (держит сигарету, чашку) */
+  frontHold: 26,
+  /** висит на турнике: обе руки вверх */
+  frontHang: 27,
 } as const;
-export const FRAME_COUNT = 25;
+export const FRAME_COUNT = 28;
 export const BACK_FRAMES = new Set<number>([20, 21, 22, 23]);
 
 /** Пропорции фигуры (для реквизита в руках) */
@@ -147,7 +153,7 @@ function drawFrame(
     return;
   }
 
-  const FRONT: number[] = [FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.standHandUp, FRAME.backStand, FRAME.backSit, FRAME.backWork, FRAME.backSitWork, FRAME.frontSitCross];
+  const FRONT: number[] = [FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.standHandUp, FRAME.backStand, FRAME.backSit, FRAME.backWork, FRAME.backSitWork, FRAME.frontSitCross, FRAME.frontSmoke, FRAME.frontHold, FRAME.frontHang];
   const SITTING: number[] = [FRAME.sit, FRAME.frontSit, FRAME.sitArm, FRAME.sitArmUp, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.backSit, FRAME.backSitWork, FRAME.frontSitCross];
   const back = BACK_FRAMES.has(f);
   const front = FRONT.includes(f);
@@ -345,6 +351,10 @@ function drawFrame(
     px(g, armR, ty + 1, 1, torsoLen - 3, p.topS);
     px(g, armR - 2, ty + torsoLen - 2, 2, 1, p.topS);
     px(g, C + 1, ty + torsoLen - 3, 1, 1, p.skin);
+  } else if (f === FRAME.frontHang) {
+    // висит: левая рука вверх
+    px(g, armL, ty - 6, 1, 7, p.topS);
+    px(g, armL, ty - 7, 1, 1, p.skin);
   } else {
     px(g, armL, ty + 1, 1, torsoLen - 1, p.topS);
     px(g, armL, ty + torsoLen, 1, 1, p.skin);
@@ -360,6 +370,20 @@ function drawFrame(
   } else if (f === FRAME.frontWave) {
     px(g, armR, ty - 2, 1, 3, p.topS);
     px(g, armR, ty - 3, 1, 1, p.skin);
+  } else if (f === FRAME.frontHang) {
+    px(g, armR, ty - 6, 1, 7, p.topS);
+    px(g, armR, ty - 7, 1, 1, p.skin);
+  } else if (f === FRAME.frontSmoke) {
+    // локоть у бока, кисть у рта
+    px(g, armR, ty + 1, 1, 3, p.topS);
+    px(g, armR - 1, ty, 1, 1, p.topS);
+    px(g, armR - 2, ty - 1, 1, 1, p.topS);
+    px(g, armR - 3, ty - 2, 1, 1, p.skin);
+  } else if (f === FRAME.frontHold) {
+    // рука согнута, кисть на уровне груди чуть в сторону
+    px(g, armR, ty + 1, 1, 3, p.topS);
+    px(g, armR + 1, ty + 3, 1, 1, p.topS);
+    px(g, armR + 1, ty + 2, 1, 1, p.skin);
   } else {
     px(g, armR, ty + 1, 1, torsoLen - 1, p.topS);
     px(g, armR, ty + torsoLen, 1, 1, p.skin);

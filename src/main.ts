@@ -50,6 +50,8 @@ async function boot() {
 
   // ── состояние просмотра (мир не настраивается: только куда смотреть)
   let following: string | null = null;
+  const doingEl = $('#doing') as HTMLElement;
+  let lastDoing = 0;
   let focusedApartment: string | null = null;
 
   const host: UiHost = {
@@ -274,6 +276,13 @@ async function boot() {
     }
     const alpha = Math.min(1, acc / DT);
 
+    // подпись: что делает тот, за кем следим (видно и так, но не всегда понятно)
+    if (now - lastDoing > 300) {
+      lastDoing = now;
+      const text = following ? describeDoing(sim, following) : '';
+      if (doingEl.textContent !== text) doingEl.textContent = text;
+      doingEl.hidden = !text;
+    }
     if (following) {
       const r = sim.state.residents[following];
       if (r && !r.away && !renderer.camera.animating) {
@@ -303,3 +312,21 @@ async function boot() {
 }
 
 boot();
+
+/** «Иван: подтягивается на турнике», «Иван и Снежана: болтают» */
+function describeDoing(sim: Simulation, id: string): string {
+  const r = sim.state.residents[id];
+  const def = sim.defs.residentById.get(id);
+  if (!r || !def) return '';
+  const name = def.name.short ?? def.name.first;
+  const a = r.action;
+  if (!a) return `${name}: думает, чем заняться`;
+  if (a.id === 'together') {
+    const other = sim.defs.residentById.get(String(a.data.with));
+    const kind = String(a.data.kind);
+    if (kind === 'intimacy') return `${name}: свет погашен`;
+    if (other && kind !== 'help_cook' && kind !== 'gift') return `${name} и ${other.name.short ?? other.name.first}: ${a.label}`;
+  }
+  if (a.id === 'toilet') return `${name}: в туалете`;
+  return `${name}: ${a.label}`;
+}

@@ -1,7 +1,7 @@
 import { hashString } from '../core/rng';
 import type { ResidentDef } from '../data/schemas';
 import type { ResidentState } from '../sim/state';
-import { FRAME } from './sprites/character';
+import { FRAME, figureOf } from './sprites/character';
 
 /**
  * Живые позы (чистая косметика рендера, симуляцию не трогает).
@@ -45,8 +45,8 @@ export interface AnimEnv {
   wallWork?: boolean;
   /** на чём играет: за пианино сидят спиной, электрогитару держат в руках */
   instrument?: 'piano' | 'guitar';
-  /** подтягивается на турнике */
-  pullup?: boolean;
+  /** подтягивается на турнике: y перекладины в мире */
+  pullup?: number;
   /** развалился в кресле-реклайнере */
   recline?: boolean;
   /** переговаривается с тем, кто рядом (пара в одной комнате) */
@@ -216,16 +216,6 @@ const STAND: Record<string, Variant[]> = {
   phone: [{ g: 'phoneStand', o: 'front', prop: { kind: 'phone', at: 'ear' } }, { g: 'phoneStand', o: 'side', prop: { kind: 'phone', at: 'ear' } }],
   window: [{ g: 'stand', o: 'back' }, { g: 'stand', o: 'back' }, { g: 'stand', o: 'front' }],
   wave_window: [{ g: 'stand', o: 'side' }, { g: 'stand', o: 'side' }],
-  smoke: [
-    { g: 'phoneStand', o: 'front', prop: { kind: 'cigarette', at: 'ear' }, alt: { g: 'stand', ms: 1800 } },
-    { g: 'stand', o: 'side' },
-    { g: 'stand', o: 'front' },
-  ],
-  smoke_window: [
-    { g: 'stand', o: 'back' },
-    { g: 'stand', o: 'back' },
-    { g: 'phoneStand', o: 'front', prop: { kind: 'cigarette', at: 'ear' }, alt: { g: 'stand', ms: 2200 } },
-  ],
   feed_fish: [{ g: 'workUp', o: 'side', alt: { g: 'work', ms: 600 } }, { g: 'stand', o: 'side' }, { g: 'talk', o: 'side' }],
   look: [{ g: 'stand', o: 'back' }],
   idle: [{ g: 'stand', o: 'front' }, { g: 'stand', o: 'side' }, { g: 'stand', o: 'back' }],
@@ -337,6 +327,17 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
     const o: Orient = micro === 0 ? 'side' : 'front';
     return { frame: STAND_FRAMES[o][g]!, facing: faceTo, blink };
   }
+  if (id === 'smoke' || id === 'smoke_window') {
+    // курит: у окна — чаще спиной (смотрит на улицу), у подъезда — лицом или боком
+    const ph = smokePhase(nowMs, h);
+    const atWindow = id === 'smoke_window';
+    const k = mixHash(seg, h) % 4;
+    const o: Orient = atWindow ? (k === 0 ? 'side' : 'back') : k === 3 ? 'side' : 'front';
+    const cig = { kind: 'cigarette' as const, at: (ph === 'drag' ? 'mouth' : 'hands') as PropAt };
+    if (o === 'back') return { frame: ph === 'drag' ? FRAME.backWork : FRAME.backStand, bob: ph === 'drag' ? 0 : 0 };
+    if (o === 'side') return { frame: ph === 'drag' ? FRAME.workUp : FRAME.work, prop: cig, facing: atWindow ? 1 : undefined, blink };
+    return { frame: ph === 'drag' ? FRAME.frontSmoke : FRAME.frontHold, prop: cig, blink: ph !== 'drag' && blink };
+  }
   if (id === 'music') {
     // электрогитара: стоит лицом к нам, гитара поперёк корпуса, качает головой в такт;
     // иногда замирает, подкручивает колок, поворачивается к комбику
@@ -345,9 +346,15 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
     return { frame: FRAME.frontStand, prop: { kind: 'eguitar', at: micro === 1 ? 'up' : 'hands' }, bob: micro === 2 ? 0 : beat, blink };
   }
   if (id === 'fitness' && env.pullup) {
-    // подтягивания
-    const ph = [0, 1, 2, 3, 2, 1][Math.floor(nowMs / 160) % 6];
-    return { frame: FRAME.frontWave, bob: ph };
+    // подтягивания: висит на турнике обеими руками, подтягивается до перекладины и опускается;
+    // между подходами — стоит, переводит дух
+    const cyc = (nowMs + h) % 9000;
+    if (cyc > 6800) return { frame: FRAME.frontStand, bob: 0, blink };
+    // руки дотягиваются до перекладины (зависит от роста), дальше — подбородок к перекладине
+    const { H } = figureOf(def.appearance);
+    const hang = Math.max(0, Math.round(r.y) - H - 1 - env.pullup);
+    const ph = [0, 1, 2, 3, 4, 4, 3, 2, 1, 0][Math.floor(cyc / 140) % 10];
+    return { frame: FRAME.frontHang, bob: hang + ph };
   }
   if (id === 'fitness') {
     const k = Math.floor(nowMs / 300) % 2;
@@ -366,4 +373,11 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
   const frame = STAND_FRAMES[o][g] ?? STAND_FRAMES[o].stand!;
   const prop = o === 'back' ? undefined : v.prop;
   return { frame, prop, blink: blink && o !== 'back' };
+}
+
+/** Курение по кругу: держит сигарету у груди → затяжка (рука у рта) → выдох облачком */
+export type SmokePhase = 'hold' | 'drag' | 'exhale';
+export function smokePhase(nowMs: number, seed: number): SmokePhase {
+  const t = (nowMs + (seed % 997) * 37) % 6200;
+  return t < 3700 ? 'hold' : t < 4700 ? 'drag' : 'exhale';
 }

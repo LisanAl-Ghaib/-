@@ -39,6 +39,9 @@ main { flex: 1; display: flex; min-height: 0; }
 #view.dragging { cursor: grabbing; }
 #view.pointer { cursor: pointer; }
 #help { position: absolute; left: 8px; bottom: 6px; color: rgba(236,230,218,.55); font-size: 11px; pointer-events: none; text-shadow: 0 1px 0 #000; }
+/* подпись «что делает» у того, за кем следим */
+#doing { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); background: rgba(20,18,28,.88); border: 1px solid var(--line); padding: 5px 12px; color: var(--text); white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+#doing[hidden] { display: none; }
 #toast { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(20,18,28,.9); border: 1px solid var(--line); padding: 6px 12px; display: none; }
 
 #panel { width: 380px; flex-shrink: 0; background: var(--bg2); border-left: 2px solid var(--line); display: flex; flex-direction: column; min-height: 0; }

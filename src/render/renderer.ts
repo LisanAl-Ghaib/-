@@ -13,21 +13,21 @@ import { DEFAULT_LOOK, drawGround, drawTrees, drawYardProps, makeTrees, type Out
 import { busPhase } from '../world/transport';
 import { digits, disc, rect } from './pixel';
 import { drawSkyGradient, drawStars, drawSunMoon, makeCity, makeCloud, makeStars, skyColors, type Star } from './sky';
-import { CELL_H, CELL_W, FRAME, generateCharacterSheet } from './sprites/character';
+import { CELL_H, CELL_W, FRAME, figureOf, generateCharacterSheet } from './sprites/character';
 import { screenRect, screenRects } from './sprites/furniture';
-import { generateIcon } from './sprites/icons';
+import { generateIcon, generatePlate } from './sprites/icons';
 import { hashString } from '../core/rng';
 import { LifeDetails } from './lifeDetails';
 import { generatePetSheet, PET_FRAME, PET_H, PET_W } from './sprites/pet';
 import { nightHeadphones, outfitOfDay, visitorAppearance, withOutfitVariant, withStreet } from './visitorLook';
-import { animatePose, type AnimEnv, type Pose } from './animation';
-import { drawProp, eyesOf } from './props';
+import { animatePose, smokePhase, type AnimEnv, type Pose } from './animation';
+import { cigaretteTip, drawProp, eyesOf } from './props';
 import type { FurnitureInstance } from '../world/layout';
 import { partnerOf } from '../sim/couple';
 import { drawScreen, type ScreenKind } from './screens';
 
 /** кадры анфас и со спины — не отражаются по направлению взгляда */
-const PROP_FRONT = new Set<number>([FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch, FRAME.standHandUp, FRAME.backStand, FRAME.backSit, FRAME.backWork, FRAME.backSitWork, FRAME.frontSitCross]);
+const PROP_FRONT = new Set<number>([FRAME.frontStand, FRAME.frontSit, FRAME.frontTalk, FRAME.frontWave, FRAME.frontSitHands, FRAME.frontSitHandUp, FRAME.frontSitSlouch, FRAME.standHandUp, FRAME.backStand, FRAME.backSit, FRAME.backWork, FRAME.backSitWork, FRAME.frontSitCross, FRAME.frontSmoke, FRAME.frontHold, FRAME.frontHang]);
 import { ctx2d, makeCanvas, SpriteRegistry } from './sprites/registry';
 
 export interface Environment {
@@ -83,6 +83,8 @@ export class Renderer {
   /** как нарисован каждый жилец в этом кадре — чтобы ночью дорисовать силуэт перед светящимся */
   private actorDraws: { sheet: CanvasImageSource; frame: number; x: number; top: number; flip: boolean }[] = [];
   private silhouetteCanvas: HTMLCanvasElement | null = null;
+  private cigTips = new Map<string, [number, number, 1 | -1]>();
+  private headTops = new Map<string, number>();
   private drops: { x: number; y: number; s: number }[] = [];
   readonly W: number;
   readonly H: number;
@@ -532,8 +534,9 @@ export class Renderer {
           const sr = screenRect(f.def.draw, f.w, f.h);
           if (!sr) continue;
           const x = f.flip ? f.x + f.w - sr[0] - sr[2] : f.x + sr[0];
-          drawScreen(this.wg, 'tv', x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, f.uid, f.channel);
-          this.screensOn.push([x + sr[2] / 2, f.y - f.h + sr[1], apt.id, room.index]);
+          const glow = drawScreen(this.wg, 'tv', x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, f.uid, f.channel);
+          this.screensOn.push([x + sr[2] / 2, f.y - f.h + sr[1], apt.id, room.index, glow, sr[2]]);
+          this.screenDraws.push({ kind: 'tv', x, y: f.y - f.h + sr[1], w: sr[2], h: sr[3], seed: f.uid, channel: f.channel, apt, ri: room.index });
         }
       }
     }
@@ -552,12 +555,14 @@ export class Renderer {
           if (a.id !== 'watch_tv' && own && f.uid !== own) continue;
           screenRects(f.def.draw, f.w, f.h).forEach((sr, si) => {
             const x = f.flip ? f.x + f.w - sr[0] - sr[2] : f.x + sr[0];
-            let kind: ScreenKind = a.id === 'watch_tv' ? 'tv' : f.def.draw === 'concierge_desk' ? 'cctv' : a.id === 'gaming' ? 'game' : a.id === 'computer' ? 'browser' : (Math.floor(this.sim.time / 1500) + f.x) % 3 === 0 ? 'browser' : 'code';
-            // второй монитор: во время игры — чат/браузер, за работой — документ
-            if (si === 1) kind = a.id === 'gaming' ? 'browser' : kind === 'code' ? 'browser' : 'code';
-            drawScreen(this.wg, kind, x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, `${f.uid}:${si}`, kind === 'tv' ? f.channel : undefined);
-            this.screenDraws.push({ kind, x, y: f.y - f.h + sr[1], w: sr[2], h: sr[3], seed: `${f.uid}:${si}`, channel: kind === 'tv' ? f.channel : undefined, apt, ri: room.index });
-            if (kind === 'tv' || si === 0) this.screensOn.push([x + sr[2] / 2, f.y - f.h + sr[1], apt.id, room.index]);
+            // что на экране: телевизор, камеры, игра, сайты, работа (каждый раз — разное)
+            const online = this.defs.residentById.get(r.id)?.traits.tags.some((tg) => /дискорд|онлайн/i.test(tg));
+            let kind: ScreenKind = a.id === 'watch_tv' ? 'tv' : f.def.draw === 'concierge_desk' ? 'cctv' : a.id === 'gaming' ? 'game' : a.id === 'computer' ? (online && Math.floor(this.sim.time / 1800) % 3 === 0 ? 'chat' : 'web') : 'work';
+            // второй экран: в игре — дискорд или сайт, за работой — чат или браузер
+            if (si === 1) kind = a.id === 'gaming' ? (online ? 'chat' : 'web') : a.id === 'computer' ? 'work' : online ? 'chat' : 'web';
+            const glow = drawScreen(this.wg, kind, x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, `${f.uid}:${si}:${r.id}`, kind === 'tv' ? f.channel : undefined);
+            this.screenDraws.push({ kind, x, y: f.y - f.h + sr[1], w: sr[2], h: sr[3], seed: `${f.uid}:${si}:${r.id}`, channel: kind === 'tv' ? f.channel : undefined, apt, ri: room.index });
+            this.screensOn.push([x + sr[2] / 2, f.y - f.h + sr[1], apt.id, room.index, glow, sr[2]]);
           });
         }
       }
@@ -593,7 +598,8 @@ export class Renderer {
     }
   }
 
-  private screensOn: [number, number, string, number][] = [];
+  /** светящиеся экраны кадра: x, y, квартира, комната, цвет свечения, ширина экрана */
+  private screensOn: [number, number, string, number, string, number][] = [];
   /** экраны этого кадра — в тёмной комнате их перерисовываем поверх ночи: они светятся */
   private screenDraws: { kind: ScreenKind; x: number; y: number; w: number; h: number; seed: string; channel?: string; apt: ApartmentModel; ri: number }[] = [];
   private tanks: { f: FurnitureInstance; apt: ApartmentModel; ri: number; colors: string[] }[] = [];
@@ -686,21 +692,41 @@ export class Renderer {
       rect(g, fx - 1, fy - 6, 2, 1, '#9ed8ff');
       g.globalAlpha = 1;
     }
-    // дым и огонёк сигареты
+    // дым: тонкая струйка от кончика сигареты, на выдохе — облачко изо рта; огонёк светится в темноте
     for (const r of Object.values(this.sim.state.residents)) {
       const a = r.action;
       if (r.away || !a || a.phase !== 'perform' || (a.id !== 'smoke' && a.id !== 'smoke_window')) continue;
       const h = hashString(r.id);
-      const head = Math.round(r.y) - 19;
-      const hx = Math.round(r.x);
-      g.globalAlpha = 0.55;
-      for (let i = 0; i < 5; i++) {
-        const t = Math.floor(nowMs / 220 + i * 5 + h);
-        const k = t % 14;
-        rect(g, hx + 1 + Math.round(Math.sin((t + i) / 3) * 1.5), head - k, 1, 1, '#e8e8e8');
+      const ph = smokePhase(nowMs, h);
+      const tip = this.cigTips.get(r.id);
+      const headY = Math.round(r.y) - 19;
+      // откуда дым: кончик сигареты, а если стоит спиной — над плечом
+      const sx = tip ? tip[0] : Math.round(r.x) + 3;
+      const sy = tip ? tip[1] - 1 : headY + 2;
+      g.globalAlpha = 0.5;
+      for (let i = 0; i < 6; i++) {
+        const t = Math.floor(nowMs / 200 + i * 4 + h);
+        const k = t % 12;
+        rect(g, sx + Math.round(Math.sin((t + i) / 3) * 1.2) + Math.floor(k / 5), sy - k, 1, 1, '#e0e0e0');
+      }
+      if (ph === 'exhale') {
+        // облачко изо рта расползается и тает
+        const p = ((nowMs + (h % 997) * 37) % 6200 - 4700) / 1500;
+        const mx = tip && tip[2] < 0 ? Math.round(r.x) - 3 : Math.round(r.x) + 2;
+        const my = headY + 3;
+        g.globalAlpha = 0.55 * (1 - p);
+        const rad = 1 + Math.round(p * 4);
+        for (let i = 0; i < 7; i++) rect(g, mx + Math.round(Math.cos(i * 0.9) * rad) + Math.round(p * 3), my - Math.round(Math.abs(Math.sin(i * 0.9)) * rad) - Math.round(p * 4), 1, 1, '#ececec');
       }
       g.globalAlpha = 1;
-      if (day < 0.4 && Math.floor(nowMs / 900 + h) % 3 !== 0) rect(g, hx + 1, head + 1, 1, 1, '#ff7a3a'); // затяжка в темноте
+      if (tip && day < 0.45) {
+        // огонёк: на затяжке разгорается
+        const bright = ph === 'drag';
+        g.globalAlpha = bright ? 0.35 : 0.18;
+        rect(g, tip[0] - 1, tip[1] - 1, 3, 3, '#ff8a3a');
+        g.globalAlpha = 1;
+        rect(g, tip[0], tip[1], 1, 1, bright ? '#ffd0a0' : '#ff7a3a');
+      }
     }
   }
 
@@ -925,7 +951,7 @@ export class Renderer {
               const fish = owners.length ? owners.map((p) => p.color) : ['#f08a3c', '#f2d16b'];
               this.drawFish(f, fish, nowMs);
               this.tanks.push({ f, apt, ri: room.index, colors: fish });
-              this.screensOn.push([f.x + f.w / 2, top + 6, apt.id, room.index]);
+              this.screensOn.push([f.x + f.w / 2, top + 6, apt.id, room.index, '#4f93b8', f.w - 2]);
               break;
             }
             case 'hanging_plant': {
@@ -943,25 +969,34 @@ export class Renderer {
   private drawGlow(nowMs: number, day: number) {
     const g = this.wg;
     const L = this.defs.layout;
-    if (day < 0.55) {
-      const k = (0.55 - day) / 0.55;
-      for (const [x, y, aptId, ri] of this.screensOn) {
+    // экраны светятся: в тёмной комнате пятно света цвета картинки ложится на стены, пол и людей
+    if (day < 0.7) {
+      for (const [x, y, aptId, ri, color, sw] of this.screensOn) {
         const apt = L.aptById.get(aptId);
         if (!apt) continue;
         const room = apt.rooms[ri];
-        const flick = 0.6 + 0.4 * (((Math.floor(nowMs / 170) * 2654435761) >>> 0) % 100) / 100;
-        const cols = ['#9ec4ff', '#c8d8ff', '#a8f0ff', '#ffd8b0'];
-        const col = cols[Math.floor(nowMs / 2300 + x) % cols.length];
+        const lit = this.roomLit(apt, ri, day);
+        const k = Math.min(1, (0.7 - day) / 0.45) * (lit ? 0.35 : 1);
+        if (k <= 0) continue;
+        const flick = 0.75 + 0.25 * ((((Math.floor(nowMs / 170) + x) * 2654435761) >>> 0) % 100) / 100;
+        const col = mix(color, '#ffffff', 0.35);
+        const lt = L.levelTop(apt.level);
         const fy = L.floorY(apt.level);
-        for (let i = 3; i >= 1; i--) {
-          g.globalAlpha = 0.05 * k * flick;
-          const r = i * 9;
-          const x0 = Math.max(room.x0, Math.round(x - r));
-          const x1 = Math.min(room.x1, Math.round(x + r));
-          rect(g, x0, Math.round(y - r / 2), x1 - x0, fy - Math.round(y - r / 2), col);
+        const size = 0.6 + Math.min(1, sw / 12) * 0.6;
+        // мягкие слои от экрана во все стороны, сильнее всего — вниз и вперёд, на того, кто смотрит
+        for (let i = 5; i >= 1; i--) {
+          g.globalAlpha = 0.045 * k * flick;
+          const r = Math.round(i * 9 * size);
+          const x0 = Math.max(room.x0, Math.round(x - r * 1.3));
+          const x1 = Math.min(room.x1, Math.round(x + r * 1.3));
+          const y0 = Math.max(lt, Math.round(y - r * 0.7));
+          rect(g, x0, y0, x1 - x0, fy - y0, col);
         }
+        // яркий ореол вокруг самого экрана
+        g.globalAlpha = 0.18 * k * flick;
+        rect(g, Math.round(x - sw / 2) - 2, Math.round(y) - 2, sw + 4, 9, col);
+        g.globalAlpha = 1;
       }
-      g.globalAlpha = 1;
     }
     // солнечные лучи из окна
     const env = this.env;
@@ -1047,7 +1082,7 @@ export class Renderer {
     }
     if (f && (f.def.draw === 'piano' || f.def.draw === 'digital_piano')) env.instrument = 'piano';
     if (f?.def.draw === 'eguitar_amp') env.instrument = 'guitar';
-    if (f?.def.draw === 'pullup_bar') env.pullup = true;
+    if (f?.def.draw === 'pullup_bar') env.pullup = f.y - f.h + 1;
     if (f?.def.draw === 'recliner') env.recline = true;
     return env;
   }
@@ -1135,6 +1170,8 @@ export class Renderer {
       } else g.drawImage(sheet, frame * CELL_W, 0, CELL_W, CELL_H, sx - CELL_W / 2, top, CELL_W, CELL_H);
       g.restore();
       this.actorDraws.push({ sheet, frame, x: sx - CELL_W / 2, top, flip });
+      // где макушка — над ней значок и отметка «следим»
+      this.headTops.set(r.id, frame === FRAME.lie ? iy - 7 : top + CELL_H - figureOf(def.appearance).H - (frame === FRAME.frontHang ? 2 : 0));
       // запотевшее стекло душевой: силуэт едва угадывается
       if (showerF) {
         g.globalAlpha = 0.5;
@@ -1152,6 +1189,9 @@ export class Renderer {
       }
       // реквизит в руках
       if (pose?.prop) drawProp(g, def.appearance, frame, pose.prop.kind, pose.prop.at, sx, top, flip && !PROP_FRONT.has(frame), nowMs, hashString(r.id));
+      // где кончик сигареты — оттуда пойдёт дым (рисуется после ночного затемнения)
+      if (pose?.prop?.kind === 'cigarette') this.cigTips.set(r.id, cigaretteTip(def.appearance, frame, sx, top, flip && !PROP_FRONT.has(frame)));
+      else this.cigTips.delete(r.id);
       // одеяло / вода в ванне
       if (r.pose === 'lie' && r.action?.phase === 'perform') {
         const apt = L.apartmentAt(r.level, r.x);
@@ -1205,12 +1245,14 @@ export class Renderer {
         this.wg.drawImage(icon, Math.round(r.x) + (ta.data.kind === 'gift' ? -3 : 2), Math.round(r.y) - 16 - rise);
         continue;
       }
-      const name = r.bubble?.icon ?? this.moodIcon(r, nowMs);
+      // сначала — самочувствие (зевает, вздыхает) и события (заболел, кошмар), иначе — чем занят
+      const mood = this.moodIcon(r, nowMs) ?? (r.bubble && EVENT_ICONS.has(r.bubble.icon) ? r.bubble.icon : null);
+      const name = mood ?? iconFor(r);
       if (!name) continue;
-      const icon = this.sprites.get(`icon:${name}`, () => generateIcon(name));
-      const bob = Math.floor(nowMs / 500 + r.x) % 2;
-      const yTop = r.pose === 'lie' ? r.y - 16 : r.pose === 'sit' ? r.y - 31 : r.y - 34;
-      this.wg.drawImage(icon, Math.round(r.x) - 4, Math.round(yTop) - bob);
+      const icon = this.sprites.get(`plate:${name}:${mood ? 1 : 0}`, () => generatePlate(name, !!mood));
+      const bob = Math.floor(nowMs / 600 + r.x) % 2;
+      const head = this.headTops.get(r.id) ?? (r.pose === 'lie' ? r.y - 7 : r.pose === 'sit' ? r.y - 21 : r.y - 23);
+      this.wg.drawImage(icon, Math.round(r.x) - 5, Math.round(head) - 15 - bob);
     }
   }
 
@@ -1253,11 +1295,11 @@ export class Renderer {
     }
     const sel = opts.selectedResident ? this.sim.state.residents[opts.selectedResident] : null;
     if (sel && !sel.away) {
-      const head = sel.pose === 'lie' ? sel.y - 8 : sel.pose === 'sit' ? sel.y - 24 : sel.y - 26;
-      const icon = sel.pose === 'lie' ? sel.y - 16 : sel.pose === 'sit' ? sel.y - 31 : sel.y - 34;
+      const head = this.headTops.get(sel.id) ?? (sel.pose === 'lie' ? sel.y - 7 : sel.pose === 'sit' ? sel.y - 21 : sel.y - 23);
+      const plate = !!iconFor(sel) || !!sel.bubble;
       const bob = Math.floor(nowMs / 400) % 2;
       const x = Math.round(sel.x);
-      const y = Math.round(sel.bubble ? icon : head) - 5 - bob;
+      const y = Math.round(plate ? head - 15 : head) - 5 - bob;
       rect(g, x - 2, y, 5, 1, '#ffe066');
       rect(g, x - 1, y + 1, 3, 1, '#ffe066');
       rect(g, x, y + 2, 1, 1, '#ffe066');
@@ -1432,4 +1474,103 @@ function showerLook(app: ResidentDef['appearance']): ResidentDef['appearance'] {
     outfit: { ...app.outfit, top: app.skin, bottom: shade(app.skin, -0.06), shoes: app.skin, style: 'casual', pattern: 'plain', coat: undefined, variants: [] },
     accessories: [],
   };
+}
+
+/** Значки-события (не занятия): болеет, грустит, сердится, смеётся */
+const EVENT_ICONS = new Set(['sick', 'gloom', 'anger', 'laugh', 'heart', 'gift', 'shock', 'yawn', 'hungry']);
+
+/** Понятный значок занятия: что человек делает прямо сейчас (null — ничего показывать не нужно) */
+export function iconFor(r: ResidentState): string | null {
+  const a = r.action;
+  if (!a || r.away) return null;
+  // в дороге значок не нужен — видно, что идёт
+  if (a.phase !== 'perform') return null;
+  switch (a.id) {
+    case 'sleep':
+    case 'nap':
+      return 'zzz';
+    case 'eat':
+    case 'snack':
+      return 'food';
+    case 'cook':
+      return 'cook';
+    case 'tea':
+      return 'cup';
+    case 'wash':
+    case 'wash_dishes':
+      return 'wash';
+    case 'make_bed':
+      return 'bed';
+    case 'unpack':
+      return 'bag';
+    case 'take_out_trash':
+      return 'trash';
+    case 'work':
+      return a.label.includes('окошк') ? 'eye' : 'laptop';
+    case 'side_work':
+    case 'computer':
+      return 'laptop';
+    case 'watch_tv':
+      return 'tv';
+    case 'read':
+      return 'book';
+    case 'music':
+      return a.label.includes('гитар') ? 'guitar' : 'music';
+    case 'gaming':
+      return 'game';
+    case 'crafts':
+      return 'hoop';
+    case 'plants':
+      return 'plant';
+    case 'fitness':
+      return 'sport';
+    case 'phone':
+      return 'phone';
+    case 'window':
+      return 'eye';
+    case 'chores':
+      return 'broom';
+    case 'walk_yard':
+    case 'jog':
+      return 'shoe';
+    case 'smoke':
+    case 'smoke_window':
+      return 'cig';
+    case 'snowman':
+      return 'snow';
+    case 'visit':
+    case 'host':
+    case 'guest':
+    case 'chat':
+    case 'family_visit':
+      return 'talk';
+    case 'feed_pets':
+    case 'feed_fish':
+      return 'fish';
+    case 'night_watch':
+      return 'moon';
+    case 'nightmare':
+      return 'shock';
+    case 'chess':
+      return 'chess';
+    case 'wave_window':
+      return 'hand';
+    case 'together':
+      switch (a.data.kind) {
+        case 'talk':
+          return 'talk';
+        case 'film':
+          return 'film';
+        case 'chess':
+          return 'chess';
+        case 'help_cook':
+          return 'cook';
+        case 'gift':
+          return 'gift';
+        default:
+          return null; // уединились — сердечко рисуется отдельно
+      }
+    default:
+      return null;
+  }
 }
