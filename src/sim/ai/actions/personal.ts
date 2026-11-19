@@ -11,6 +11,8 @@ export const INSOMNIA = /бессонн|не спится|плохо спит/i;
 export const NIGHTMARES = /кошмар/i;
 /** Курит в окно (а не только у подъезда) */
 export const WINDOW_SMOKER = /в окно/i;
+/** «курит … на балконе» */
+export const BALCONY_SMOKER = /курит.*на балкон/i;
 const LONELY = /одинок/i;
 
 /** Проснулся от кошмара: сидит в кровати, тяжело дышит (назначается сном) */
@@ -70,8 +72,13 @@ export const smokeWindow: ActionDef = {
     const r = ctx.r;
     const woke = (r.recent.insomnia !== undefined && ctx.now - r.recent.insomnia < 70 * 60) || (r.recent.nightmare !== undefined && ctx.now - r.recent.nightmare < 40 * 60);
     if (sleepTime(ctx) && !woke) return null;
-    const spot = smokeSpot(ctx);
+    let spot = smokeSpot(ctx);
     if (!spot) return null;
+    // «курит и на балконе»: если не льёт и не метёт — примерно через раз выходит на балкон
+    const w = ctx.sim.weather;
+    const nasty = (w.kind === 'rain' || w.kind === 'snow') && w.intensity > 0.6;
+    const onBalcony = !!ctx.home.balcony && hasTag(ctx, BALCONY_SMOKER) && !nasty && w.temp > -15 && ctx.sim.rng.chance(0.5);
+    if (onBalcony) spot = { level: ctx.home.level, x: ctx.home.balcony!.standX };
     const night = ctx.cal.hourOfDay >= 22 || ctx.cal.hourOfDay < 6;
     const since = ctx.now - Math.max(r.recent.smoke_window ?? -1e9, r.recent.smoke ?? -1e9);
     const crave = Math.min(1.8, since / (heavy(h) ? 2700 : 2 * 3600)); // давно не курил — тянет
@@ -82,17 +89,19 @@ export const smokeWindow: ActionDef = {
       score: (1 + h * 4 + (night ? 2 : 0) + (woke ? 3 : 0)) * crave * (!night && ctx.sim.outdoorAppeal(ctx.def) > 0.2 ? 0.42 : 1) + (afterNightmare ? 14 : 0),
       target: spot,
       duration: ctx.sim.rng.int(5, 9) * 60,
-      label: 'курит в окно',
+      label: onBalcony ? 'курит на балконе' : 'курит в окно',
+      data: { balcony: onBalcony },
     };
   },
   onArrive(ctx, a) {
-    ctx.r.facing = 1;
+    // на балконе — лицом наружу, к перилам
+    ctx.r.facing = a.data.balcony ? (ctx.home.side === 'left' ? -1 : 1) : 1;
     const c = ctx.cal;
     if ((c.hourOfDay >= 23 || c.hourOfDay < 5) && !a.data.noted) {
       const key = `smokewin:${ctx.r.id}:${c.dayIndex}`;
       if (!ctx.sim.state.flags[key] && ctx.sim.rng.chance(0.35)) {
         ctx.sim.state.flags[key] = ctx.now;
-        chronicleAt(ctx.sim, ctx.now, 'smoke.window', [ctx.r.id], 1, { hour: c.hour });
+        chronicleAt(ctx.sim, ctx.now, 'smoke.window', [ctx.r.id], 1, { hour: c.hour, balcony: !!a.data.balcony });
       }
     }
     return true;

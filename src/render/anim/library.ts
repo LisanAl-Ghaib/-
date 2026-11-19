@@ -78,12 +78,14 @@ export function smokePhase(nowMs: number, seed: number): SmokePhase {
   const t = (nowMs + (seed % 997) * 37) % 6200;
   return t < 3700 ? 'hold' : t < 4700 ? 'drag' : 'exhale';
 }
-function smoking(atWindow: boolean) {
+function smoking(where: 'yard' | 'window' | 'balcony') {
+  const atWindow = where === 'window';
   return (c: ScriptCtx): Pose => {
-    // у окна — чаще спиной (смотрит на улицу), у подъезда — лицом или боком
+    // у окна — чаще спиной (смотрит на улицу), у подъезда — лицом или боком,
+    // на балконе — боком у перил, лицом наружу, иногда оборачивается
     const ph = smokePhase(c.nowMs, c.seed);
     const k = mix(c.seg, c.seed) % 4;
-    const o = atWindow ? (k === 0 ? 'side' : 'back') : k === 3 ? 'side' : 'front';
+    const o = where === 'balcony' ? (k === 3 ? 'front' : 'side') : atWindow ? (k === 0 ? 'side' : 'back') : k === 3 ? 'side' : 'front';
     const cig = { kind: 'cigarette' as const, at: ph === 'drag' ? ('mouth' as const) : ('hands' as const) };
     if (o === 'back') return { frame: ph === 'drag' ? FRAME.backWork : FRAME.backStand };
     if (o === 'side') return { frame: ph === 'drag' ? FRAME.workUp : FRAME.work, prop: cig, facing: atWindow ? 1 : undefined, blink: c.blink };
@@ -405,8 +407,12 @@ export const LIBRARY: Record<string, ActivityAnim> = {
 
   // ─── улица
   bench: { outdoor: sit('на лавочке лицом к нам: сидит, нога на ногу, читает газету, смотрит в телефон', [...SIT_IDLE, { g: 'hands', prop: PAPER }]), sit: sit('на лавочке', SIT_IDLE) },
-  smoke: { outdoor: { note: 'курит у подъезда: сигарета у груди → затяжка (рука ко рту, кончик ярче) → выдох облачком', posture: 'stand', script: smoking(false) }, stand: { note: 'курит', posture: 'stand', script: smoking(false) } },
-  smoke_window: { window: { note: 'курит в открытое окно: чаще спиной к нам, рука с сигаретой в окне, дым уходит на улицу', posture: 'stand', script: smoking(true) }, stand: { note: 'курит в окно', posture: 'stand', script: smoking(true) } },
+  smoke: { outdoor: { note: 'курит у подъезда: сигарета у груди → затяжка (рука ко рту, кончик ярче) → выдох облачком', posture: 'stand', script: smoking('yard') }, stand: { note: 'курит', posture: 'stand', script: smoking('yard') } },
+  smoke_window: {
+    window: { note: 'курит в открытое окно: чаще спиной к нам, рука с сигаретой в окне, дым уходит на улицу', posture: 'stand', script: smoking('window') },
+    balcony: { note: 'курит на балконе: боком у перил, лицом наружу, рука с сигаретой над перилами; иногда оборачивается в комнату', posture: 'stand', script: smoking('balcony') },
+    stand: { note: 'курит в окно', posture: 'stand', script: smoking('window') },
+  },
   walk_yard: { stand: stand('гуляет: бродит по двору, останавливается, оглядывается', STAND_IDLE) },
   jog: { stand: stand('бегает', STAND_IDLE) },
   go_out: { stand: stand('уходит по делам', STAND_IDLE) },
