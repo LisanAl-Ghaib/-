@@ -97,3 +97,8 @@ export function familyName(last: string): string {
   if (/ая$/.test(last)) return `${last.slice(0, -2)}ие`;
   return `семья ${last}`;
 }
+
+/** «с» или «со» перед словом: «со Снежаной», «со Светой», но «с Сашей», «с Иваном» */
+export function withPrep(word: string): string {
+  return /^[сзшжщ][бвгджзйклмнпрстфхцчшщ]/i.test(word) || /^щ/i.test(word) ? `со ${word}` : `с ${word}`;
+}

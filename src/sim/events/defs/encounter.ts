@@ -34,14 +34,14 @@ export const chatEvent: EventDef = {
     const need = (200 - ra.needs.social - rb.needs.social) / 100;
     const w = (warmth(sim, a!, b!) + warmth(sim, b!, a!)) / 2;
     const base = (SOC[da.traits.sociability] + SOC[db.traits.sociability]) * (0.6 + need) * (0.3 + w);
-    return base * (c.hurry ? 0.15 : c.placeKind === 'bench' ? 2.5 : 1.4);
+    return base * (c.hurry ? 0.15 : c.placeKind === 'bench' || c.placeKind === 'common' ? 2.5 : 1.4);
   },
   apply(c) {
     const { sim, a, b } = c;
     const da = sim.defs.residentById.get(a!)!;
     const db = sim.defs.residentById.get(b!)!;
     const talky = (SOC[da.traits.sociability] + SOC[db.traits.sociability]) / 2;
-    const minutes = Math.round(sim.rng.range(4, c.placeKind === 'bench' ? 40 : 18) * (0.6 + talky * 0.5));
+    const minutes = Math.round(sim.rng.range(4, c.placeKind === 'bench' || c.placeKind === 'common' ? 40 : 18) * (0.6 + talky * 0.5));
     startChat(sim, a!, b!, c.place ?? 'в подъезде', c.placeKind ?? 'stairs', minutes);
     remember(sim, a!, b!, 'chat');
   },

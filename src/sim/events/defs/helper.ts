@@ -41,7 +41,7 @@ export const askHelp: EventDef = {
     if (!h || c.placeKind === 'elevator' || c.hurry || inConflict(c.sim, c.a!, c.b!)) return 0;
     const key = `ask:${h.asker}:${c.sim.calendar().dayIndex}`;
     if (c.sim.state.flags[key]) return 0;
-    return c.placeKind === 'bench' ? 7 : 2.5;
+    return c.placeKind === 'bench' || c.placeKind === 'common' ? 7 : 2.5;
   },
   apply(c) {
     const { sim } = c;

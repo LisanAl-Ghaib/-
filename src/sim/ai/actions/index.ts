@@ -11,6 +11,7 @@ import { familyVisit, feedFish, feedPets, nightmare, nightWatch, smokeWindow } f
 import { goToWork, sideWork, workFromHome } from './work';
 import { together, waveWindow } from '../../couple';
 import { moveOut } from '../../tenants';
+import { commonRoomAction } from '../../commonRoom';
 
 /**
  * Реестр действий. Чтобы добавить действие — создай ActionDef и допиши сюда.
@@ -41,4 +42,6 @@ export const ACTIONS: readonly ActionDef[] = [
   together, waveWindow,
   // арендатор съезжает (только принудительно)
   moveOut,
+  // комната отдыха в подвале: чай, книги, шахматы, угощение
+  commonRoomAction,
 ];

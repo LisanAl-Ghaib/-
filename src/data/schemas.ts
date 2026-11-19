@@ -139,13 +139,15 @@ export type RoomDef = z.infer<typeof RoomSchema>;
 
 export const ApartmentSchema = z.object({
   id: z.string().regex(/^apt-\d+-(left|right)$/, 'id вида apt-<этаж>-<left|right>'),
-  /** этаж по-человечески: 1 — первый (подъезд; слева там комната консьержки), 2 — второй… */
-  floor: z.number().int().min(1),
+  /** этаж по-человечески: 1 — первый (подъезд; слева там комната консьержки), 2 — второй…; 0 — подвал (только общая комната) */
+  floor: z.number().int().min(0),
   side: z.enum(['left', 'right']),
   /** в квартире идёт ремонт (жить нельзя, днём работают мастера) */
   renovation: z.boolean().default(false),
   /** сдаётся: в ней по очереди живут арендаторы из data/tenants/ (меняются сами) */
   rental: z.boolean().default(false),
+  /** общая комната жильцов (в подвале): тут никто не живёт, сюда спускаются посидеть вместе */
+  common: z.boolean().default(false),
   /** что стоит на балконе (балкон есть у всех квартир выше первого этажа) */
   balcony: z
     .object({

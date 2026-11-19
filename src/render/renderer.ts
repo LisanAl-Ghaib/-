@@ -1063,7 +1063,7 @@ export class Renderer {
             }
             case 'chessboard': {
               // во время партии фигуры переставляют
-              const busy = Object.values(this.sim.state.residents).some((r) => (r.action?.id === 'chess' || (r.action?.id === 'together' && r.action.data.kind === 'chess')) && r.action.phase === 'perform' && r.level === apt.level && Math.abs(r.x - f.x) < 24);
+              const busy = Object.values(this.sim.state.residents).some((r) => (r.action?.id === 'chess' || (r.action?.id === 'together' && r.action.data.kind === 'chess') || (r.action?.id === 'common_room' && r.action.data.kind === 'chess')) && r.action.phase === 'perform' && r.level === apt.level && Math.abs(r.x - f.x) < 24);
               if (busy) {
                 const t = Math.floor(nowMs / 2600 + f.x);
                 for (let i = 0; i < 4; i++) {
@@ -1442,7 +1442,8 @@ export class Renderer {
 
   private roomLit(apt: ApartmentModel, roomIndex: number, day: number): boolean {
     // в пасмурную погоду свет включают раньше
-    if (day * (1 - this.env.overcast * 0.4) > 0.6 || apt.vacant) return false;
+    // в подвале окон нет: свет включают и днём, как только кто-то спустился
+    if ((apt.level >= 0 && day * (1 - this.env.overcast * 0.4) > 0.6) || apt.vacant) return false;
     if (this.life.workersOn(apt)) return true; // мастера включили прожектор
     const room = apt.rooms[roomIndex];
     // «почти не включает свет»: днём светло из окна, вечером хватает монитора (в санузле — включит)
@@ -1484,13 +1485,20 @@ export class Renderer {
       for (const room of apt.rooms) {
         const on = this.roomLit(apt, room.index, day);
         const shut = this.curtainsClosed(apt, room.index) ? 0.32 : 0; // задёрнуто — полумрак
-        const a = on ? 0.04 : apt.vacant ? 0.18 + overcastDim + (1 - day) * 0.7 : 0.1 + shut + overcastDim * 1.5 + (1 - day) * 0.74;
+        const a = on ? 0.04 : apt.level < 0 ? 0.62 + (1 - day) * 0.2 : apt.vacant ? 0.18 + overcastDim + (1 - day) * 0.7 : 0.1 + shut + overcastDim * 1.5 + (1 - day) * 0.74;
         region(room.x0, lt, room.x1 - room.x0, fy - lt + 2, Math.min(0.88, a));
         if (on) {
           lit.push([room.x0, lt, room.x1 - room.x0, fy - lt]);
           litRooms.add(`${apt.id}:${room.index}`);
         }
       }
+    }
+    // подвал: кладовки и котельная — в полумраке, на лестнице тусклая лампочка
+    if (L.commonRoom) {
+      const lt = L.levelTop(-1);
+      const fy = L.floorY(-1);
+      region(L.buildingX0, lt, L.coreX - L.buildingX0, fy - lt + 2, 0.66 + (1 - day) * 0.16);
+      region(L.coreX, lt, CORE_W, fy - lt + 2, 0.3 + (1 - day) * 0.2);
     }
     // подъезд: лампы горят всю ночь (тускло)
     for (let level = 0; level <= L.floors; level++) {
@@ -1742,6 +1750,9 @@ export function iconFor(r: ResidentState): string | null {
     case 'chess':
     case 'circle':
       return 'chess';
+    case 'common_room':
+      if (r.interaction !== null && a.data.kind !== 'chess') return 'talk';
+      return a.data.kind === 'chess' ? 'chess' : a.data.kind === 'read' ? 'book' : a.data.kind === 'treat' ? 'food' : 'cup';
     case 'board':
       return 'chalk';
     case 'wave_window':

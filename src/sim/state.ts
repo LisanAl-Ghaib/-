@@ -96,7 +96,7 @@ export interface ResidentState {
   /** намерение навестить кого-то (подарок, извинение…) */
   intents: { target: string; kind: string; until: number; gift?: string }[];
   /** что несёт в руках — видно на улице и в подъезде */
-  carrying: 'bags' | 'trash' | 'gift' | 'flowers' | 'suitcase' | null;
+  carrying: 'bags' | 'trash' | 'gift' | 'flowers' | 'suitcase' | 'plate' | null;
   /** жест: кивнула, помахала */
   gesture?: Gesture | null;
   /** одет для улицы (куртка) — надевает в прихожей, снимает там же */

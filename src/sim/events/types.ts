@@ -11,7 +11,7 @@ import type { Simulation } from '../simulation';
  */
 export type Trigger = 'daily' | 'hourly' | 'encounter' | 'conversation' | 'household';
 
-export type PlaceKind = 'stairs' | 'lobby' | 'entrance' | 'yard' | 'bench' | 'elevator' | 'busstop' | 'home' | 'guest' | 'balcony';
+export type PlaceKind = 'stairs' | 'lobby' | 'entrance' | 'yard' | 'bench' | 'elevator' | 'busstop' | 'home' | 'guest' | 'balcony' | 'common';
 
 export interface EventCtx {
   sim: Simulation;

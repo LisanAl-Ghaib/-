@@ -1,7 +1,7 @@
 import { calendar } from '../../core/time';
 import type { SlotInstance } from '../../world/layout';
 import { minutesToLeave, sleepTime } from '../ai/helpers';
-import { nameCase } from '../chronicle/russian';
+import { nameCase, withPrep } from '../chronicle/russian';
 import { chronicle } from '../chronicle/chronicle';
 import { runExclusive } from '../events/engine';
 import type { PlaceKind } from '../events/types';
@@ -103,8 +103,11 @@ export function startChat(sim: Simulation, a: string, b: string, place: string, 
   const rb = s.residents[b];
   ra.interaction = it.id;
   rb.interaction = it.id;
-  // на лавочке или на балконах (разных этажей) — говорят, не сходя с места
-  const inPlace = (ra.action?.id === 'bench' && rb.action?.id === 'bench') || (ra.action?.id === 'balcony' && rb.action?.id === 'balcony');
+  // на лавочке, на балконах (разных этажей), в комнате отдыха — говорят, не сходя с места
+  const inPlace =
+    (ra.action?.id === 'bench' && rb.action?.id === 'bench') ||
+    (ra.action?.id === 'balcony' && rb.action?.id === 'balcony') ||
+    (ra.action?.id === 'common_room' && rb.action?.id === 'common_room');
   if (!inPlace) {
     // встали друг напротив друга
     const mid = (ra.x + rb.x) / 2;
@@ -123,7 +126,7 @@ export function startChat(sim: Simulation, a: string, b: string, place: string, 
         interruptible: false,
       });
       const pdef = sim.defs.residentById.get(partner)!;
-      r.action!.label = `болтает с ${nameCase(pdef, 'ins')}`;
+      r.action!.label = `болтает ${withPrep(nameCase(pdef, 'ins'))}`;
     }
   }
   return it;

@@ -331,7 +331,8 @@ export function planTogether(sim: Simulation): void {
     const board = apt.rooms.find((rm) => rm.furniture.some((f) => f.def.draw === 'chessboard'));
     if (board && (weekend ? h >= 12 : h >= 18.5) && h < 23 && toBed > 50) {
       opts.push({
-        w: 0.9,
+        // вечера теперь делят и с комнатой отдыха в подвале — дома садятся за доску чуть охотнее
+        w: 1.5,
         go: () => {
           const seats = twoSlots(sim, ca, 'eat', a, b, (sl) => sl.roomIndex === board.index);
           if (!seats) return false;

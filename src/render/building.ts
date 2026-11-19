@@ -81,6 +81,9 @@ export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry, con: Co
     rect(g, wx + (wx === bx0 ? 0 : OUTER_WALL - 1), wallTop, 1, L.groundY - wallTop + SLAB, PANEL_DARK);
   }
 
+  // подвал (под перекрытием первого этажа): кладовки, котельная, спуск по лестнице, справа — комната отдыха
+  drawBasement(g, defs);
+
   // ── уровни
   for (let level = 0; level <= L.floors; level++) {
     const lt = L.levelTop(level);
@@ -99,38 +102,6 @@ export function renderBuilding(defs: WorldDefs, sprites: SpriteRegistry, con: Co
   for (const apt of L.apartments) if (!con || apt.level !== con.level) drawBalcony(g, gf, defs, apt);
   if (con) drawScaffolding(gf, defs, con.level, con.progress);
 
-  // подвал в разрезе: бетонные стены, трубы отопления под потолком, кладовки; ниже — фундамент
-  const baseY = L.groundY + SLAB;
-  const depth = 46;
-  rect(g, bx0 - 2, baseY, bx1 - bx0 + 4, depth, '#6e6a64');
-  rect(g, bx0 - 2, baseY, bx1 - bx0 + 4, 1, '#5a5650');
-  rect(g, bx0 + 2, baseY + 3, bx1 - bx0 - 4, depth - 7, '#3a3734'); // помещение подвала
-  rect(g, bx0 + 2, baseY + depth - 4, bx1 - bx0 - 4, 1, '#4a4642'); // пол
-  // трубы: отопление (подача и обратка), холодная вода
-  rect(g, bx0 + 4, baseY + 5, bx1 - bx0 - 8, 2, '#8a3a2e');
-  rect(g, bx0 + 4, baseY + 8, bx1 - bx0 - 8, 2, '#3a5a8a');
-  rect(g, bx0 + 4, baseY + 11, bx1 - bx0 - 8, 1, '#6a6a72');
-  for (let x = bx0 + 30; x < bx1 - 10; x += 48) rect(g, x, baseY + 4, 3, 8, '#6a6a72'); // хомуты и стояки
-  // кладовки жильцов: деревянные решётки, внутри — банки, лыжи, коробки
-  const rng = Rng.fromSeed('basement');
-  for (let x = bx0 + 12; x < bx1 - 40; x += 34) {
-    if (x > L.coreX - 30 && x < L.coreX + CORE_W) continue;
-    for (let i = 0; i < 22; i += 3) rect(g, x + i, baseY + 16, 1, depth - 20, '#7a6040');
-    rect(g, x, baseY + 16, 22, 1, '#7a6040');
-    rect(g, x + 3, baseY + depth - 10, 6, 6, rng.pick(['#8a6a4a', '#6a5a4a']));
-    if (rng.chance(0.6)) for (let i = 0; i < 3; i++) rect(g, x + 12 + i * 3, baseY + depth - 8, 2, 4, rng.pick(['#c84a3a', '#d8b860', '#7ab060']));
-    if (rng.chance(0.4)) rect(g, x + 17, baseY + 18, 1, depth - 22, '#3a6ab0');
-  }
-  // под ядром — бойлерная: котёл и манометр
-  rect(g, L.coreX + 14, baseY + 18, 16, depth - 22, '#5a5a62');
-  rect(g, L.coreX + 18, baseY + 22, 4, 4, '#d8d4cc');
-  rect(g, L.coreX + 19, baseY + 23, 1, 1, '#c8402e');
-  rect(g, L.coreX + 36, baseY + 26, 12, 14, '#4a5a4a');
-  // фундаментная подушка
-  rect(g, bx0 - 6, baseY + depth, bx1 - bx0 + 12, 6, '#8a8680');
-  rect(g, bx0 - 6, baseY + depth, bx1 - bx0 + 12, 1, '#a39f98');
-  // окошки подвала у самой земли
-  for (let x = bx0 + 20; x < bx1 - 20; x += 64) rect(g, x, baseY + 1, 8, 3, '#2d2b2a');
   return { back, front };
 }
 
@@ -603,6 +574,73 @@ function drawCore(g: CanvasRenderingContext2D, defs: WorldDefs, level: number, l
   rect(g, x0 + 23, lt + 4, 4, 1, '#cfc8ae');
 }
 
+/**
+ * Подвал в разрезе: высотой с этаж (уровень -1). Слева — кладовки жильцов за деревянными решётками
+ * и котельная, посередине — лестница вниз и приямок лифта (лифт в подвал не ходит), справа —
+ * общая комната (рисуется как квартира) или просто кладовки, если её нет. Ниже — фундамент.
+ */
+function drawBasement(g: CanvasRenderingContext2D, defs: WorldDefs) {
+  const L = defs.layout;
+  const bx0 = L.buildingX0;
+  const bx1 = L.buildingX1;
+  const lt = L.groundY + SLAB;
+  const fy = lt + FLOOR_H - SLAB;
+  const common = L.commonRoom;
+  rect(g, bx0 - 2, lt, bx1 - bx0 + 4, fy - lt + SLAB, '#6e6a64'); // бетонные стены
+  rect(g, bx0 - 2, lt, bx1 - bx0 + 4, 1, '#5a5650');
+  const innerX0 = bx0 + 2;
+  const storeX1 = common ? L.coreX : bx1 - 2;
+  rect(g, innerX0, lt + 2, storeX1 - innerX0, fy - lt - 2, '#3a3734'); // помещение
+  rect(g, innerX0, fy - 1, storeX1 - innerX0, 1, '#4a4642'); // пол
+  // трубы: отопление (подача и обратка), холодная вода
+  rect(g, bx0 + 4, lt + 4, storeX1 - bx0 - 8, 2, '#8a3a2e');
+  rect(g, bx0 + 4, lt + 7, storeX1 - bx0 - 8, 2, '#3a5a8a');
+  rect(g, bx0 + 4, lt + 10, storeX1 - bx0 - 8, 1, '#6a6a72');
+  for (let x = bx0 + 30; x < storeX1 - 10; x += 48) rect(g, x, lt + 3, 3, 8, '#6a6a72'); // хомуты и стояки
+  // кладовки жильцов: деревянные решётки, внутри — банки, лыжи, коробки
+  const rng = Rng.fromSeed('basement');
+  const boilerX = common ? L.coreX - 46 : L.coreX + CORE_W + 10;
+  for (let x = bx0 + 12; x < storeX1 - 30; x += 34) {
+    if (x > boilerX - 30 && x < boilerX + 40) continue;
+    if (x > L.coreX - 30 && x < L.coreX + CORE_W) continue;
+    const top = fy - 38;
+    for (let i = 0; i < 22; i += 3) rect(g, x + i, top, 1, fy - top, '#7a6040');
+    rect(g, x, top, 22, 1, '#7a6040');
+    rect(g, x + 3, fy - 8, 6, 7, rng.pick(['#8a6a4a', '#6a5a4a']));
+    if (rng.chance(0.6)) for (let i = 0; i < 3; i++) rect(g, x + 12 + i * 3, fy - 6, 2, 5, rng.pick(['#c84a3a', '#d8b860', '#7ab060']));
+    if (rng.chance(0.4)) rect(g, x + 17, top + 2, 1, fy - top - 4, '#3a6ab0');
+  }
+  // котельная: котёл с манометром и бойлер
+  rect(g, boilerX, fy - 34, 18, 33, '#5a5a62');
+  rect(g, boilerX + 2, fy - 32, 14, 1, '#6a6a72');
+  rect(g, boilerX + 5, fy - 28, 5, 5, '#d8d4cc');
+  rect(g, boilerX + 7, fy - 27, 1, 2, '#c8402e');
+  rect(g, boilerX + 22, fy - 22, 14, 21, '#4a5a4a');
+  rect(g, boilerX + 8, lt + 11, 2, fy - 34 - lt - 11, '#8a3a2e'); // труба от котла
+  // лестничная клетка: крашеная стена, лампочка, приямок лифта за сеткой
+  rect(g, L.coreX, lt + 2, CORE_W, fy - lt - 2, '#8a847a');
+  rect(g, L.coreX, fy - 14, CORE_W, 13, '#6e6a62'); // панель снизу
+  rect(g, L.coreX, fy - 15, CORE_W, 1, '#5a564e');
+  rect(g, L.elevator.x0, lt + 2, L.elevator.x1 - L.elevator.x0, fy - lt - 2, '#4a4844'); // приямок
+  for (let y = lt + 4; y < fy - 2; y += 4) rect(g, L.elevator.x0, y, L.elevator.x1 - L.elevator.x0, 1, '#5e5c58');
+  for (let x = L.elevator.x0; x < L.elevator.x1; x += 4) rect(g, x, lt + 2, 1, fy - lt - 3, '#5e5c58');
+  rect(g, L.stairs.x0 + 20, lt + 2, 1, 4, '#3a3a3a'); // лампочка на проводе
+  rect(g, L.stairs.x0 + 19, lt + 6, 3, 3, '#f2e6b0');
+  if (common) {
+    // дверь в комнату отдыха — открыта настежь, на ней табличка
+    const dx = common.x0 - 2;
+    rect(g, dx - 12, fy - 31, 10, 6, '#f2ead6');
+    rect(g, dx - 11, fy - 29, 8, 1, '#7a5a3e');
+    rect(g, dx - 11, fy - 27, 6, 1, '#7a5a3e');
+  }
+  // перекрытие подвала и фундаментная подушка
+  rect(g, bx0 - 2, fy, bx1 - bx0 + 4, SLAB, CONCRETE);
+  rect(g, bx0 - 6, fy + SLAB, bx1 - bx0 + 12, 6, '#8a8680');
+  rect(g, bx0 - 6, fy + SLAB, bx1 - bx0 + 12, 1, '#a39f98');
+  // окошки подвала у самой земли (в кладовках)
+  for (let x = bx0 + 20; x < storeX1 - 20; x += 64) rect(g, x, lt + 1, 8, 3, '#2d2b2a');
+}
+
 function drawStairs(g: CanvasRenderingContext2D, defs: WorldDefs) {
   const L = defs.layout;
   const foot = L.stairs.footX;
@@ -637,7 +675,8 @@ function drawStairs(g: CanvasRenderingContext2D, defs: WorldDefs) {
       if (i % 4 === 0) rect(g, x, y + 1, 1, 8, behind ? '#6a6a6a' : '#5b5b5b');
     }
   };
-  for (let level = 0; level < L.floors; level++) {
+  // в подвал — тоже по лестнице (если там есть куда спускаться)
+  for (let level = L.commonRoom ? -1 : 0; level < L.floors; level++) {
     const fy = L.floorY(level);
     const midY = fy - FLOOR_H / 2;
     // площадка между этажами

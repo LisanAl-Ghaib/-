@@ -32,6 +32,7 @@ import { syncConstruction, syncWorkers, updateWorkers } from './workers';
 import { joinCooking, planTogether, updateFarewells } from './couple';
 import { updateDressing } from './dressing';
 import { syncTenants, updateTenants } from './tenants';
+import { updateCommonRoom } from './commonRoom';
 
 export type SimEvent =
   | { type: 'action.start'; t: number; residentId: string; actionId: string; label: string }
@@ -417,6 +418,7 @@ export class Simulation {
     }
     updateInteractions(this, DT);
     updateTenants(this);
+    updateCommonRoom(this);
     updatePets(this, DT);
     updateCircles(this);
     updateVisitors(this, DT);

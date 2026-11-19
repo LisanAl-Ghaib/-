@@ -136,6 +136,8 @@ export class BuildingLayout {
   };
   readonly stairs: { footX: number; landingX: number; x0: number; x1: number };
   readonly elevator: { x0: number; x1: number; doorX: number };
+  /** общая комната в подвале (уровень -1) или null */
+  readonly commonRoom: ApartmentModel | null = null;
 
   constructor(cfg: WorldConfig, aptDefs: ApartmentDef[], catalog: Map<string, FurnitureDef>) {
     // дом растёт вместе с жильцами
@@ -170,6 +172,14 @@ export class BuildingLayout {
     this.elevator = { x0: this.coreX + 42, x1: this.coreX + 62, doorX: this.coreX + 52 };
 
     const byKey = new Map(aptDefs.map((a) => [`${a.floor - 1}-${a.side}`, a]));
+    // подвал: справа — общая комната жильцов (если описана)
+    const common = byKey.get('-1-right');
+    if (common) {
+      const apt = this.buildApartment(-1, 'right', common, catalog);
+      this.apartments.push(apt);
+      this.aptById.set(apt.id, apt);
+      this.commonRoom = apt;
+    }
     // на первом этаже слева может быть комната консьержки
     const ground = byKey.get('0-left');
     if (ground) {
@@ -198,7 +208,7 @@ export class BuildingLayout {
 
   levelAtY(y: number): number {
     const l = this.floors - Math.floor((y - SKY_MARGIN - ROOF_H) / FLOOR_H);
-    return Math.max(0, Math.min(this.floors, l));
+    return Math.max(this.commonRoom ? -1 : 0, Math.min(this.floors, l));
   }
 
   /** id квартиры по уровню: этаж в id — человеческий (уровень + 1) */
@@ -221,7 +231,7 @@ export class BuildingLayout {
       def,
       level,
       side,
-      number: def?.number ?? (level === 0 ? 0 : (level - 1) * 2 + (side === 'left' ? 1 : 2)),
+      number: def?.number ?? (level <= 0 ? 0 : (level - 1) * 2 + (side === 'left' ? 1 : 2)),
       x0,
       x1,
       doorX,
@@ -232,7 +242,7 @@ export class BuildingLayout {
       allSlots: [],
       vacant: !def,
       balcony:
-        level === 0
+        level <= 0
           ? null
           : side === 'left'
             ? { x0: this.buildingX0 - BALCONY_D, x1: this.buildingX0, standX: this.buildingX0 - Math.round(BALCONY_D / 2) }
@@ -339,7 +349,7 @@ export class BuildingLayout {
   }
 
   apartmentAt(level: number, x: number): ApartmentModel | undefined {
-    if (level < 0) return undefined;
+    if (level < -1 || (level === -1 && !this.commonRoom)) return undefined;
     if (x < this.buildingX0 + OUTER_WALL || x >= this.buildingX1 - OUTER_WALL) return undefined;
     if (x >= this.coreX && x < this.coreX + CORE_W) return undefined;
     const side = x < this.coreX ? 'left' : 'right';

@@ -128,6 +128,8 @@ export function buildDefs(raw: RawData): BuildResult {
       room.furniture.push({ item: b.item, x: b.x, elevation: b.elevation, flip: b.flip, color: b.color, owner: t.id, tenant: t.id });
     }
   }
+  for (const r of [...residents, ...tenants])
+    if (apartments.find((a) => a.id === r.apartment)?.common) errors.push(`${r.id}: в общей комнате (${r.apartment}) не живут`);
   for (const r of residents)
     if (apartments.find((a) => a.id === r.apartment)?.rental) errors.push(`${r.id}: квартира ${r.apartment} сдаётся — жильцов туда описывают в data/tenants/`);
 
@@ -136,6 +138,9 @@ export function buildDefs(raw: RawData): BuildResult {
   for (const a of apartments) {
     if (aptIds.has(a.id)) errors.push(`квартира ${a.id} описана дважды`);
     aptIds.add(a.id);
+    if (a.floor === 0 && !a.common) errors.push(`${a.id}: в подвале (этаж 0) бывает только общая комната ("common": true)`);
+    if (a.floor === 0 && a.side !== 'right') errors.push(`${a.id}: общая комната в подвале — справа (слева кладовки и котельная)`);
+    if (a.common && a.floor !== 0) errors.push(`${a.id}: общая комната бывает только в подвале (floor: 0)`);
     if (a.floor === 1 && a.side === 'right')
       errors.push(`${a.id}: на первом этаже справа — колясочная и выход во двор, квартиры там нет`);
     const total = a.rooms.reduce((s, r) => s + r.width, 0);
@@ -202,7 +207,7 @@ export function buildDefs(raw: RawData): BuildResult {
       room.furniture.flatMap((fp) => catalog.get(fp.item)?.slots ?? []),
     );
     const has = (u: string) => slots.filter((s) => s.use.includes(u as never)).length;
-    if (people.length === 0 && !a.renovation && !a.rental) warnings.push(`${a.id}: квартира пустая — ждёт жильца (опиши его, и квартиру обставим под него)`);
+    if (people.length === 0 && !a.renovation && !a.rental && !a.common) warnings.push(`${a.id}: квартира пустая — ждёт жильца (опиши его, и квартиру обставим под него)`);
     if (people.length > 0 && a.renovation) errors.push(`${a.id}: в квартире идёт ремонт — заселить нельзя (renovation: true)`);
     if (people.length > 0 || a.rental) {
       if (has('sleep') < (a.rental ? 1 : people.length)) warnings.push(`${a.id}: спальных мест ${has('sleep')}, жильцов ${people.length}`);

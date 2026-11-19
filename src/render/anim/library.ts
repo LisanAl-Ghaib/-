@@ -438,6 +438,29 @@ export const LIBRARY: Record<string, ActivityAnim> = {
   'together:gift': { stand: stand('дарит подарок: протягивает, обнимает', [{ g: 'talk', o: 'side' }, { g: 'wave', o: 'side' }]), sit: sit('дарит подарок', SIT_IDLE.slice(0, 4)) },
   'together:intimacy': { stand: stand('вдвоём', STAND_IDLE), lie: { note: 'вдвоём под одеялом', posture: 'lie', script: sleeping('blanket') }, sit: sit('вдвоём', SIT_IDLE) },
   wave_window: { stand: stand('у окна над входом машет уходящему', [{ g: 'stand', o: 'side' }]), window: stand('у окна над входом машет уходящему', [{ g: 'stand', o: 'side' }]) },
+
+  // ─── комната отдыха в подвале
+  common_room: {
+    table: sit('за общим столом в комнате отдыха: чашка чая, оглядывается на соседей, откидывается', [{ g: 'handUp', prop: CUP, w: 2 }, { g: 'rest' }, { g: 'slouch', prop: CUP_LOW }, { g: 'cross' }]),
+    seat: sit('сидит на диване в комнате отдыха', SIT_IDLE),
+    stand: stand('стоит в комнате отдыха', STAND_IDLE),
+  },
+  'common_room:tea': {
+    table: sit('пьёт чай за общим столом: держит чашку обеими руками, отпивает, ставит, листает газету из стопки', [{ g: 'handUp', prop: CUP, alt: { g: 'rest', ms: 2400 }, w: 2 }, { g: 'slouch', prop: CUP_LOW }, { g: 'hands', prop: PAPER }, { g: 'rest' }]),
+    seat: sit('пьёт чай на диване', [{ g: 'handUp', prop: CUP, w: 2 }, { g: 'cross', prop: CUP_LOW }, { g: 'rest' }]),
+  },
+  'common_room:read': {
+    seat: sit('читает на диване книгу из общего шкафа: перелистывает, опускает книгу на колени', [{ g: 'hands', prop: BOOK, w: 3 }, { g: 'slouch', prop: { kind: 'book', at: 'low' } }, { g: 'cross', prop: { kind: 'book', at: 'low' } }]),
+    table: sit('читает за столом, рядом чашка', [{ g: 'hands', prop: BOOK, w: 3 }, { g: 'handUp', prop: CUP }]),
+  },
+  'common_room:chess': {
+    table: sit('играет в шахматы за столиком: долго смотрит на доску, двигает фигуру, подпирает подбородок, откидывается', [{ g: 'hands', alt: { g: 'rest', ms: 2300 }, w: 2 }, { g: 'handUp' }, { g: 'rest' }, { g: 'slouch' }]),
+    sit: sit('играет в шахматы', [{ g: 'hands', alt: { g: 'rest', ms: 2300 }, w: 2 }, { g: 'handUp' }, { g: 'rest' }]),
+  },
+  'common_room:treat': {
+    table: sit('угощает: двигает тарелку соседям, сам берёт кусочек, отпивает чай', [{ g: 'hands', alt: { g: 'rest', ms: 1200 }, w: 2 }, { g: 'hands', prop: { kind: 'fork', at: 'fwd' }, alt: { g: 'handUp', ms: 700 } }, { g: 'handUp', prop: CUP }]),
+    seat: sit('угощает с дивана', SIT_IDLE),
+  },
 };
 
 /** Если для занятия нет сцены — общая по позе */

@@ -50,23 +50,33 @@ export function planPath(L: BuildingLayout, from: Position, to: Target, opts: Pa
 
   const destLevel = to.away ? 0 : to.level;
 
-  if (level !== destLevel) {
-    const diff = Math.abs(destLevel - level);
-    if (diff >= elevatorFrom) {
-      steps.push({ k: 'walk', x: L.elevator.doorX, y: L.floorY(level) });
-      steps.push({ k: 'elevator', from: level, to: destLevel });
-    } else {
-      steps.push({ k: 'walk', x: L.stairs.footX, y: L.floorY(level) });
-      const dir = destLevel > level ? 1 : -1;
-      while (level !== destLevel) {
-        const half = FLOOR_H / 2;
-        // площадка между этажами
-        const midY = L.floorY(level) - dir * half;
-        steps.push({ k: 'walk', x: L.stairs.landingX, y: midY });
-        level += dir;
-        steps.push({ k: 'walk', x: L.stairs.footX, y: L.floorY(level), level });
-      }
+  const stairsTo = (dest: number) => {
+    steps.push({ k: 'walk', x: L.stairs.footX, y: L.floorY(level) });
+    const dir = dest > level ? 1 : -1;
+    while (level !== dest) {
+      const half = FLOOR_H / 2;
+      // площадка между этажами
+      const midY = L.floorY(level) - dir * half;
+      steps.push({ k: 'walk', x: L.stairs.landingX, y: midY });
+      level += dir;
+      steps.push({ k: 'walk', x: L.stairs.footX, y: L.floorY(level), level });
     }
+  };
+  const ride = (dest: number) => {
+    steps.push({ k: 'walk', x: L.elevator.doorX, y: L.floorY(level) });
+    steps.push({ k: 'elevator', from: level, to: dest });
+    level = dest;
+  };
+
+  if (level !== destLevel) {
+    // лифт в подвал не ходит: до первого этажа — на лифте, дальше пешком
+    const lo = Math.max(0, Math.min(level, destLevel));
+    const hi = Math.max(level, destLevel);
+    if (hi - lo >= elevatorFrom) {
+      if (level < 0) stairsTo(0);
+      ride(Math.max(0, destLevel));
+      if (destLevel < 0) stairsTo(destLevel);
+    } else stairsTo(destLevel);
   }
 
   if (to.away) {

@@ -33,6 +33,7 @@ for (let level = defs.layout.floors; level >= 0; level--) {
       : (['left', 'right'] as const).map((side) => `${`apt-${floor}-${side}`.padEnd(12)} ${label(`apt-${floor}-${side}`)}`.padEnd(46));
   console.log(`  ${floor} этаж: ${row.join(' | ')}`);
 }
+if (defs.layout.commonRoom) console.log(`  подвал:  ${'кладовки, котельная'.padEnd(46)}| ${defs.layout.commonRoom.id.padEnd(12)} комната отдыха жильцов`);
 console.log('\nНовый этаж появится сам, как только будет описана квартира на нём (apt-<этаж>-<left|right>).');
 const con = defs.config.building.construction;
 if (con && con.finished) console.log(`${con.floor} этаж достроен (data/world.json → building.construction.finished).`);
