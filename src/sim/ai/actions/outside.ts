@@ -88,10 +88,17 @@ export const smoke: ActionDef = {
   icon: 'dots',
   plan(ctx) {
     const h = habit(ctx, 'smoking');
-    if (h <= 0 || sleepTime(ctx) || minutesToLeave(ctx) < 30) return null;
+    // не спится — можно и ночью спуститься покурить у подъезда
+    const r = ctx.r;
+    const woke = r.recent.insomnia !== undefined && ctx.now - r.recent.insomnia < 70 * 60;
+    if (h <= 0 || (sleepTime(ctx) && !woke) || minutesToLeave(ctx) < 30) return null;
     const L = ctx.sim.defs.layout;
+    // курильщик «в окно» тоже ходит к подъезду, но реже и не в непогоду
+    const windowToo = ctx.def.traits.tags.some((t) => /в окно/i.test(t)) ? 0.9 : 1;
+    const since = ctx.now - Math.max(r.recent.smoke ?? -1e9, r.recent.smoke_window ?? -1e9);
     return {
-      score: (1 + h * 5) * novelty(ctx, 'smoke', 2.5 * 3600) * Math.max(0.4, weather(ctx)),
+      // заядлый курильщик выйдет и в непогоду
+      score: (1 + h * 5) * novelty(ctx, 'smoke', 2.5 * 3600) * Math.min(1, since / 3600) * Math.max(h > 0.8 ? 0.75 : 0.4, weather(ctx)) * windowToo + (woke ? 3 : 0),
       target: { level: 0, x: L.buildingX1 + 12 + ctx.sim.rng.int(0, 8) },
       duration: ctx.sim.rng.int(6, 10) * 60,
       label: gv(ctx.def, 'курит у подъезда', 'курит у подъезда'),

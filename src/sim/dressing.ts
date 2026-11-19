@@ -48,20 +48,21 @@ export function updateDressing(sim: Simulation, r: ResidentState): void {
   const outside = r.level === 0 && (r.x >= L.buildingX1 || r.x < L.buildingX0);
   // на улице — уже одет (вышел раньше, чем начал одеваться — например, сохранение старое)
   if (outside) {
-    if (!r.dressed && coatWeather(sim)) r.dressed = true;
+    if (!r.dressed) r.dressed = true;
     return;
   }
   const hall = hallOf(sim, apt.id);
   const inHall = r.level === apt.level && r.x >= hall.x0 && r.x < hall.x1;
   if (!inHall || !a || a.phase !== 'travel' || Number(a.data.pauseUntil ?? 0) > sim.time) return;
+  const hasStreet = !!def.appearance.street;
   const out = goingOut(sim, r);
   if (out && !r.dressed && !a.data.dressedHere) {
     // собирается на улицу: к вешалке, одеться и обуться
     const cold = coatWeather(sim);
     a.data.dressedHere = true;
-    a.data.pauseUntil = sim.time + (cold ? DRESS_S : 40);
+    a.data.pauseUntil = sim.time + (cold || hasStreet ? DRESS_S : 40);
     a.data.dressing = 'on';
-    if (cold) r.dressed = true;
+    r.dressed = true; // одет для улицы (куртка — если холодно, уличная одежда — всегда)
     const rack = hall.furniture.find((f) => f.def.draw === 'coat_rack');
     if (rack) r.facing = rack.x + rack.w / 2 >= r.x ? 1 : -1;
   } else if (!out && r.dressed) {

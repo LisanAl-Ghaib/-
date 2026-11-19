@@ -288,6 +288,15 @@ export function planTogether(sim: Simulation): void {
           const off = { level: 0, x: sim.defs.layout.yard.offscreenX, away: true };
           start(sim, a, b, { kind: 'walk', minutes: sim.rng.int(weekend ? 90 : 50, weekend ? 200 : 100), targets: [off, off], via: 'walk' });
           chronicle(sim, 'couple.walk', [a, b], 1, { weekend });
+          // одинокий сосед курит у подъезда и смотрит им вслед
+          for (const d of sim.defs.residents) {
+            const o = s.residents[d.id];
+            if (!o || o.id === a || o.id === b || !d.traits.tags.some((t) => /одинок/i.test(t))) continue;
+            if (o.action?.id === 'smoke' && o.action.phase === 'perform' && sim.rng.chance(0.7)) {
+              o.bubble = { icon: 'gloom', until: sim.time + 600 };
+              chronicle(sim, 'lonely.watch', [o.id, a], 1, { c: b });
+            }
+          }
           return true;
         },
       });

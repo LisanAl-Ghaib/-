@@ -275,3 +275,34 @@ describe('стройка третьего этажа (настоящий дом)
     expect(sim.state.workers).toHaveLength(0);
   }, 120_000);
 });
+
+describe('Павел Муров (настоящий дом)', () => {
+  it('завод 5/2, курит в окно и у подъезда, кормит рыбку, бессонница и кошмары, «уволюсь», свет не включает', async () => {
+    const { buildDefs: build } = await import('../src/data/defs');
+    const { Simulation: Sim } = await import('../src/sim/simulation');
+    const { createWorldState: create } = await import('../src/sim/state');
+    const d = build(loadRawDataNode()).defs!;
+    const sim = new Sim(d, create(d, 13));
+    const started: Record<string, number> = {};
+    sim.bus.on('action.start', (e) => {
+      if (e.residentId === 'pavel-murov') started[e.actionId] = (started[e.actionId] ?? 0) + 1;
+    });
+    let streetOutside = 0;
+    for (let i = 0; i < (21 * 86400) / 10; i++) {
+      sim.step();
+      const r = sim.state.residents['pavel-murov'];
+      if (!r.away && r.level === 0 && r.x > d.layout.buildingX1 && r.dressed) streetOutside++;
+    }
+    expect(started.go_to_work).toBeGreaterThanOrEqual(13); // три рабочие недели
+    expect(started.smoke_window).toBeGreaterThan(20);
+    expect(started.smoke).toBeGreaterThan(5);
+    expect(started.feed_fish).toBeGreaterThan(10);
+    expect(started.night_watch).toBeGreaterThan(3);
+    expect(started.phone ?? 0).toBe(0); // звонить некому
+    expect(started.read ?? 0).toBe(0); // не читает
+    expect(streetOutside).toBeGreaterThan(0); // на улице — в уличной одежде
+    const kinds = new Set(sim.state.chronicle.filter((e) => e.actors.includes('pavel-murov')).map((e) => e.kind));
+    expect(kinds.has('nightmare') || started.nightmare > 0).toBe(true);
+    expect(Object.keys(sim.state.pets).some((id) => id.startsWith('pavel'))).toBe(false); // рыбка живёт в аквариуме
+  }, 60_000);
+});

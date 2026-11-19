@@ -674,7 +674,28 @@ const drawers: Record<string, Drawer> = {
     R(c, 1, h - 11, w - 2, 2, '#d9c48a');
     R(c, 3, h - 15, 1, 4, '#3d7a43');
     R(c, w - 4, h - 14, 1, 3, '#3d7a43');
-    for (let i = 0; i < 3; i++) R(c, rng.int(2, w - 4), rng.int(3, h - 14), 2, 1, rng.pick(['#f08a3c', '#f2d16b', '#e85050']));
+    R(c, w - 6, h - 12, 3, 1, '#9a948a'); // камешек
+    void rng; // рыбы плавают — их рисует рендер (renderer.drawAmbient)
+  },
+  recliner(c) {
+    // кресло-реклайнер: откинутая спинка, выдвинутая подножка
+    const { h, main } = c;
+    const d = shade(main, -0.2);
+    for (let i = 0; i < 9; i++) R(c, i < 5 ? 0 : 1, h - 14 + i, 4, 1, i % 3 ? main : d); // спинка с наклоном
+    R(c, 0, h - 15, 3, 2, shade(main, 0.15)); // подголовник
+    R(c, 3, h - 7, 9, 3, main); // сиденье
+    R(c, 3, h - 7, 9, 1, shade(main, 0.15));
+    R(c, 4, h - 9, 7, 2, d); // подлокотник
+    R(c, 12, h - 6, 6, 2, main); // подножка
+    R(c, 2, h - 4, 12, 3, d);
+    R(c, 3, h - 1, 2, 1, '#2a2a2a');
+    R(c, 12, h - 1, 2, 1, '#2a2a2a');
+  },
+  ashtray(c) {
+    const { w } = c;
+    R(c, 0, 1, w, 1, '#8a8a92');
+    R(c, 1, 0, w - 2, 1, '#5a5a62');
+    R(c, 1, 0, 1, 1, '#d8d4cc'); // окурок
   },
   game_console(c) {
     const { w, h, main } = c;

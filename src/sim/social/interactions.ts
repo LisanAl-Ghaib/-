@@ -204,7 +204,22 @@ export function endInteraction(sim: Simulation, it: Interaction): void {
       endMin: endCal.minuteOfDay,
       quarrel: it.quarrel,
       cause: meta.cause ?? null,
-      topic: meta.topic ?? null,
+      topic: meta.topic ?? quitTopic(sim, a, b),
     }, it.startedAt);
   }
+}
+
+/** «Уже пятый год говорит, что уволится» — слышно в разговорах с соседями */
+function quitTopic(sim: Simulation, a: string, b: string): string | null {
+  for (const id of [a, b]) {
+    const d = sim.defs.residentById.get(id);
+    if (!d?.traits.tags.some((t) => /уволит/i.test(t)) || !sim.rng.chance(0.4)) continue;
+    const who = nameCase(d, 'nom');
+    return sim.rng.pick([
+      `${who} опять сказал, что с завода уволится, «вот только премию дадут»`,
+      `${who} снова собирается писать заявление — «теперь уже точно, после праздников»`,
+      `${who} в который раз ругал свой станок и обещал уволиться`,
+    ]);
+  }
+  return null;
 }

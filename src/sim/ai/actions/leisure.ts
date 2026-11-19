@@ -77,7 +77,7 @@ export const watchTv = leisure({
 });
 
 export const read = leisure({
-  id: 'read', icon: 'book', use: 'read', rooms: ['living', 'bedroom', 'study', 'studio'], habit: 'reading',
+  id: 'read', icon: 'book', use: 'read', rooms: ['living', 'bedroom', 'study', 'studio'], habit: 'reading', requiresHabit: true,
   base: 1.4, label: () => 'читает', rates: { mood: 6 }, minutes: [25, 80], cooldown: 3 * 3600, bonus: beforeBed,
 });
 
@@ -167,6 +167,9 @@ export const phone = leisure({
   base: 0.6, label: () => 'болтает по телефону', rates: { mood: 4, social: 18 }, minutes: [10, 45], cooldown: 4 * 3600,
   bonus: (ctx) => (ctx.cal.hourOfDay < 9 || ctx.cal.hourOfDay >= 22.5 ? -50 : (100 - ctx.r.needs.social) / 18),
 });
+// звонить можно только тем, с кем созваниваются (contacts с phone)
+const phoneBase = phone.plan;
+phone.plan = (ctx) => (ctx.def.contacts.some((c) => c.phone) ? phoneBase(ctx) : null);
 
 export const lookOutside = leisure({
   id: 'window', icon: 'dots', use: 'look', habit: 'plants',

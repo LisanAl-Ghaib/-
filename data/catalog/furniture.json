@@ -1614,6 +1614,42 @@
      "face": 0
     }
    ]
+  },
+  {
+   "id": "recliner",
+   "name": "Кресло-реклайнер",
+   "draw": "recliner",
+   "w": 18,
+   "h": 15,
+   "paletteKey": "textile",
+   "rooms": [
+    "living",
+    "bedroom",
+    "studio"
+   ],
+   "slots": [
+    {
+     "use": [
+      "sit",
+      "tv",
+      "eat",
+      "nap"
+     ],
+     "dx": 7,
+     "pose": "sit",
+     "dy": 5,
+     "face": 1
+    }
+   ]
+  },
+  {
+   "id": "ashtray",
+   "name": "Пепельница на подоконнике",
+   "draw": "ashtray",
+   "w": 5,
+   "h": 2,
+   "paletteKey": "metal",
+   "elevation": 24
   }
  ]
 }

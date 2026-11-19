@@ -192,7 +192,8 @@ export const AccessorySchema = z.enum([
 export const PetSchema = z.object({
   /** имя (если пользователь назвал); без имени хроника пишет «старшая кошка» и т. п. */
   name: z.string().optional(),
-  species: z.enum(['cat', 'dog']),
+  /** fish — рыбка в аквариуме (живёт в предмете aquarium) */
+  species: z.enum(['cat', 'dog', 'fish']),
   /** год рождения — возраст считается от игровой даты */
   born: z.number().int(),
   color: hexColor,
@@ -319,6 +320,17 @@ export const ResidentSchema = z.object({
     accessories: z.array(AccessorySchema).default([]),
     /** цвет глаз */
     eyes: hexColor.optional(),
+    /** цвет кепки/шапки/берета (если не задан — обычный) */
+    hatColor: hexColor.optional(),
+    /** на улицу одевается иначе, чем дома: что меняет (низ, обувь, верх) и что добавляет (кепка) */
+    street: z
+      .object({
+        top: hexColor.optional(),
+        bottom: hexColor.optional(),
+        shoes: hexColor.optional(),
+        accessories: z.array(AccessorySchema).default([]),
+      })
+      .optional(),
   }),
   relationships: z
     .array(

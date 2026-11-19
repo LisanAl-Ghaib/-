@@ -257,7 +257,7 @@ function drawFrame(
       px(g, C + 2, hy + 4, 1, 1, shade(p.skin, -0.35)); // опущенный уголок рта
     }
     drawHairSide(g, app.hair.style, p, y0 + dy);
-    drawHeadwearSide(g, acc, y0 + dy);
+    drawHeadwearSide(g, acc, y0 + dy, app.hatColor);
     if (acc.has('headphones')) {
       px(g, C - 2, hy - 1, 4, 1, '#2b2b2b');
       px(g, C - 2, hy + 1, 2, 2, '#2b2b2b');
@@ -376,7 +376,7 @@ function drawFrame(
       px(g, C + 3, hy + 3, 1, 1, '#e8c547');
     }
     drawHairBack(g, app.hair.style, p, y0 + dy);
-    drawHeadwearFront(g, acc, y0 + dy);
+    drawHeadwearFront(g, acc, y0 + dy, app.hatColor);
     return;
   }
   px(g, C - 3, hy, 6, 5, p.skin);
@@ -416,7 +416,7 @@ function drawFrame(
     px(g, C + 3, hy + 3, 1, 1, '#e8c547');
   }
   drawHairFront(g, app.hair.style, p, y0 + dy);
-  drawHeadwearFront(g, acc, y0 + dy);
+  drawHeadwearFront(g, acc, y0 + dy, app.hatColor);
   if (acc.has('headphones')) {
     px(g, C - 3, hy - 1, 6, 1, '#2b2b2b');
     px(g, C - 4, hy + 1, 1, 2, '#2b2b2b');
@@ -640,26 +640,27 @@ function drawHairBack(g: CanvasRenderingContext2D, style: string, p: Pal, y0: nu
   }
 }
 
-function drawHeadwearSide(g: CanvasRenderingContext2D, acc: Set<string>, y0: number) {
+function drawHeadwearSide(g: CanvasRenderingContext2D, acc: Set<string>, y0: number, color?: string) {
   if (acc.has('hat')) {
-    px(g, C - 3, y0, 7, 1, '#3d3a36');
-    px(g, C - 2, y0 - 2, 5, 2, '#3d3a36');
+    px(g, C - 3, y0, 7, 1, color ?? '#3d3a36');
+    px(g, C - 2, y0 - 2, 5, 2, color ?? '#3d3a36');
   } else if (acc.has('cap')) {
-    px(g, C - 2, y0 - 1, 5, 2, '#2f5d8a');
-    px(g, C + 3, y0, 2, 1, '#2f5d8a');
+    px(g, C - 2, y0 - 1, 5, 2, color ?? '#2f5d8a');
+    px(g, C + 3, y0, 2, 1, color ? shade(color, -0.2) : '#2f5d8a');
   } else if (acc.has('beret')) {
-    px(g, C - 3, y0 - 1, 6, 2, '#7a2230');
+    px(g, C - 3, y0 - 1, 6, 2, color ?? '#7a2230');
   }
 }
 
-function drawHeadwearFront(g: CanvasRenderingContext2D, acc: Set<string>, y0: number) {
+function drawHeadwearFront(g: CanvasRenderingContext2D, acc: Set<string>, y0: number, color?: string) {
   if (acc.has('hat')) {
-    px(g, C - 4, y0, 8, 1, '#3d3a36');
-    px(g, C - 3, y0 - 2, 6, 2, '#3d3a36');
+    px(g, C - 4, y0, 8, 1, color ?? '#3d3a36');
+    px(g, C - 3, y0 - 2, 6, 2, color ?? '#3d3a36');
   } else if (acc.has('cap')) {
-    px(g, C - 3, y0 - 1, 6, 2, '#2f5d8a');
+    px(g, C - 3, y0 - 1, 6, 2, color ?? '#2f5d8a');
+    px(g, C - 3, y0 + 1, 6, 1, color ? shade(color, -0.2) : '#24496e'); // козырёк
   } else if (acc.has('beret')) {
-    px(g, C - 4, y0 - 1, 7, 2, '#7a2230');
+    px(g, C - 4, y0 - 1, 7, 2, color ?? '#7a2230');
   }
 }
 

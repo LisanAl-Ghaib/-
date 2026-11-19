@@ -52,6 +52,7 @@ export function syncPets(sim: Simulation): void {
   const alive = new Set<string>();
   for (const def of sim.defs.residents) {
     def.pets.forEach((p, idx) => {
+      if (p.species === 'fish') return; // рыбка живёт в аквариуме — рисуется вместе с ним
       const id = `${def.id}:${idx}`;
       alive.add(id);
       if (s.pets[id]) return;
@@ -73,7 +74,7 @@ export function petName(sim: Simulation, p: PetState): string {
   const pet = def.pets[p.idx];
   if (pet.name) return pet.name;
   const same = def.pets.filter((x) => x.species === pet.species);
-  const word = pet.species === 'cat' ? 'кошка' : 'собака';
+  const word = pet.species === 'cat' ? 'кошка' : pet.species === 'fish' ? 'рыбка' : 'собака';
   if (same.length < 2) return word;
   const older = same.every((x) => x === pet || x.born >= pet.born);
   return `${older ? 'старшая' : 'младшая'} ${word}`;

@@ -19,7 +19,7 @@ import { generateIcon } from './sprites/icons';
 import { hashString } from '../core/rng';
 import { LifeDetails } from './lifeDetails';
 import { generatePetSheet, PET_FRAME, PET_H, PET_W } from './sprites/pet';
-import { outfitOfDay, visitorAppearance, withOutfitVariant } from './visitorLook';
+import { nightHeadphones, outfitOfDay, visitorAppearance, withOutfitVariant, withStreet } from './visitorLook';
 import { animatePose, type AnimEnv, type Pose } from './animation';
 import { drawProp, eyesOf } from './props';
 import type { FurnitureInstance } from '../world/layout';
@@ -222,6 +222,7 @@ export class Renderer {
 
     // освещение
     this.drawLighting(day);
+    this.drawNightLights(nowMs, day);
     this.drawGlow(nowMs, day);
     // осадки перед всем, кроме дома
     this.drawPrecip(nowMs, false);
@@ -510,7 +511,10 @@ export class Renderer {
   private drawDynamicFurniture(nowMs: number) {
     const L = this.defs.layout;
     this.screensOn = [];
+    this.screenDraws = [];
+    this.tanks = [];
     this.drawAmbient(nowMs);
+    this.drawCurtainsAndSmoke(nowMs);
     // «вечно включённые» экраны: работают, пока хозяин дома и не спит
     for (const apt of L.apartments) {
       for (const room of apt.rooms) {
@@ -547,8 +551,9 @@ export class Renderer {
             let kind: ScreenKind = a.id === 'watch_tv' ? 'tv' : f.def.draw === 'concierge_desk' ? 'cctv' : a.id === 'gaming' ? 'game' : a.id === 'computer' ? 'browser' : (Math.floor(this.sim.time / 1500) + f.x) % 3 === 0 ? 'browser' : 'code';
             // второй монитор: во время игры — чат/браузер, за работой — документ
             if (si === 1) kind = a.id === 'gaming' ? 'browser' : kind === 'code' ? 'browser' : 'code';
-            drawScreen(this.wg, kind, x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, `${f.uid}:${si}`);
-            if (kind === 'tv' || (a.id === 'gaming' && si === 0)) this.screensOn.push([x + sr[2] / 2, f.y - f.h + sr[1], apt.id, room.index]);
+            drawScreen(this.wg, kind, x, f.y - f.h + sr[1], sr[2], sr[3], this.sim.time, nowMs, `${f.uid}:${si}`, kind === 'tv' ? f.channel : undefined);
+            this.screenDraws.push({ kind, x, y: f.y - f.h + sr[1], w: sr[2], h: sr[3], seed: `${f.uid}:${si}`, channel: kind === 'tv' ? f.channel : undefined, apt, ri: room.index });
+            if (kind === 'tv' || si === 0) this.screensOn.push([x + sr[2] / 2, f.y - f.h + sr[1], apt.id, room.index]);
           });
         }
       }
@@ -585,6 +590,118 @@ export class Renderer {
   }
 
   private screensOn: [number, number, string, number][] = [];
+  /** экраны этого кадра — в тёмной комнате их перерисовываем поверх ночи: они светятся */
+  private screenDraws: { kind: ScreenKind; x: number; y: number; w: number; h: number; seed: string; channel?: string; apt: ApartmentModel; ri: number }[] = [];
+  private tanks: { f: FurnitureInstance; apt: ApartmentModel; ri: number; colors: string[] }[] = [];
+
+  /** Рыбки в аквариуме */
+  private drawFish(f: FurnitureInstance, colors: string[], nowMs: number) {
+    const g = this.wg;
+    const top = f.y - f.h;
+    const iw = f.w - 4;
+    colors.forEach((col, i) => {
+      const ph = (nowMs / (5200 + i * 900) + i * 0.37 + f.x * 0.01) % 2;
+      const k = ph < 1 ? ph : 2 - ph; // туда и обратно
+      const fx = f.x + 2 + Math.round(k * (iw - 3));
+      const fy = top + 4 + i * 3 + Math.round(Math.sin(nowMs / 900 + i) * 1.4);
+      const dir = ph < 1 ? 1 : -1;
+      rect(g, fx, fy, 3, 2, col);
+      rect(g, dir > 0 ? fx - 1 : fx + 3, fy, 1, 2, shade(col, -0.25)); // хвост
+      rect(g, dir > 0 ? fx + 2 : fx, fy, 1, 1, '#1a1a1a'); // глаз
+    });
+    const b = Math.floor(nowMs / 260) % 9;
+    rect(g, f.x + f.w - 5, top + 9 - b, 1, 1, '#d8f0fb');
+  }
+
+  /** После ночного затемнения: светящиеся экраны и аквариумы в тёмных комнатах, огоньки сигарет */
+  private drawNightLights(nowMs: number, day: number) {
+    const g = this.wg;
+    if (day < 0.6) {
+      for (const s of this.screenDraws) {
+        if (this.roomLit(s.apt, s.ri, day)) continue;
+        g.globalAlpha = 0.9;
+        drawScreen(g, s.kind, s.x, s.y, s.w, s.h, this.sim.time, nowMs, s.seed, s.channel);
+        g.globalAlpha = 1;
+      }
+      for (const t of this.tanks) {
+        if (this.roomLit(t.apt, t.ri, day)) continue;
+        g.globalAlpha = 0.55;
+        rect(g, t.f.x + 1, t.f.y - t.f.h + 1, t.f.w - 2, t.f.h - 10, '#4f93b8');
+        g.globalAlpha = 1;
+        this.drawFish(t.f, t.colors, nowMs);
+      }
+    }
+    // дым и огонёк сигареты
+    for (const r of Object.values(this.sim.state.residents)) {
+      const a = r.action;
+      if (r.away || !a || a.phase !== 'perform' || (a.id !== 'smoke' && a.id !== 'smoke_window')) continue;
+      const h = hashString(r.id);
+      const head = Math.round(r.y) - 19;
+      const hx = Math.round(r.x);
+      g.globalAlpha = 0.55;
+      for (let i = 0; i < 5; i++) {
+        const t = Math.floor(nowMs / 220 + i * 5 + h);
+        const k = t % 14;
+        rect(g, hx + 1 + Math.round(Math.sin((t + i) / 3) * 1.5), head - k, 1, 1, '#e8e8e8');
+      }
+      g.globalAlpha = 1;
+      if (day < 0.4 && Math.floor(nowMs / 900 + h) % 3 !== 0) rect(g, hx + 1, head + 1, 1, 1, '#ff7a3a'); // затяжка в темноте
+    }
+  }
+
+  /**
+   * «Зашторивает комнату даже днём»: в выходной за компьютером — плотные шторы задёрнуты.
+   * Косметика: от дня и жильца, без случайностей симуляции.
+   */
+  private curtainsClosed(apt: ApartmentModel, roomIndex: number): boolean {
+    const room = apt.rooms[roomIndex];
+    if (!room.def.window) return false;
+    const cal = this.sim.calendar();
+    for (const d of this.defs.residents) {
+      if (d.apartment !== apt.id || !d.traits.tags.some((t) => /зашторива/i.test(t))) continue;
+      const r = this.sim.state.residents[d.id];
+      const a = r?.action;
+      if (!r || r.away || !a || a.phase !== 'perform' || r.x < room.x0 || r.x >= room.x1) continue;
+      if (a.id !== 'computer' && a.id !== 'gaming' && a.id !== 'work') continue;
+      const h = cal.hourOfDay;
+      if (h < 9 || h > 19) continue;
+      if (cal.weekday >= 6 ? hashString(`${d.id}:${cal.dayIndex}`) % 3 !== 0 : hashString(`${d.id}:${cal.dayIndex}`) % 7 === 0) return true;
+    }
+    return false;
+  }
+
+  /** Задёрнутые шторы; открытая форточка, когда курит в окно (дым — в drawNightLights) */
+  private drawCurtainsAndSmoke(nowMs: number) {
+    const g = this.wg;
+    const L = this.defs.layout;
+    for (const apt of L.apartments) {
+      if (apt.vacant) continue;
+      for (const room of apt.rooms) {
+        if (!this.curtainsClosed(apt, room.index)) continue;
+        const wr = windowRect(room, L.levelTop(apt.level));
+        if (!wr) continue;
+        const col = apt.def?.palette.textile ?? '#4a4f58';
+        rect(g, wr[0] - 3, wr[1] - 2, wr[2] + 6, wr[3] + 4, col);
+        for (let x = wr[0] - 2; x < wr[0] + wr[2] + 3; x += 3) rect(g, x, wr[1] - 2, 1, wr[3] + 4, shade(col, -0.18)); // складки
+        rect(g, wr[0] + Math.floor(wr[2] / 2), wr[1] - 2, 1, wr[3] + 4, shade(col, -0.3)); // где сходятся
+        rect(g, wr[0] - 3, wr[1] - 3, wr[2] + 6, 1, '#7a7a7a'); // карниз
+      }
+    }
+    for (const r of Object.values(this.sim.state.residents)) {
+      const a = r.action;
+      if (r.away || !a || a.phase !== 'perform' || a.id !== 'smoke_window') continue;
+      {
+        // форточка открыта, дым тянет наружу
+        const apt = L.apartmentAt(r.level, r.x);
+        const room = apt ? L.roomAt(apt, r.x) : null;
+        const wr = room ? windowRect(room, L.levelTop(r.level)) : null;
+        if (wr) {
+          rect(g, wr[0] + Math.floor(wr[2] / 2) + 1, wr[1] + 1, Math.floor(wr[2] / 2) - 2, 5, 'rgba(230,240,246,0.35)');
+          rect(g, wr[0] + wr[2] - 2, wr[1], 1, 7, '#efece4'); // приоткрытая створка
+        }
+      }
+    }
+  }
 
   /** Душевая кабина, в которой сейчас моется жилец */
   private showerOf(r: ResidentState): FurnitureInstance | null {
@@ -747,6 +864,15 @@ export class Renderer {
               rect(g, f.x + f.w - 7, f.y - 4, 3, 1, cols[(ci + 2) % cols.length]);
               break;
             }
+            case 'aquarium': {
+              // рыбки плавают туда-сюда, поднимаются пузырьки; в темноте аквариум светится
+              const owners = this.defs.residents.filter((d) => d.apartment === apt.id).flatMap((d) => d.pets.filter((p) => p.species === 'fish'));
+              const fish = owners.length ? owners.map((p) => p.color) : ['#f08a3c', '#f2d16b'];
+              this.drawFish(f, fish, nowMs);
+              this.tanks.push({ f, apt, ri: room.index, colors: fish });
+              this.screensOn.push([f.x + f.w / 2, top + 6, apt.id, room.index]);
+              break;
+            }
             case 'hanging_plant': {
               // листья чуть колышутся от сквозняка
               if (Math.floor((nowMs + f.x * 131) / 900) % 5 === 0) rect(g, f.x + 1 + (Math.floor(nowMs / 450) % 2), top + 1, 1, 1, shade('#4f8a3a', 0.15));
@@ -853,6 +979,7 @@ export class Renderer {
     if (f && (f.def.draw === 'piano' || f.def.draw === 'digital_piano')) env.instrument = 'piano';
     if (f?.def.draw === 'eguitar_amp') env.instrument = 'guitar';
     if (f?.def.draw === 'pullup_bar') env.pullup = true;
+    if (f?.def.draw === 'recliner') env.recline = true;
     return env;
   }
 
@@ -862,8 +989,14 @@ export class Renderer {
     const coat = this.env.coats && !!r.dressed;
     // иногда надевает другое (рубашку с галстуком вместо толстовки) — на весь день
     const vi = outfitOfDay(def, r.today.day);
-    const app = vi < 0 ? def.appearance : withOutfitVariant(def.appearance, vi);
-    const key = `resident:${r.id}${vi >= 0 ? `:v${vi}` : ''}${coat && def.appearance.outfit.coat ? ':coat' : ''}`;
+    let app = vi < 0 ? def.appearance : withOutfitVariant(def.appearance, vi);
+    // на улице — уличная одежда (джинсы, кепка), дома — домашняя
+    const street = !!r.dressed && !!def.appearance.street;
+    if (street) app = withStreet(app);
+    // ночью в наушниках
+    const hp = !street && nightHeadphones(def, r, this.sim.calendar().hourOfDay);
+    if (hp) app = { ...app, accessories: [...app.accessories, 'headphones'] };
+    const key = `resident:${r.id}${vi >= 0 ? `:v${vi}` : ''}${street ? ':street' : ''}${hp ? ':hp' : ''}${coat && def.appearance.outfit.coat ? ':coat' : ''}`;
     if (def.sprite) {
       // путь из JSON жильца: public/sprites/<sprite>
       const k = `resident:${r.id}`;
@@ -979,6 +1112,9 @@ export class Renderer {
     if (!a || a.phase !== 'perform' || a.id === 'sleep' || a.id === 'nap' || r.interaction !== null) return null;
     const cycle = (nowMs / 1000 + (hashString(r.id) % 40)) % 40;
     if (cycle > 3) return null;
+    // ночью в наушниках — иногда там музыка
+    const def = this.defs.residentById.get(r.id);
+    if (def && nightHeadphones(def, r, this.sim.calendar().hourOfDay) && (this.sim.calendar().hour + hashString(r.id)) % 3 !== 0) return 'music';
     const n = r.needs;
     if (n.energy < 22) return 'yawn';
     if (n.mood < 30) return 'gloom';
@@ -1062,6 +1198,8 @@ export class Renderer {
     if (day * (1 - this.env.overcast * 0.4) > 0.6 || apt.vacant) return false;
     if (this.life.workersOn(apt)) return true; // мастера включили прожектор
     const room = apt.rooms[roomIndex];
+    // «почти не включает свет»: днём светло из окна, вечером хватает монитора (в санузле — включит)
+    if (room.type !== 'bathroom' && this.defs.residents.some((d) => d.apartment === apt.id && d.traits.tags.some((t) => /не включает свет/i.test(t)))) return false;
     for (const r of Object.values(this.sim.state.residents)) {
       if (r.away || r.level !== apt.level || r.x < room.x0 || r.x >= room.x1) continue;
       if (r.action?.id === 'sleep' && r.action.phase === 'perform') continue;
@@ -1095,7 +1233,8 @@ export class Renderer {
       const fy = L.floorY(apt.level);
       for (const room of apt.rooms) {
         const on = this.roomLit(apt, room.index, day);
-        const a = on ? 0.04 : apt.vacant ? 0.18 + overcastDim + (1 - day) * 0.7 : 0.1 + overcastDim * 1.5 + (1 - day) * 0.74;
+        const shut = this.curtainsClosed(apt, room.index) ? 0.32 : 0; // задёрнуто — полумрак
+        const a = on ? 0.04 : apt.vacant ? 0.18 + overcastDim + (1 - day) * 0.7 : 0.1 + shut + overcastDim * 1.5 + (1 - day) * 0.74;
         region(room.x0, lt, room.x1 - room.x0, fy - lt + 2, Math.min(0.88, a));
         if (on) lit.push([room.x0, lt, room.x1 - room.x0, fy - lt]);
       }

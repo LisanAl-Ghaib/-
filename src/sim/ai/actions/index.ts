@@ -5,7 +5,7 @@ import { chess, chores, computer, crafts, fitness, gaming, idle, lookOutside, mu
 import { bench, goOut, jog, smoke, snowman, walkYard } from './outside';
 import { nap, sleep, toilet, wash } from './rest';
 import { chat, guest, host, visit } from './social';
-import { familyVisit, feedPets, nightWatch } from './personal';
+import { familyVisit, feedFish, feedPets, nightmare, nightWatch, smokeWindow } from './personal';
 import { goToWork, sideWork, workFromHome } from './work';
 import { together, waveWindow } from '../../couple';
 
@@ -29,7 +29,7 @@ export const ACTIONS: readonly ActionDef[] = [
   // общение
   visit, host, guest, chat,
   // личное: питомцы, родные, бессонница
-  feedPets, familyVisit, nightWatch,
+  feedPets, familyVisit, nightWatch, nightmare, smokeWindow, feedFish,
   // вдвоём (пара)
   together, waveWindow,
 ];

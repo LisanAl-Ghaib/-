@@ -40,3 +40,21 @@ export function withOutfitVariant(app: ResidentDef['appearance'], i: number): Re
     accessories: [...app.accessories, ...v.accessories],
   };
 }
+
+/** Уличная одежда поверх домашней */
+export function withStreet(app: ResidentDef['appearance']): ResidentDef['appearance'] {
+  const st = app.street;
+  if (!st) return app;
+  return {
+    ...app,
+    outfit: { ...app.outfit, top: st.top ?? app.outfit.top, bottom: st.bottom ?? app.outfit.bottom, shoes: st.shoes ?? app.outfit.shoes },
+    accessories: [...app.accessories, ...st.accessories],
+  };
+}
+
+/** «Ночью всегда в наушниках» — с 22 до 6, пока не спит */
+export function nightHeadphones(def: ResidentDef, r: { action: { id: string; phase: string } | null; pose: string }, hour: number): boolean {
+  if (!(hour >= 22 || hour < 6)) return false;
+  if (r.pose === 'lie' || (r.action?.id === 'sleep' && r.action.phase === 'perform')) return false;
+  return def.traits.tags.some((t) => /ночью .*наушник|в наушниках ночью/i.test(t));
+}

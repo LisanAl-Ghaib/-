@@ -159,6 +159,10 @@ export function drawProp(
       rect(g, x - 1, y, 1, 1, '#3a2010');
       for (let i = 0; i < 5; i++) rect(g, x + (3 + i) * d, y - 1 - Math.floor(i / 2), 1, 1, '#3a2010');
       break;
+    case 'cigarette':
+      rect(g, x, y + 1, 2, 1, '#f4f2ec');
+      rect(g, x + (d > 0 ? 2 : -1), y + 1, 1, 1, Math.floor(nowMs / 700 + seed) % 2 ? '#ff7a3a' : '#c8402e');
+      break;
     case 'eguitar':
       drawEGuitar(g, app, frame, ix, top, flip, nowMs, seed, at);
       break;

@@ -8,6 +8,136 @@ export function hasTag(ctx: AgentCtx, re: RegExp): boolean {
   return ctx.def.traits.tags.some((t) => re.test(t));
 }
 export const INSOMNIA = /бессонн|не спится|плохо спит/i;
+export const NIGHTMARES = /кошмар/i;
+/** Курит в окно (а не только у подъезда) */
+export const WINDOW_SMOKER = /в окно/i;
+const LONELY = /одинок/i;
+
+/** Проснулся от кошмара: сидит в кровати, тяжело дышит (назначается сном) */
+export const nightmare: ActionDef = {
+  id: 'nightmare',
+  plan(ctx) {
+    const r = ctx.r;
+    const at = r.recent.nightmareAt;
+    if (at === undefined || ctx.now - at > 180 || (r.recent.nightmare ?? -1e9) >= at) return null;
+    const bed = homeSlot(ctx, 'sleep');
+    return {
+      score: 60,
+      target: bed?.target ?? { level: r.level, x: r.x },
+      duration: ctx.sim.rng.int(3, 6) * 60,
+      label: 'сидит в кровати — приснился кошмар',
+      interruptible: false,
+    };
+  },
+  onArrive(ctx, a) {
+    // сел на кровати лицом к нам
+    const slot = a.target.slot ? ctx.sim.slotIndex.get(a.target.slot) : undefined;
+    ctx.r.pose = 'sit';
+    ctx.r.front = true;
+    ctx.r.y = ctx.sim.defs.layout.floorY(ctx.r.level) - (slot?.dy ?? 6);
+    if (slot) ctx.r.x = slot.x - 4;
+    ctx.r.bubble = { icon: 'gloom', until: ctx.now + 120 };
+    const c = ctx.cal;
+    const key = `nightmare:${ctx.r.id}:${c.dayIndex}`;
+    if (!ctx.sim.state.flags[key] && ctx.sim.rng.chance(0.5)) {
+      ctx.sim.state.flags[key] = ctx.now;
+      chronicleAt(ctx.sim, ctx.now, 'nightmare', [ctx.r.id], 1, { hour: c.hour });
+    }
+    return true;
+  },
+  perform(ctx, _a, dt) {
+    gain(ctx.r, 'mood', -6, dt);
+  },
+};
+
+/** Где курить в окно: у окна комнаты с пепельницей на подоконнике (или кухни) */
+function smokeSpot(ctx: AgentCtx): { level: number; x: number } | null {
+  const rooms = ctx.home.rooms.filter((r) => r.def.window);
+  const room = rooms.find((r) => r.furniture.some((f) => f.def.draw === 'ashtray')) ?? rooms.find((r) => r.type === 'kitchen') ?? rooms[0];
+  if (!room) return null;
+  const ash = room.furniture.find((f) => f.def.draw === 'ashtray');
+  return { level: ctx.home.level, x: ash ? Math.round(ash.x + ash.w / 2) : Math.round((room.x0 + room.x1) / 2) };
+}
+
+/** Курит в открытое окно: днём между делами, ночью — когда не спится или после кошмара */
+export const smokeWindow: ActionDef = {
+  id: 'smoke_window',
+  icon: 'dots',
+  plan(ctx) {
+    if (!hasTag(ctx, WINDOW_SMOKER)) return null;
+    const h = ctx.def.habits.find((x) => x.kind === 'smoking')?.strength ?? 0;
+    if (h <= 0) return null;
+    const r = ctx.r;
+    const woke = (r.recent.insomnia !== undefined && ctx.now - r.recent.insomnia < 70 * 60) || (r.recent.nightmare !== undefined && ctx.now - r.recent.nightmare < 40 * 60);
+    if (sleepTime(ctx) && !woke) return null;
+    const spot = smokeSpot(ctx);
+    if (!spot) return null;
+    const night = ctx.cal.hourOfDay >= 22 || ctx.cal.hourOfDay < 6;
+    const since = ctx.now - Math.max(r.recent.smoke_window ?? -1e9, r.recent.smoke ?? -1e9);
+    const crave = Math.min(1.6, since / (2 * 3600)); // давно не курил — тянет
+    // после кошмара — сразу к окну (если с тех пор ещё не курил)
+    const afterNightmare = r.recent.nightmare !== undefined && ctx.now - r.recent.nightmare < 15 * 60 && since > ctx.now - r.recent.nightmare;
+    return {
+      // днём, если погода не совсем дрянь, примерно через раз выходит к подъезду
+      score: (1 + h * 4 + (night ? 2 : 0) + (woke ? 3 : 0)) * crave * (!night && ctx.sim.outdoorAppeal(ctx.def) > 0.2 ? 0.55 : 1) + (afterNightmare ? 14 : 0),
+      target: spot,
+      duration: ctx.sim.rng.int(5, 9) * 60,
+      label: 'курит в окно',
+    };
+  },
+  onArrive(ctx, a) {
+    ctx.r.facing = 1;
+    const c = ctx.cal;
+    if ((c.hourOfDay >= 23 || c.hourOfDay < 5) && !a.data.noted) {
+      const key = `smokewin:${ctx.r.id}:${c.dayIndex}`;
+      if (!ctx.sim.state.flags[key] && ctx.sim.rng.chance(0.35)) {
+        ctx.sim.state.flags[key] = ctx.now;
+        chronicleAt(ctx.sim, ctx.now, 'smoke.window', [ctx.r.id], 1, { hour: c.hour });
+      }
+    }
+    return true;
+  },
+  perform(ctx, _a, dt) {
+    gain(ctx.r, 'mood', 10, dt);
+  },
+};
+
+/** Рыбка в аквариуме: покормить раз в день (одинокий — заодно поговорить с ней) */
+export const feedFish: ActionDef = {
+  id: 'feed_fish',
+  icon: 'food',
+  plan(ctx) {
+    const { def, sim, home } = ctx;
+    if (!def.pets.some((p) => p.species === 'fish') || sleepTime(ctx)) return null;
+    const tank = home.slots.find((s) => s.use.includes('look') && home.rooms[s.roomIndex].furniture.some((f) => f.uid === s.furnitureUid && f.def.draw === 'aquarium'));
+    if (!tank) return null;
+    const h = ctx.cal.hourOfDay;
+    if (!((h >= 6 && h < 10) || (h >= 18 && h < 23))) return null;
+    const last = ctx.r.recent.feed_fish ?? -1e9;
+    if (ctx.now - last < 14 * 3600) return null;
+    const talk = hasTag(ctx, LONELY) && sim.rng.chance(0.4);
+    return {
+      score: 7,
+      target: { level: home.level, x: tank.x, slot: tank.key },
+      duration: (talk ? sim.rng.int(6, 12) : 3) * 60,
+      label: talk ? 'разговаривает с рыбкой' : 'кормит рыбку',
+      data: { talking: talk },
+    };
+  },
+  onArrive(ctx, a) {
+    if (!a.data.talking) return true;
+    const key = `fishtalk:${ctx.r.id}`;
+    if (ctx.now - (ctx.sim.state.flags[key] ?? -1e9) > 5 * 86400) {
+      ctx.sim.state.flags[key] = ctx.now;
+      chronicleAt(ctx.sim, ctx.now, 'fish.talk', [ctx.r.id], 1);
+    }
+    return true;
+  },
+  perform(ctx, a, dt) {
+    gain(ctx.r, 'mood', a.data.talking ? 6 : 3, dt);
+    if (a.data.talking) gain(ctx.r, 'social', 6, dt);
+  },
+};
 
 /** Насыпать корм питомцам */
 export const feedPets: ActionDef = {
@@ -15,7 +145,7 @@ export const feedPets: ActionDef = {
   icon: 'food',
   plan(ctx) {
     const { def, sim, home } = ctx;
-    if (!def.pets.length || sleepTime(ctx)) return null;
+    if (!def.pets.some((p) => p.species !== 'fish') || sleepTime(ctx)) return null;
     const left = sim.state.petFood[home.id] ?? 0;
     if (left > 0.3) return null;
     const h = ctx.cal.hourOfDay;
@@ -68,7 +198,7 @@ export const nightWatch: ActionDef = {
       score: woke ? 12 : 6.5,
       target: spot.target,
       duration: ctx.sim.rng.int(30, 90) * 60,
-      label: onsite ? 'сидит у окошка — не спится' : 'сидит на кухне — не спится',
+      label: onsite ? 'сидит у окошка — не спится' : ctx.home.rooms[spot.slot.roomIndex].type === 'kitchen' ? 'сидит на кухне — не спится' : 'сидит в темноте — не спится',
     };
   },
   onArrive(ctx) {
@@ -77,7 +207,7 @@ export const nightWatch: ActionDef = {
     const key = `insomnia:${ctx.r.id}:${c.dayIndex}`;
     if (!ctx.sim.state.flags[key] && ctx.sim.rng.chance(0.5)) {
       ctx.sim.state.flags[key] = ctx.now;
-      chronicleAt(ctx.sim, ctx.now, 'insomnia', [ctx.r.id], 1, { onsite: ctx.def.occupation.kind === 'onsite' });
+      chronicleAt(ctx.sim, ctx.now, 'insomnia', [ctx.r.id], 1, { onsite: ctx.def.occupation.kind === 'onsite', dark: hasTag(ctx, /не включает свет/i) });
     }
     return true;
   },

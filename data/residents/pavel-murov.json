@@ -1,0 +1,49 @@
+{
+  "id": "pavel-murov",
+  "name": {
+    "first": "Павел", "last": "Муров", "patronymic": "Александрович", "short": "Павел",
+    "cases": { "gen": "Павла", "dat": "Павлу", "acc": "Павла", "ins": "Павлом", "pre": "Павле" }
+  },
+  "gender": "m",
+  "birthday": "1989-08-14",
+  "apartment": "apt-2-left",
+  "occupation": {
+    "kind": "shift", "title": "фрезеровщик", "workplace": "завод, фрезерный станок",
+    "schedule": { "days": [1, 2, 3, 4, 5], "start": "08:00", "end": "17:00" },
+    "commuteMinutes": 35, "commute": "bus"
+  },
+  "traits": {
+    "chronotype": "neutral", "sociability": "homebody", "temper": "even", "outlook": "neutral", "activity": "lazy",
+    "tags": [
+      "никогда не был женат", "живёт один", "холостяк: дома ничего лишнего",
+      "много курит", "курит у подъезда и в окно",
+      "почти не включает свет: днём светло из окна, вечером подсвечивает компьютер",
+      "уже пятый год говорит, что уволится с завода",
+      "ночью всегда в наушниках, иногда с музыкой",
+      "бессонница", "иногда просыпается от кошмаров",
+      "по выходным часто сидит за компьютером", "зашторивает комнату даже днём",
+      "мечтает перестать быть одиноким и найти кого-нибудь"
+    ]
+  },
+  "habits": [
+    { "kind": "smoking", "strength": 0.95, "note": "много курит: у подъезда и в окно, ночью тоже" },
+    { "kind": "tv", "strength": 0.8, "note": "по вечерам ложится в кресло и смотрит сериалы" },
+    { "kind": "computer", "strength": 0.75, "note": "в выходные часто сидит за компьютером" }
+  ],
+  "backstory": "",
+  "appearance": {
+    "skin": "#e6c2a4",
+    "eyes": "#5a3a22",
+    "hair": { "style": "short", "color": "#4a3626" },
+    "height": "tall", "build": "average",
+    "outfit": { "top": "#6e7378", "bottom": "#3a3d44", "shoes": "#5a4636", "style": "casual", "coat": "#1e1e22" },
+    "accessories": ["beard"],
+    "hatColor": "#222226",
+    "street": { "bottom": "#34496b", "shoes": "#2a2a2e", "accessories": ["cap"] }
+  },
+  "pets": [
+    { "species": "fish", "born": 2025, "color": "#e8862e", "pattern": "solid" }
+  ],
+  "contacts": [],
+  "relationships": []
+}

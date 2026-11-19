@@ -3,17 +3,34 @@
   "floor": 2,
   "side": "left",
   "style": "minimal",
-  "description": "Ремонт закончен: стены выровнены и выкрашены в серо-голубой, новый паркет, поставлена сантехника. Мебели пока нет — квартира пустая и ждёт новых хозяев.",
-  "palette": { "wall": "#a9b8c4", "floor": "#b08a62", "wood": "#9a7a5a", "textile": "#7a8a9a", "accent": "#8fb0c8", "metal": "#b8bec4" },
+  "description": "Холостяцкая квартира Павла после ремонта: серо-голубые стены, паркет, почти пусто — только нужное. В комнате кровать, компьютерный стол и аквариум с рыбкой; в зале кресло-реклайнер напротив телевизора; на подоконниках пепельницы. Свет почти не включается.",
+  "palette": { "wall": "#a9b8c4", "floor": "#b08a62", "wood": "#7a6a5a", "textile": "#4a4f58", "accent": "#8fb0c8", "metal": "#8a8e94" },
   "wallpaper": "plain",
   "flooring": "parquet",
   "rooms": [
-    { "type": "bedroom", "name": "спальня", "width": 5, "furniture": [] },
-    { "type": "living", "name": "комната", "width": 5, "furniture": [] },
-    { "type": "kitchen", "name": "кухня", "width": 3, "furniture": [] },
-    { "type": "bathroom", "name": "санузел", "width": 1, "window": false, "wallpaper": "tiles", "wall": "#c8d8e0", "furniture": [
-      { "item": "toilet", "x": 3 }
+    { "type": "bedroom", "name": "комната", "width": 5, "furniture": [
+      { "item": "bed_single", "x": 1 },
+      { "item": "computer_desk", "x": 28 },
+      { "item": "aquarium", "x": 60 }
     ] },
-    { "type": "hall", "name": "прихожая", "width": 2, "window": false, "furniture": [] }
+    { "type": "living", "name": "зал", "width": 4, "furniture": [
+      { "item": "recliner", "x": 6 },
+      { "item": "ashtray", "x": 30 },
+      { "item": "tv_stand", "x": 40, "channel": "series" }
+    ] },
+    { "type": "kitchen", "name": "кухня", "width": 3, "furniture": [
+      { "item": "fridge", "x": 1 },
+      { "item": "stove", "x": 13 },
+      { "item": "kitchen_counter", "x": 27 },
+      { "item": "ashtray", "x": 22 }
+    ] },
+    { "type": "bathroom", "name": "санузел", "width": 2, "window": false, "wallpaper": "tiles", "wall": "#c8d8e0", "furniture": [
+      { "item": "washbasin", "x": 1 },
+      { "item": "toilet", "x": 11 },
+      { "item": "shower", "x": 20 }
+    ] },
+    { "type": "hall", "name": "прихожая", "width": 2, "window": false, "furniture": [
+      { "item": "coat_rack", "x": 10 }
+    ] }
   ]
 }

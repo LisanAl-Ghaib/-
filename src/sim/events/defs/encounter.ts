@@ -136,6 +136,7 @@ export const conciergeRemark: EventDef = {
     else if (h >= 22.5 || h < 5.5) flavor = 'late';
     else if ((w.kind === 'rain' || w.kind === 'snow') && r.action?.target.away !== true) flavor = 'wet';
     else if (w.temp < -5 && r.action?.target.away === true) flavor = 'cold';
+    else if (od.traits.tags.some((t) => /уволит/i.test(t)) && h >= 16.5 && h < 20 && sim.rng.chance(0.35)) flavor = 'quit';
     else if (sim.rng.chance(0.3)) flavor = 'chat';
     adjust(sim, duty, other, 0.8, 3);
     remember(sim, duty, other, 'greet');

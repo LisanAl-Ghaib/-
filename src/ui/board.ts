@@ -29,7 +29,9 @@ export function openBoard(defs: WorldDefs, sim: Simulation): void {
       const people = defs.residents.filter((r) => r.apartment === apt.id);
       const label = apt.level === 0 ? 'Дежурка' : `Кв. ${apt.number}`;
       const right = el('div', {});
-      if (apt.def?.renovation) right.append(el('span', { class: 'muted' }, 'ремонт'));
+      const building = sim.defs.layout.constructionLevel === apt.level && !sim.state.construction?.done;
+      if (building) right.append(el('span', { class: 'muted' }, 'строится'));
+      else if (apt.def?.renovation) right.append(el('span', { class: 'muted' }, 'ремонт'));
       else if (!people.length) right.append(el('span', { class: 'muted' }, 'свободна'));
       for (const p of people) {
         const full = [p.name.last, p.name.first, p.name.patronymic].filter(Boolean).join(' ');
@@ -42,7 +44,9 @@ export function openBoard(defs: WorldDefs, sim: Simulation): void {
         const dogs = pets.filter((x) => x.species === 'dog');
         const list = (arr: typeof pets, one: string, many: string) =>
           arr.length ? `${arr.length === 1 ? one : `${arr.length} ${many}`} (${arr.map((x) => `${x.name ? `${x.name}, ` : ''}${years(year - x.born)}`).join('; ')})` : '';
-        right.append(el('div', { class: 'muted' }, ['и ' + [list(cats, 'кошка', cats.length < 5 ? 'кошки' : 'кошек'), list(dogs, 'собака', dogs.length < 5 ? 'собаки' : 'собак')].filter(Boolean).join(', ')].join('')));
+        const fish = pets.filter((x) => x.species === 'fish');
+        const fishText = fish.length ? (fish.length === 1 ? `рыбка в аквариуме${fish[0].name ? ` (${fish[0].name})` : ''}` : `${fish.length} рыбки в аквариуме`) : '';
+        right.append(el('div', { class: 'muted' }, ['и ' + [list(cats, 'кошка', cats.length < 5 ? 'кошки' : 'кошек'), list(dogs, 'собака', dogs.length < 5 ? 'собаки' : 'собак'), fishText].filter(Boolean).join(', ')].join('')));
       }
       sheet.append(el('div', { class: 'apt' }, el('span', { class: 'no' }, label), right));
     }

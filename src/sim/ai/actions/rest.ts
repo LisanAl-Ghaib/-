@@ -1,5 +1,5 @@
 import { addMoodlet, gain } from '../../needs';
-import { hasTag, INSOMNIA } from './personal';
+import { hasTag, INSOMNIA, NIGHTMARES } from './personal';
 import { gv, homeSlot, minutesToLeave, roomOfType, roomPoint, sleepTime, urgency } from '../helpers';
 import type { ActionDef } from '../types';
 
@@ -35,6 +35,13 @@ export const sleep: ActionDef = {
       a.data.wokeOnce = true;
       a.data.insomnia = true;
     }
+    // кошмар: резко просыпается среди ночи (примерно раз в 5–6 ночей)
+    // (снова уснул после бессонницы — кошмар может прийти и тогда)
+    if (sleepTime(ctx) && !a.data.insomnia && hasTag(ctx, NIGHTMARES) && ctx.now - (ctx.r.recent.nightmareAt ?? -1e9) > 3 * 86400 && ctx.now - a.performStart > 90 * 60 && ctx.sim.rng.chance(dt / (16 * 3600))) {
+      a.data.wokeOnce = true;
+      a.data.insomnia = true;
+      a.data.nightmare = true;
+    }
   },
   shouldEnd(ctx, a) {
     const { r } = ctx;
@@ -53,6 +60,10 @@ export const sleep: ActionDef = {
   onEnd(ctx, a) {
     if (a.data.insomnia) {
       ctx.r.recent.insomnia = ctx.now;
+      // проснулся от кошмара — сядет в кровати (действие nightmare выберется следующим)
+      if (a.data.nightmare) {
+        ctx.r.recent.nightmareAt = ctx.now;
+      }
       return;
     }
     ctx.r.wokeAt = ctx.now;

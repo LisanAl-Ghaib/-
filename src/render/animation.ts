@@ -16,7 +16,7 @@ import { FRAME } from './sprites/character';
  */
 export type PropKind =
   | 'phone' | 'cup' | 'book' | 'remote' | 'fork' | 'pen' | 'knitting' | 'guitar'
-  | 'spoon' | 'rag' | 'can' | 'sponge' | 'paper' | 'hoop' | 'laptop' | 'headset' | 'eguitar';
+  | 'spoon' | 'rag' | 'can' | 'sponge' | 'paper' | 'hoop' | 'laptop' | 'headset' | 'eguitar' | 'cigarette';
 
 export type PropAt = 'hands' | 'ear' | 'mouth' | 'fwd' | 'up' | 'low';
 
@@ -47,6 +47,8 @@ export interface AnimEnv {
   instrument?: 'piano' | 'guitar';
   /** подтягивается на турнике */
   pullup?: boolean;
+  /** развалился в кресле-реклайнере */
+  recline?: boolean;
 }
 
 type Orient = 'front' | 'side' | 'back';
@@ -212,6 +214,17 @@ const STAND: Record<string, Variant[]> = {
   phone: [{ g: 'phoneStand', o: 'front', prop: { kind: 'phone', at: 'ear' } }, { g: 'phoneStand', o: 'side', prop: { kind: 'phone', at: 'ear' } }],
   window: [{ g: 'stand', o: 'back' }, { g: 'stand', o: 'back' }, { g: 'stand', o: 'front' }],
   wave_window: [{ g: 'stand', o: 'side' }, { g: 'stand', o: 'side' }],
+  smoke: [
+    { g: 'phoneStand', o: 'front', prop: { kind: 'cigarette', at: 'ear' }, alt: { g: 'stand', ms: 1800 } },
+    { g: 'stand', o: 'side' },
+    { g: 'stand', o: 'front' },
+  ],
+  smoke_window: [
+    { g: 'stand', o: 'back' },
+    { g: 'stand', o: 'back' },
+    { g: 'phoneStand', o: 'front', prop: { kind: 'cigarette', at: 'ear' }, alt: { g: 'stand', ms: 2200 } },
+  ],
+  feed_fish: [{ g: 'workUp', o: 'side', alt: { g: 'work', ms: 600 } }, { g: 'stand', o: 'side' }, { g: 'talk', o: 'side' }],
   look: [{ g: 'stand', o: 'back' }],
   idle: [{ g: 'stand', o: 'front' }, { g: 'stand', o: 'side' }, { g: 'stand', o: 'back' }],
   'together:help_cook': [
@@ -267,6 +280,12 @@ export function animatePose(r: ResidentState, def: ResidentDef, tGame: number, n
     const dx = (mixHash(seg, h ^ 0x33) % 3) - 1; // поёрзал
     if (id === 'sleep' || id === 'nap') return { frame: SIT_FRAMES[base].slouch!, bob: breathe };
     if (id === 'fitness') return { frame: FRAME.sit, bob: Math.floor(nowMs / 250) % 2 };
+    if (env.recline && (id === 'watch_tv' || id === 'idle' || id === 'eat' || id === 'night_watch' || id === 'read')) {
+      // развалился в реклайнере: откинулся, иногда тянется к пульту или подносит ко рту
+      const k = mixHash(seg, h) % 5;
+      const frame = k === 3 ? FRAME.sitArmUp : k === 4 ? FRAME.sitArm : FRAME.sitLean;
+      return { frame, bob: breathe, facing: env.faceToX !== undefined ? (env.faceToX >= r.x ? 1 : -1) : undefined, prop: id === 'eat' ? { kind: 'fork', at: 'fwd' } : k === 4 ? { kind: 'remote', at: 'hands' } : undefined };
+    }
     if (id === 'music' && env.instrument === 'piano') {
       // за пианино — спиной, руки бегают по клавишам, иногда замирает
       const pause = micro === 3 || micro === 4;
