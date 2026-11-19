@@ -1,0 +1,149 @@
+{
+ "id": "marina-sokol",
+ "name": {
+  "first": "Марина",
+  "last": "Сокол",
+  "short": "Марина",
+  "kids": "тётя Марина",
+  "cases": {
+   "gen": "Марины",
+   "dat": "Марине",
+   "acc": "Марину",
+   "ins": "Мариной",
+   "pre": "Марине"
+  }
+ },
+ "gender": "f",
+ "birthday": "1997-04-09",
+ "apartment": "apt-3-left",
+ "occupation": {
+  "kind": "shift",
+  "title": "медсестра",
+  "workplace": "городская больница, хирургия",
+  "schedule": {
+   "days": [
+    1,
+    2,
+    4,
+    5
+   ],
+   "start": "08:00",
+   "end": "20:00"
+  },
+  "commuteMinutes": 40,
+  "commute": "bus"
+ },
+ "traits": {
+  "chronotype": "lark",
+  "sociability": "balanced",
+  "temper": "calm",
+  "outlook": "cheerful",
+  "activity": "normal",
+  "tags": [
+   "после смены валится с ног",
+   "пьёт чай литрами",
+   "рад помочь",
+   "здоровый"
+  ]
+ },
+ "habits": [
+  {
+   "kind": "phone",
+   "strength": 0.7,
+   "note": "после смены звонит маме"
+  },
+  {
+   "kind": "tv",
+   "strength": 0.5,
+   "note": "засыпает под сериал"
+  },
+  {
+   "kind": "plants",
+   "strength": 0.4,
+   "note": "привезла свой фикус"
+  }
+ ],
+ "sayings": [
+  "Ничего, прорвёмся",
+  "Давление мерили?"
+ ],
+ "appearance": {
+  "skin": "#f0d0b8",
+  "eyes": "#6a8a5a",
+  "hair": {
+   "style": "ponytail",
+   "color": "#8a5a32"
+  },
+  "height": "average",
+  "build": "slim",
+  "outfit": {
+   "top": "#9ab8c8",
+   "bottom": "#4a5060",
+   "shoes": "#e8e8e8",
+   "style": "casual",
+   "coat": "#5a6e8a"
+  },
+  "accessories": [
+   "earrings"
+  ],
+  "scarfColor": "#c87a8a"
+ },
+ "pets": [
+  {
+   "species": "cat",
+   "born": 2022,
+   "color": "#2a2a2a",
+   "pattern": "tuxedo",
+   "color2": "#f0f0f0",
+   "name": "Бусинка",
+   "gender": "f",
+   "tags": [
+    "ласковая"
+   ]
+  }
+ ],
+ "contacts": [
+  {
+   "kind": "parent",
+   "gender": "f",
+   "age": 56,
+   "name": "мама",
+   "phone": true,
+   "callEveryDays": 3,
+   "topics": [
+    "как прошла смена",
+    "давление и погоду",
+    "когда приедет домой"
+   ]
+  }
+ ],
+ "relationships": [],
+ "lease": {
+  "minDays": 10,
+  "maxDays": 32
+ },
+ "belongings": [
+  {
+   "room": 0,
+   "item": "plant_big",
+   "x": 62
+  },
+  {
+   "room": 0,
+   "item": "cat_bed",
+   "x": 63
+  },
+  {
+   "room": 3,
+   "item": "cat_bowls",
+   "x": 21
+  },
+  {
+   "room": 1,
+   "item": "tea_set",
+   "x": 56,
+   "elevation": 10
+  }
+ ],
+ "backstory": ""
+}

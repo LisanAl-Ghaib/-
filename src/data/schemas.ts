@@ -120,6 +120,8 @@ export const FurniturePlacementSchema = z.object({
   elevation: z.number().int().min(0).max(48).optional(),
   /** чья вещь: остальные жильцы её место не занимают («Ванин компьютер») */
   owner: z.string().optional(),
+  /** вещь арендатора (из его belongings): стоит в квартире, только пока он тут живёт */
+  tenant: z.string().optional(),
 });
 
 export const RoomSchema = z.object({
@@ -142,6 +144,8 @@ export const ApartmentSchema = z.object({
   side: z.enum(['left', 'right']),
   /** в квартире идёт ремонт (жить нельзя, днём работают мастера) */
   renovation: z.boolean().default(false),
+  /** сдаётся: в ней по очереди живут арендаторы из data/tenants/ (меняются сами) */
+  rental: z.boolean().default(false),
   /** что стоит на балконе (балкон есть у всех квартир выше первого этажа) */
   balcony: z
     .object({
@@ -439,6 +443,22 @@ export const ResidentSchema = z.object({
   pets: z.array(PetSchema).default([]),
   /** родня и друзья вне дома */
   contacts: z.array(ContactSchema).default([]),
+  /** арендатор (data/tenants/): сколько игровых дней может прожить (сколько именно — решает жизнь) */
+  lease: z.object({ minDays: z.number().min(1), maxDays: z.number().min(1) }).optional(),
+  /** арендатор: свои вещи, которые он привозит в съёмную квартиру (и увозит) */
+  belongings: z
+    .array(
+      z.object({
+        /** номер комнаты квартиры (слева направо, с 0) */
+        room: z.number().int().min(0),
+        item: z.string(),
+        x: z.number().int().min(0),
+        elevation: z.number().int().min(0).max(48).optional(),
+        flip: z.boolean().default(false),
+        color: hexColor.optional(),
+      }),
+    )
+    .default([]),
 });
 export type ResidentDef = z.infer<typeof ResidentSchema>;
 export type ResidentInput = z.input<typeof ResidentSchema>;

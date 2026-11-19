@@ -18,6 +18,8 @@ export interface SlotInstance {
   roomIndex: number;
   /** чья вещь (остальные не садятся) */
   owner?: string;
+  /** вещь арендатора: есть, только пока он тут живёт */
+  tenant?: string;
 }
 
 export interface FurnitureInstance {
@@ -37,6 +39,8 @@ export interface FurnitureInstance {
   alwaysOn?: boolean;
   channel?: string;
   owner?: string;
+  /** вещь арендатора: есть, только пока он тут живёт */
+  tenant?: string;
 }
 
 export interface RoomModel {
@@ -46,12 +50,17 @@ export interface RoomModel {
   x0: number;
   x1: number;
   def: RoomDef;
+  /** что сейчас стоит в комнате (вещи уехавших арендаторов убраны) */
   furniture: FurnitureInstance[];
+  /** всё, что может тут стоять, включая вещи всех арендаторов */
+  allFurniture: FurnitureInstance[];
 }
 
 export interface ApartmentModel {
   id: string;
   def: ApartmentDef | null; // null — пустая квартира
+  /** все слоты, включая вещи арендаторов, которых сейчас нет (slots — только то, что стоит) */
+  allSlots: SlotInstance[];
   level: number;
   side: 'left' | 'right';
   number: number;
@@ -220,6 +229,7 @@ export class BuildingLayout {
       landingX: side === 'left' ? x1 + 6 : x0 - 6,
       rooms: [],
       slots: [],
+      allSlots: [],
       vacant: !def,
       balcony:
         level === 0
@@ -245,6 +255,7 @@ export class BuildingLayout {
         x1: rx1,
         def: rd,
         furniture: [],
+        allFurniture: [],
       };
       rd.furniture.forEach((fp, fi) => {
         const fd = catalog.get(fp.item);
@@ -265,6 +276,7 @@ export class BuildingLayout {
           alwaysOn: fp.alwaysOn,
           channel: fp.channel,
           owner: fp.owner,
+          tenant: fp.tenant,
         };
         fd.slots.forEach((s, si) => {
           const sx = fp.flip ? fx + fd.w - s.dx : fx + s.dx;
@@ -280,15 +292,34 @@ export class BuildingLayout {
             aptId: id,
             roomIndex: index,
             owner: fp.owner,
+            tenant: fp.tenant,
           };
           inst.slots.push(slot);
           apt.slots.push(slot);
         });
         room.furniture.push(inst);
       });
+      room.allFurniture = room.furniture.slice();
       apt.rooms.push(room);
     });
+    apt.allSlots = apt.slots.slice();
+    // вещи арендаторов появятся, когда хозяин въедет
+    apt.slots = apt.slots.filter((sl) => !sl.tenant);
+    for (const room of apt.rooms) room.furniture = room.furniture.filter((f) => !f.tenant);
     return apt;
+  }
+
+  /** какие арендаторы сейчас живут (для отрисовки: смена — перерисовать дом) */
+  presenceKey = '';
+
+  /** Въехал/съехал арендатор: его вещи появляются в квартире или исчезают вместе с ним */
+  setTenantsPresent(ids: Iterable<string>): void {
+    const present = new Set(ids);
+    this.presenceKey = [...present].sort().join(',');
+    for (const apt of this.apartments) {
+      apt.slots = apt.allSlots.filter((sl) => !sl.tenant || present.has(sl.tenant));
+      for (const room of apt.rooms) room.furniture = room.allFurniture.filter((f) => !f.tenant || present.has(f.tenant));
+    }
   }
 
   roomAt(apt: ApartmentModel, x: number): RoomModel {

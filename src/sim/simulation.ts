@@ -31,6 +31,7 @@ import { updateCircles } from './circle';
 import { syncConstruction, syncWorkers, updateWorkers } from './workers';
 import { joinCooking, planTogether, updateFarewells } from './couple';
 import { updateDressing } from './dressing';
+import { syncTenants, updateTenants } from './tenants';
 
 export type SimEvent =
   | { type: 'action.start'; t: number; residentId: string; actionId: string; label: string }
@@ -59,7 +60,7 @@ export class Simulation {
     this.state = state;
     // Rng работает прямо с массивом в состоянии → сохраняется вместе с миром
     this.rng = new Rng(state.rng);
-    for (const apt of defs.layout.apartments) for (const s of apt.slots) this.slotIndex.set(s.key, s);
+    for (const apt of defs.layout.apartments) for (const s of apt.allSlots) this.slotIndex.set(s.key, s);
     const fresh = state.time === 0 && state.chronicle.length === 0;
     state.weather ??= createWeather(this.calendar(), this.rng, state.time);
     state.yard ??= { snowman: null };
@@ -72,9 +73,10 @@ export class Simulation {
       r.needs.bladder ??= 70;
       r.dressed ??= false;
     }
+    // арендаторы съёмных квартир: в defs — только тот, кто сейчас живёт
+    syncTenants(this);
     this.syncResidents();
-    STOICS.clear();
-    for (const d of defs.residents) if (d.traits.tags.some((t) => /стоик|стоиц/i.test(t))) STOICS.add(d.id);
+    this.refreshTraits();
     initRelations(this);
     if (fresh) chronicle(this, 'world.start', [], 3);
     this.bus.on('cooked', (e) => this.onCooked(e.residentId, e.baking, e.dish));
@@ -176,6 +178,12 @@ export class Simulation {
     if (r.action) endAction(ctx, true);
     startAction(ctx, def, plan);
     if (plan.data?.keepY) r.path = [];
+  }
+
+  /** Кто в доме стоик (жильцы меняются: въезжают и съезжают арендаторы) */
+  refreshTraits(): void {
+    STOICS.clear();
+    for (const d of this.defs.residents) if (d.traits.tags.some((t) => /стоик|стоиц/i.test(t))) STOICS.add(d.id);
   }
 
   /** Добавляет новых жильцов из данных и убирает тех, кого больше нет. */
@@ -396,6 +404,8 @@ export class Simulation {
       updateDressing(this, r);
       updateAgent(ctx, DT);
       // пришёл домой с пакетами — поставил в прихожей
+      // въехал с чемоданом — поставил дома
+      if (r.carrying === 'suitcase' && r.action?.id !== 'move_out' && !r.away && r.level === ctx.home.level && r.x >= ctx.home.x0 && r.x < ctx.home.x1) r.carrying = null;
       if (r.carrying === 'bags' && !r.away && r.level === ctx.home.level && r.x >= ctx.home.x0 && r.x < ctx.home.x1) {
         r.carrying = null;
         this.aptState(ctx.home.id).bags = 2;
@@ -406,6 +416,7 @@ export class Simulation {
       if (r.gesture && r.gesture.until <= s.time) r.gesture = null;
     }
     updateInteractions(this, DT);
+    updateTenants(this);
     updatePets(this, DT);
     updateCircles(this);
     updateVisitors(this, DT);

@@ -89,7 +89,7 @@ export const apologyIntent: EventDef = {
     const def = sim.defs.residentById.get(who!)!;
     const r = sim.state.residents[who!];
     for (const [other, re] of Object.entries(sim.state.relations[who!] ?? {})) {
-      if (!re.conflict) continue;
+      if (!re.conflict || !sim.defs.residentById.has(other)) continue;
       const days = (sim.time - re.conflict.since) / 86400;
       const temper = { calm: 0.2, even: 0.05, hot: -0.05 }[def.traits.temper];
       const outlook = { cheerful: 0.1, neutral: 0, gloomy: -0.08 }[def.traits.outlook];

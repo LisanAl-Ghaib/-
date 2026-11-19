@@ -418,6 +418,7 @@ export const LIBRARY: Record<string, ActivityAnim> = {
   go_out: { stand: stand('уходит по делам', STAND_IDLE) },
   go_to_work: { stand: stand('уходит на работу', STAND_IDLE) },
   shopping: { stand: stand('в магазине / с пакетами', STAND_IDLE) },
+  move_out: { stand: stand('съезжает: уходит с чемоданом', STAND_IDLE) },
   snowman: { stand: stand('лепит снеговика: наклоняется, катает ком', [{ g: 'work', o: 'side', alt: { g: 'workUp', ms: 600 } }, { g: 'work', o: 'front' }]) },
 
   // ─── вдвоём

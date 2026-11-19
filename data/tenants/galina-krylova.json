@@ -1,0 +1,142 @@
+{
+ "id": "galina-krylova",
+ "name": {
+  "first": "Галина",
+  "last": "Крылова",
+  "patronymic": "Петровна",
+  "short": "Галина Петровна",
+  "kids": "баба Галя",
+  "cases": {
+   "gen": "Галины Петровны",
+   "dat": "Галине Петровне",
+   "acc": "Галину Петровну",
+   "ins": "Галиной Петровной",
+   "pre": "Галине Петровне"
+  }
+ },
+ "gender": "f",
+ "birthday": "1959-10-02",
+ "apartment": "apt-3-left",
+ "occupation": {
+  "kind": "retired",
+  "title": "пенсионерка, бывший бухгалтер",
+  "workplace": ""
+ },
+ "traits": {
+  "chronotype": "lark",
+  "sociability": "outgoing",
+  "temper": "even",
+  "outlook": "neutral",
+  "activity": "normal",
+  "tags": [
+   "знает всех жильцов",
+   "угощает детей конфетами",
+   "аккуратная",
+   "к политике сдержан"
+  ],
+  "sleep": {
+   "wake": "06:00",
+   "bed": "22:00"
+  }
+ },
+ "habits": [
+  {
+   "kind": "crafts",
+   "strength": 0.8,
+   "note": "вяжет носки внукам"
+  },
+  {
+   "kind": "bench",
+   "strength": 0.7,
+   "note": "сидит на лавочке у подъезда"
+  },
+  {
+   "kind": "cooking",
+   "strength": 0.6,
+   "note": "печёт пирожки"
+  },
+  {
+   "kind": "phone",
+   "strength": 0.6,
+   "note": "звонит дочери"
+  }
+ ],
+ "sayings": [
+  "Ой, да что вы",
+  "В наше время такого не было"
+ ],
+ "outings": [
+  "в поликлинику",
+  "на рынок"
+ ],
+ "appearance": {
+  "skin": "#ecc8b0",
+  "eyes": "#6a6a7a",
+  "hair": {
+   "style": "bun",
+   "color": "#c8c4c0"
+  },
+  "height": "short",
+  "build": "heavy",
+  "outfit": {
+   "top": "#8a5a6a",
+   "bottom": "#4a4a52",
+   "shoes": "#3a2e28",
+   "style": "dress",
+   "coat": "#6a4a3a"
+  },
+  "accessories": [
+   "glasses",
+   "shawl"
+  ],
+  "hatColor": "#7a4a5a"
+ },
+ "pets": [],
+ "contacts": [
+  {
+   "kind": "child",
+   "gender": "f",
+   "age": 40,
+   "name": "Лена",
+   "phone": true,
+   "callEveryDays": 2,
+   "visitEveryDays": 9,
+   "stay": "short",
+   "topics": [
+    "внуков",
+    "ремонт у Лены",
+    "цены в аптеке"
+   ]
+  }
+ ],
+ "relationships": [],
+ "lease": {
+  "minDays": 14,
+  "maxDays": 45
+ },
+ "belongings": [
+  {
+   "room": 0,
+   "item": "embroidery_basket",
+   "x": 61
+  },
+  {
+   "room": 0,
+   "item": "family_photos",
+   "x": 56,
+   "elevation": 36
+  },
+  {
+   "room": 1,
+   "item": "radio",
+   "x": 3,
+   "elevation": 27
+  },
+  {
+   "room": 0,
+   "item": "plant",
+   "x": 66
+  }
+ ],
+ "backstory": ""
+}

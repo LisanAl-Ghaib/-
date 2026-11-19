@@ -1,0 +1,129 @@
+{
+ "id": "artem-belov",
+ "name": {
+  "first": "Артём",
+  "last": "Белов",
+  "patronymic": "Игоревич",
+  "short": "Артём",
+  "kids": "дядя Артём",
+  "cases": {
+   "gen": "Артёма",
+   "dat": "Артёму",
+   "acc": "Артёма",
+   "ins": "Артёмом",
+   "pre": "Артёме"
+  }
+ },
+ "gender": "m",
+ "birthday": "1988-06-17",
+ "apartment": "apt-3-left",
+ "occupation": {
+  "kind": "office",
+  "title": "инженер-наладчик в командировке",
+  "workplace": "завод на окраине, пусконаладка",
+  "schedule": {
+   "days": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "start": "08:30",
+   "end": "18:30"
+  },
+  "commuteMinutes": 45,
+  "commute": "bus"
+ },
+ "traits": {
+  "chronotype": "neutral",
+  "sociability": "balanced",
+  "temper": "even",
+  "outlook": "neutral",
+  "activity": "active",
+  "tags": [
+   "вечно на чемоданах",
+   "любит кофе по утрам",
+   "немногословный",
+   "любит спорт"
+  ]
+ },
+ "habits": [
+  {
+   "kind": "jogging",
+   "strength": 0.6,
+   "note": "по утрам бегает вокруг двора"
+  },
+  {
+   "kind": "phone",
+   "strength": 0.6,
+   "note": "вечером созванивается с женой"
+  },
+  {
+   "kind": "tv",
+   "strength": 0.4,
+   "note": "новости"
+  }
+ ],
+ "sayings": [
+  "Принято",
+  "Разберёмся на месте"
+ ],
+ "appearance": {
+  "skin": "#e8c4a6",
+  "eyes": "#4a6a8a",
+  "hair": {
+   "style": "short",
+   "color": "#5a4a3a"
+  },
+  "height": "tall",
+  "build": "average",
+  "outfit": {
+   "top": "#e8e8ec",
+   "bottom": "#3a3e4a",
+   "shoes": "#2a2420",
+   "style": "formal",
+   "coat": "#2a2e38",
+   "tie": "#4a5a7a"
+  },
+  "accessories": [
+   "gray_temples"
+  ]
+ },
+ "pets": [],
+ "contacts": [
+  {
+   "kind": "relative",
+   "gender": "f",
+   "age": 35,
+   "name": "Оксана, жена",
+   "phone": true,
+   "callEveryDays": 1,
+   "topics": [
+    "когда закончится командировка",
+    "сына и школу",
+    "как там на объекте"
+   ]
+  }
+ ],
+ "relationships": [],
+ "lease": {
+  "minDays": 3,
+  "maxDays": 10
+ },
+ "belongings": [
+  {
+   "room": 1,
+   "item": "laptop",
+   "x": 58,
+   "elevation": 10
+  },
+  {
+   "room": 3,
+   "item": "umbrella_stand",
+   "x": 24
+  }
+ ],
+ "backstory": ""
+}

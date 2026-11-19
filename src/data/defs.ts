@@ -16,6 +16,8 @@ export interface RawData {
   world: unknown;
   catalog: unknown;
   residents: RawFile[];
+  /** арендаторы съёмных квартир (data/tenants/): живут по очереди, меняются сами */
+  tenants?: RawFile[];
   apartments: RawFile[];
 }
 
@@ -24,8 +26,11 @@ export interface WorldDefs {
   epochMs: number;
   catalog: Map<string, FurnitureDef>;
   apartments: ApartmentDef[];
+  /** кто сейчас живёт в доме (постоянные жильцы + нынешние арендаторы; арендаторов добавляет/убирает sim/tenants.ts) */
   residents: ResidentDef[];
   residentById: Map<string, ResidentDef>;
+  /** все арендаторы из data/tenants/ (и те, кто сейчас не живёт) */
+  tenants: ResidentDef[];
   layout: BuildingLayout;
   dataHash: string;
 }
@@ -88,10 +93,43 @@ export function buildDefs(raw: RawData): BuildResult {
     residents.push(r.data);
   }
 
+  const tenants: ResidentDef[] = [];
+  for (const f of raw.tenants ?? []) {
+    const r = ResidentSchema.safeParse(f.data);
+    if (!r.success) {
+      errors.push(...fmtZod(`data/tenants/${f.file}.json`, r.error));
+      continue;
+    }
+    if (r.data.id !== f.file) errors.push(`data/tenants/${f.file}.json: id "${r.data.id}" не совпадает с именем файла`);
+    tenants.push(r.data);
+  }
+
   if (!worldR.success || !catR.success) return { errors, warnings };
   const config = worldR.data;
   const catalog = new Map(catR.data.items.map((i) => [i.id, i]));
   if (catalog.size !== catR.data.items.length) errors.push('furniture.json: повторяющиеся id');
+
+  // ── арендаторы: только в сдаваемых квартирах; их вещи — в квартиру (видны, пока хозяин живёт)
+  for (const t of tenants) {
+    const apt = apartments.find((a) => a.id === t.apartment);
+    if (!apt) {
+      errors.push(`арендатор ${t.id}: квартира "${t.apartment}" не описана в data/apartments/`);
+      continue;
+    }
+    if (!apt.rental) errors.push(`арендатор ${t.id}: квартира ${apt.id} не сдаётся (нет "rental": true)`);
+    if (residents.some((r) => r.id === t.id)) errors.push(`${t.id}: и постоянный жилец, и арендатор`);
+    if (t.lease && t.lease.maxDays < t.lease.minDays) errors.push(`арендатор ${t.id}: lease.maxDays меньше minDays`);
+    for (const b of t.belongings) {
+      const room = apt.rooms[b.room];
+      if (!room) {
+        errors.push(`арендатор ${t.id}: в ${apt.id} нет комнаты ${b.room}`);
+        continue;
+      }
+      room.furniture.push({ item: b.item, x: b.x, elevation: b.elevation, flip: b.flip, color: b.color, owner: t.id, tenant: t.id });
+    }
+  }
+  for (const r of residents)
+    if (apartments.find((a) => a.id === r.apartment)?.rental) errors.push(`${r.id}: квартира ${r.apartment} сдаётся — жильцов туда описывают в data/tenants/`);
 
   // ── квартиры
   const aptIds = new Set<string>();
@@ -155,7 +193,7 @@ export function buildDefs(raw: RawData): BuildResult {
 
   // ── квартира vs жильцы
   for (const a of apartments) {
-    const people = residents.filter((r) => r.apartment === a.id);
+    const people = [...residents, ...tenants].filter((r) => r.apartment === a.id);
     if (a.entranceWindow && a.side !== 'right') warnings.push(`${a.id}: окно над входом бывает только у правых квартир (вход в подъезд справа)`);
     for (const room of a.rooms)
       for (const fp of room.furniture)
@@ -164,10 +202,10 @@ export function buildDefs(raw: RawData): BuildResult {
       room.furniture.flatMap((fp) => catalog.get(fp.item)?.slots ?? []),
     );
     const has = (u: string) => slots.filter((s) => s.use.includes(u as never)).length;
-    if (people.length === 0 && !a.renovation) warnings.push(`${a.id}: квартира пустая — ждёт жильца (опиши его, и квартиру обставим под него)`);
+    if (people.length === 0 && !a.renovation && !a.rental) warnings.push(`${a.id}: квартира пустая — ждёт жильца (опиши его, и квартиру обставим под него)`);
     if (people.length > 0 && a.renovation) errors.push(`${a.id}: в квартире идёт ремонт — заселить нельзя (renovation: true)`);
-    if (people.length > 0) {
-      if (has('sleep') < people.length) warnings.push(`${a.id}: спальных мест ${has('sleep')}, жильцов ${people.length}`);
+    if (people.length > 0 || a.rental) {
+      if (has('sleep') < (a.rental ? 1 : people.length)) warnings.push(`${a.id}: спальных мест ${has('sleep')}, жильцов ${people.length}`);
       if (!has('cook')) warnings.push(`${a.id}: нет плиты (cook)`);
       if (!has('fridge')) warnings.push(`${a.id}: нет холодильника (fridge)`);
       if (!has('toilet')) warnings.push(`${a.id}: нет туалета (toilet)`);
@@ -179,7 +217,7 @@ export function buildDefs(raw: RawData): BuildResult {
 
   const layout = new BuildingLayout(config, apartments, catalog);
   const dataHash = hashString(
-    JSON.stringify([raw.world, raw.catalog, raw.residents.map((r) => r.data), raw.apartments.map((a) => a.data)]),
+    JSON.stringify([raw.world, raw.catalog, raw.residents.map((r) => r.data), raw.apartments.map((a) => a.data), (raw.tenants ?? []).map((t) => t.data)]),
   ).toString(36);
 
   return {
@@ -192,6 +230,7 @@ export function buildDefs(raw: RawData): BuildResult {
       apartments,
       residents,
       residentById,
+      tenants,
       layout,
       dataHash,
     },

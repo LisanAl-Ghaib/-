@@ -135,6 +135,7 @@ export class Renderer {
   rebuildStatic(): void {
     const con = this.conView();
     this.conKey = con ? Math.floor(con.progress * 100) : -1;
+    this.presenceKey = this.defs.layout.presenceKey;
     this.layers = renderBuilding(this.defs, this.sprites, con);
   }
 
@@ -145,6 +146,8 @@ export class Renderer {
   }
 
   private conKey = -1;
+  /** какие арендаторы живут (въехал/съехал — его вещи появились/исчезли) */
+  private presenceKey = '';
 
   /**
    * Над головой жильца — в CSS-пикселях относительно холста (для облачков с репликами).
@@ -223,7 +226,7 @@ export class Renderer {
     if (!this.layers) return;
     // стройка продвинулась на процент (или закончилась) — перерисовать дом
     const con = this.conView();
-    if ((con ? Math.floor(con.progress * 100) : -1) !== this.conKey) this.rebuildStatic();
+    if ((con ? Math.floor(con.progress * 100) : -1) !== this.conKey || this.defs.layout.presenceKey !== this.presenceKey) this.rebuildStatic();
     const { wg, defs, sim } = this;
     const L = defs.layout;
     const cal = sim.calendar();
@@ -605,6 +608,7 @@ export class Renderer {
     this.screenDraws = [];
     this.tanks = [];
     this.drawAmbient(nowMs);
+    this.drawRentSigns();
     this.drawCurtainsAndSmoke(nowMs);
     // «вечно включённые» экраны: работают, пока хозяин дома и не спит
     for (const apt of L.apartments) {
@@ -945,6 +949,28 @@ export class Renderer {
   }
 
   /** Вещи, которые живут сами: часы идут, радио играет, обогреватель щёлкает */
+  /** Съёмная квартира пустует: в окне листок «Сдаётся» с телефоном */
+  private drawRentSigns() {
+    const L = this.defs.layout;
+    const g = this.wg;
+    for (const [aptId, ten] of Object.entries(this.sim.state.tenancy ?? {})) {
+      if (ten.current) continue;
+      const apt = L.aptById.get(aptId);
+      if (!apt) continue;
+      const room = apt.rooms.find((r) => r.def.window && r.type !== 'kitchen') ?? apt.rooms.find((r) => r.def.window);
+      const wr = room && windowRect(room, L.levelTop(apt.level));
+      if (!wr) continue;
+      const [wx, wy, ww] = wr;
+      const x = wx + Math.round(ww / 2) - 4;
+      const y = wy + 6;
+      rect(g, x, y, 9, 7, '#f6f3ea');
+      rect(g, x, y + 7, 9, 1, '#c9c3b4');
+      rect(g, x + 1, y + 1, 7, 1, '#c8402e'); // «СДАЁТСЯ»
+      rect(g, x + 1, y + 3, 5, 1, '#5a5a5a'); // телефон
+      rect(g, x + 1, y + 5, 6, 1, '#5a5a5a');
+    }
+  }
+
   private drawAmbient(nowMs: number) {
     const g = this.wg;
     const cal = this.sim.calendar();
@@ -1153,7 +1179,7 @@ export class Renderer {
   private furniture(uid: string): FurnitureInstance | undefined {
     if (!this.furnByUid) {
       this.furnByUid = new Map();
-      for (const apt of this.defs.layout.apartments) for (const room of apt.rooms) for (const f of room.furniture) this.furnByUid.set(f.uid, f);
+      for (const apt of this.defs.layout.apartments) for (const room of apt.rooms) for (const f of room.allFurniture) this.furnByUid.set(f.uid, f);
     }
     return this.furnByUid.get(uid);
   }

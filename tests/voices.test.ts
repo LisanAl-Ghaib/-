@@ -40,7 +40,7 @@ describe('голоса жильцов (локальная нейросеть)', 
     const v = new Voices(sim, fakeLmStudio(calls), () => 1e9);
     await v.tick();
     expect(v.status()?.model).toBe('gemma-3-27b'); // эмбеддинги пропущены
-    for (let i = 0; i < (2 * 86400) / 10 && sim.state.chronicle.filter((e) => e.data.voice).length < 2; i++) {
+    for (let i = 0; i < (2 * 86400) / 10 && sim.state.chronicle.filter((e) => e.data.voice && e.actors.length === 2).length < 1; i++) {
       sim.step();
       if (i % 30 === 0) {
         await v.tick();
@@ -49,7 +49,8 @@ describe('голоса жильцов (локальная нейросеть)', 
     }
     await flush();
     expect(calls.length).toBeGreaterThan(0);
-    const voiced = sim.state.chronicle.filter((e) => typeof e.data.voice === 'string');
+    // разговор двоих (звонок по телефону — одна сторона)
+    const voiced = sim.state.chronicle.filter((e) => typeof e.data.voice === 'string' && e.actors.length === 2);
     expect(voiced.length).toBeGreaterThan(0);
     const [a] = voiced[0].actors;
     expect(String(voiced[0].data.voice)).toMatch(/: Доброе утро!\n.*: И вам\. Как спалось\?/);

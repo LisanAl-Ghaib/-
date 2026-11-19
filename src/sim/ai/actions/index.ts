@@ -10,6 +10,7 @@ import { chat, guest, host, visit } from './social';
 import { familyVisit, feedFish, feedPets, nightmare, nightWatch, smokeWindow } from './personal';
 import { goToWork, sideWork, workFromHome } from './work';
 import { together, waveWindow } from '../../couple';
+import { moveOut } from '../../tenants';
 
 /**
  * Реестр действий. Чтобы добавить действие — создай ActionDef и допиши сюда.
@@ -38,4 +39,6 @@ export const ACTIONS: readonly ActionDef[] = [
   feedPets, familyVisit, nightWatch, nightmare, smokeWindow, feedFish,
   // вдвоём (пара)
   together, waveWindow,
+  // арендатор съезжает (только принудительно)
+  moveOut,
 ];

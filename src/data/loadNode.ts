@@ -28,6 +28,7 @@ export function loadRawDataNode(root = resolve(process.cwd(), 'data'), catalogRo
     world: JSON.parse(readFileSync(join(root, 'world.json'), 'utf8')),
     catalog: JSON.parse(readFileSync(join(catalogRoot, 'catalog', 'furniture.json'), 'utf8')),
     residents: readDir(join(root, 'residents')),
+    tenants: readDir(join(root, 'tenants')),
     apartments: readDir(join(root, 'apartments')),
   };
 }

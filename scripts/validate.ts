@@ -21,6 +21,7 @@ const label = (id: string) => {
   const def = defs.apartments.find((a) => a.id === id);
   if (people.length) return people.join(', ');
   if (def?.renovation) return '(ремонт)';
+  if (def?.rental) return '(сдаётся: арендаторы меняются сами)';
   if (!def && defs.layout.constructionLevel !== null && !defs.config.building.construction?.finished && id.startsWith(`apt-${defs.layout.constructionLevel + 1}-`)) return '(строится)';
   return def ? '(после ремонта, пустует)' : '— свободна —';
 };

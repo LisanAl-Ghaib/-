@@ -41,7 +41,7 @@ export function lampsOf(defs: WorldDefs): Lamp[] {
   out = [];
   for (const apt of defs.layout.apartments) {
     for (const room of apt.rooms) {
-      for (const f of room.furniture) {
+      for (const f of room.allFurniture) {
         const h = HEAD[f.def.draw];
         if (!h) continue;
         const lx = h.dx(f.w);
@@ -73,13 +73,13 @@ function dimHome(sim: Simulation, apt: ApartmentModel): boolean {
 
 /** Есть ли лампа рядом с этим местом */
 export function lampNear(defs: WorldDefs, apt: ApartmentModel, roomIndex: number, x: number): Lamp | null {
-  for (const l of lampsOf(defs)) if (l.apt === apt && l.room.index === roomIndex && Math.abs(l.x - x) <= l.reach) return l;
+  for (const l of lampsOf(defs)) if (l.apt === apt && l.room.index === roomIndex && Math.abs(l.x - x) <= l.reach && l.room.furniture.includes(l.f)) return l;
   return null;
 }
 
 /** Горит ли лампа (dark — уже стемнело для комнат) */
 export function lampOn(sim: Simulation, l: Lamp, dark: boolean): boolean {
-  if (!dark || l.apt.vacant) return false;
+  if (!dark || l.apt.vacant || !l.room.furniture.includes(l.f)) return false;
   const people = residentsIn(sim, l.apt, l.room).filter((r) => !asleep(r) && r.action?.phase === 'perform' && Math.abs(r.x - l.x) <= l.reach && UNDER_LAMP.has(r.action.id));
   if (!people.length) return false;
   if (dimHome(sim, l.apt)) {

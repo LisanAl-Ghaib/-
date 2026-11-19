@@ -1,0 +1,153 @@
+{
+ "id": "apt-3-left",
+ "floor": 3,
+ "side": "left",
+ "rental": true,
+ "style": "retro",
+ "description": "Съёмная квартира: хозяйка сдаёт её с мебелью. Обои в мелкий цветочек, линолеум, старый шифоньер и кресло, телевизор на тумбе, картина с берёзками над кроватью. Кухня крашеная, с потёртой плитой и столиком на двоих. Всё чужое и немного казённое — каждый, кто снимает, привозит что-то своё и увозит с собой.",
+ "palette": {
+  "wall": "#d6cbb2",
+  "floor": "#9c8466",
+  "wood": "#86684a",
+  "textile": "#7c8a6c",
+  "accent": "#b8986a",
+  "metal": "#9a9a96",
+  "light": "#ffd98a"
+ },
+ "wallpaper": "flowers",
+ "flooring": "linoleum",
+ "creaky": false,
+ "balcony": {
+  "items": [
+   "boxes"
+  ]
+ },
+ "rooms": [
+  {
+   "type": "bedroom",
+   "name": "комната",
+   "width": 7,
+   "furniture": [
+    {
+     "item": "bed_single",
+     "x": 1
+    },
+    {
+     "item": "picture",
+     "x": 7,
+     "elevation": 27
+    },
+    {
+     "item": "nightstand",
+     "x": 26
+    },
+    {
+     "item": "table_lamp",
+     "x": 27,
+     "elevation": 9
+    },
+    {
+     "item": "rug",
+     "x": 33
+    },
+    {
+     "item": "armchair",
+     "x": 35
+    },
+    {
+     "item": "floor_lamp",
+     "x": 50
+    },
+    {
+     "item": "tv_stand",
+     "x": 76
+    },
+    {
+     "item": "wall_clock",
+     "x": 81,
+     "elevation": 38
+    },
+    {
+     "item": "wardrobe",
+     "x": 94
+    }
+   ]
+  },
+  {
+   "type": "kitchen",
+   "name": "кухня",
+   "width": 5,
+   "wallpaper": "oilpaint",
+   "wall": "#b8c8b0",
+   "furniture": [
+    {
+     "item": "fridge_old",
+     "x": 1
+    },
+    {
+     "item": "stove",
+     "x": 15
+    },
+    {
+     "item": "kitchen_counter",
+     "x": 30
+    },
+    {
+     "item": "kitchen_table",
+     "x": 54
+    },
+    {
+     "item": "wall_calendar",
+     "x": 66,
+     "elevation": 27
+    }
+   ]
+  },
+  {
+   "type": "bathroom",
+   "name": "санузел",
+   "width": 2,
+   "window": false,
+   "wallpaper": "tiles",
+   "wall": "#cfd8d4",
+   "furniture": [
+    {
+     "item": "toilet",
+     "x": 1
+    },
+    {
+     "item": "wc_shelf",
+     "x": 2,
+     "elevation": 36
+    },
+    {
+     "item": "shower",
+     "x": 15
+    }
+   ]
+  },
+  {
+   "type": "hall",
+   "name": "прихожая",
+   "width": 2,
+   "window": false,
+   "wallpaper": "oilpaint",
+   "wall": "#b8c8b0",
+   "furniture": [
+    {
+     "item": "coat_rack",
+     "x": 2
+    },
+    {
+     "item": "shoe_rack",
+     "x": 12
+    },
+    {
+     "item": "mirror",
+     "x": 22,
+     "elevation": 14
+    }
+   ]
+  }
+ ]
+}

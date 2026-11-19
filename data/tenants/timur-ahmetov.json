@@ -1,0 +1,137 @@
+{
+ "id": "timur-ahmetov",
+ "name": {
+  "first": "Тимур",
+  "last": "Ахметов",
+  "short": "Тимур",
+  "kids": "дядя Тимур",
+  "cases": {
+   "gen": "Тимура",
+   "dat": "Тимуру",
+   "acc": "Тимура",
+   "ins": "Тимуром",
+   "pre": "Тимуре"
+  }
+ },
+ "gender": "m",
+ "birthday": "2002-01-23",
+ "apartment": "apt-3-left",
+ "occupation": {
+  "kind": "remote",
+  "title": "программист",
+  "workplace": "удалённо, стартап",
+  "schedule": {
+   "days": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "start": "11:00",
+   "end": "19:00"
+  },
+  "commuteMinutes": 0,
+  "commute": "walk"
+ },
+ "traits": {
+  "chronotype": "owl",
+  "sociability": "homebody",
+  "temper": "even",
+  "outlook": "neutral",
+  "activity": "lazy",
+  "tags": [
+   "общается онлайн в дискорде",
+   "ночью всегда в наушниках",
+   "иногда играет ночами до 4 утра",
+   "заказывает еду, почти не готовит"
+  ]
+ },
+ "habits": [
+  {
+   "kind": "gaming",
+   "strength": 0.85,
+   "note": "ночами играет"
+  },
+  {
+   "kind": "computer",
+   "strength": 0.8,
+   "note": "сидит в ноутбуке"
+  }
+ ],
+ "sayings": [
+  "Норм",
+  "Да, сейчас, только задеплою"
+ ],
+ "appearance": {
+  "skin": "#e2b892",
+  "eyes": "#3a2a1a",
+  "hair": {
+   "style": "tousled",
+   "color": "#1e1a18"
+  },
+  "height": "tall",
+  "build": "slim",
+  "outfit": {
+   "top": "#3a3e48",
+   "bottom": "#2a2c30",
+   "shoes": "#e8e4dc",
+   "style": "hoodie",
+   "coat": "#2e3a2e"
+  },
+  "accessories": [
+   "headphones",
+   "stubble"
+  ],
+  "street": {
+   "accessories": [
+    "cap"
+   ]
+  },
+  "hatColor": "#1e1e22"
+ },
+ "pets": [],
+ "contacts": [
+  {
+   "kind": "friend",
+   "gender": "m",
+   "age": 24,
+   "name": "Даня",
+   "phone": true,
+   "topics": [
+    "новую игру",
+    "релиз в пятницу"
+   ]
+  }
+ ],
+ "relationships": [],
+ "lease": {
+  "minDays": 5,
+  "maxDays": 24
+ },
+ "belongings": [
+  {
+   "room": 0,
+   "item": "bean_bag",
+   "x": 59
+  },
+  {
+   "room": 1,
+   "item": "laptop",
+   "x": 58,
+   "elevation": 10
+  },
+  {
+   "room": 0,
+   "item": "game_console",
+   "x": 79,
+   "elevation": 19
+  },
+  {
+   "room": 0,
+   "item": "boxes",
+   "x": 60
+  }
+ ],
+ "backstory": ""
+}

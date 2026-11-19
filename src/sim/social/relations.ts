@@ -34,10 +34,11 @@ export function initRelations(sim: Simulation): void {
       s.relations[a][b] = rel;
     }
   }
-  // удалить отношения с выбывшими
+  // удалить отношения с выбывшими (арендаторов, которые съехали, соседи помнят: вдруг вернутся)
+  const known = (id: string) => sim.defs.residentById.has(id) || sim.defs.tenants.some((t) => t.id === id);
   for (const a of Object.keys(s.relations)) {
-    if (!sim.defs.residentById.has(a)) delete s.relations[a];
-    else for (const b of Object.keys(s.relations[a])) if (!sim.defs.residentById.has(b)) delete s.relations[a][b];
+    if (!known(a)) delete s.relations[a];
+    else for (const b of Object.keys(s.relations[a])) if (!known(b)) delete s.relations[a][b];
   }
 }
 

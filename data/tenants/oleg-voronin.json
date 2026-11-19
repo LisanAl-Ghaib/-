@@ -1,0 +1,128 @@
+{
+ "id": "oleg-voronin",
+ "name": {
+  "first": "Олег",
+  "last": "Воронин",
+  "patronymic": "Сергеевич",
+  "short": "Олег",
+  "kids": "дядя Олег",
+  "cases": {
+   "gen": "Олега",
+   "dat": "Олегу",
+   "acc": "Олега",
+   "ins": "Олегом",
+   "pre": "Олеге"
+  }
+ },
+ "gender": "m",
+ "birthday": "1981-11-30",
+ "apartment": "apt-3-left",
+ "occupation": {
+  "kind": "shift",
+  "title": "таксист",
+  "workplace": "такси, ночные смены",
+  "schedule": {
+   "days": [
+    3,
+    4,
+    5,
+    6
+   ],
+   "start": "20:00",
+   "end": "06:00"
+  },
+  "commuteMinutes": 10,
+  "commute": "walk"
+ },
+ "traits": {
+  "chronotype": "owl",
+  "sociability": "homebody",
+  "temper": "calm",
+  "outlook": "gloomy",
+  "activity": "lazy",
+  "tags": [
+   "немногословный",
+   "курит и на балконе",
+   "одинок",
+   "так и не разобрал коробки после переезда",
+   "почти не включает свет"
+  ]
+ },
+ "habits": [
+  {
+   "kind": "smoking",
+   "strength": 0.7,
+   "note": "курит на балконе"
+  },
+  {
+   "kind": "tv",
+   "strength": 0.7,
+   "note": "смотрит футбол без звука"
+  },
+  {
+   "kind": "walking",
+   "strength": 0.3,
+   "note": "бродит по двору"
+  }
+ ],
+ "sayings": [
+  "Бывает",
+  "Да ничего"
+ ],
+ "appearance": {
+  "skin": "#d8b498",
+  "eyes": "#5a4a3a",
+  "hair": {
+   "style": "balding",
+   "color": "#6a5e54"
+  },
+  "height": "average",
+  "build": "heavy",
+  "outfit": {
+   "top": "#4a4e46",
+   "bottom": "#2e3036",
+   "shoes": "#2a2420",
+   "style": "casual",
+   "coat": "#3a2e26"
+  },
+  "accessories": [
+   "stubble",
+   "frown"
+  ]
+ },
+ "pets": [],
+ "contacts": [
+  {
+   "kind": "child",
+   "gender": "m",
+   "age": 16,
+   "name": "сын Кирилл",
+   "phone": true,
+   "callEveryDays": 7,
+   "topics": [
+    "школу",
+    "футбол",
+    "когда увидятся"
+   ]
+  }
+ ],
+ "relationships": [],
+ "lease": {
+  "minDays": 7,
+  "maxDays": 35
+ },
+ "belongings": [
+  {
+   "room": 0,
+   "item": "boxes",
+   "x": 58
+  },
+  {
+   "room": 1,
+   "item": "ashtray",
+   "x": 66,
+   "elevation": 10
+  }
+ ],
+ "backstory": ""
+}

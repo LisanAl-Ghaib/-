@@ -7,9 +7,9 @@ import type { Step, Target } from '../world/navigation';
 import type { WeatherState } from './env/weather';
 
 /** Меняй при любом несовместимом изменении формы WorldState. */
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 /** версии сохранений, которые можно дополнить до текущей (недостающие поля заполнит Simulation) */
-export const MIGRATABLE_VERSIONS = [7, 8, 9, 10, 11, 12, 13];
+export const MIGRATABLE_VERSIONS = [7, 8, 9, 10, 11, 12, 13, 14];
 
 export interface Needs {
   /** бодрость: 0 — валится с ног */
@@ -96,7 +96,7 @@ export interface ResidentState {
   /** намерение навестить кого-то (подарок, извинение…) */
   intents: { target: string; kind: string; until: number; gift?: string }[];
   /** что несёт в руках — видно на улице и в подъезде */
-  carrying: 'bags' | 'trash' | 'gift' | 'flowers' | null;
+  carrying: 'bags' | 'trash' | 'gift' | 'flowers' | 'suitcase' | null;
   /** жест: кивнула, помахала */
   gesture?: Gesture | null;
   /** одет для улицы (куртка) — надевает в прихожей, снимает там же */
@@ -137,6 +137,20 @@ export interface Interaction {
   quarrel: boolean;
   dinner: boolean;
   ended: boolean;
+}
+
+export interface Tenancy {
+  /** кто сейчас снимает (или null — квартира сдаётся) */
+  current: string | null;
+  since: number;
+  /** когда съедет (жильцы этого не знают и не показывают) */
+  until: number;
+  /** когда въедет следующий (пока квартира пустует) */
+  vacantUntil: number;
+  /** собирает вещи и уходит */
+  leaving: boolean;
+  /** кто жил раньше и когда съехал */
+  past: { id: string; left: number }[];
 }
 
 export interface ChronicleEntry {
@@ -300,6 +314,8 @@ export interface WorldState {
   yard: { snowman: { x: number; builtAt: number; by: string } | null };
   /** дневники жильцов для «голосов» (локальная нейросеть); симуляция их не читает */
   diaries?: Record<string, string[]>;
+  /** съёмные квартиры: кто сейчас снимает, до какого времени, кто жил раньше (sim/tenants.ts) */
+  tenancy?: Record<string, Tenancy>;
 }
 
 export function createResidentState(defs: WorldDefs, id: string, rngNext: () => number): ResidentState {

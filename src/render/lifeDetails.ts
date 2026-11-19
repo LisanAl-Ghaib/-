@@ -20,7 +20,7 @@ export class LifeDetails {
   private furnByUid = new Map<string, FurnitureInstance>();
 
   constructor(private defs: WorldDefs, private sim: Simulation, private sprites: SpriteRegistry) {
-    for (const apt of defs.layout.apartments) for (const room of apt.rooms) for (const f of room.furniture) this.furnByUid.set(f.uid, f);
+    for (const apt of defs.layout.apartments) for (const room of apt.rooms) for (const f of room.allFurniture) this.furnByUid.set(f.uid, f);
   }
 
   /** Всё, что лежит/стоит в квартирах (рисуется до жильцов) */
@@ -100,8 +100,21 @@ export class LifeDetails {
   }
 
   /** Что жилец несёт в руках */
-  drawCarry(g: CanvasRenderingContext2D, carrying: 'bags' | 'trash' | 'gift' | 'flowers', x: number, y: number, facing: 1 | -1) {
+  drawCarry(g: CanvasRenderingContext2D, carrying: 'bags' | 'trash' | 'gift' | 'flowers' | 'suitcase', x: number, y: number, facing: 1 | -1) {
     const hx = x + facing * 3;
+    if (carrying === 'suitcase') {
+      // чемодан на колёсиках катят за собой: ручка тянется к руке
+      const bx = x - facing * 5 - 3;
+      rect(g, bx, y - 9, 7, 8, '#5a6a7a');
+      rect(g, bx, y - 9, 7, 1, '#6e8090');
+      rect(g, bx + 1, y - 6, 5, 1, '#46535f');
+      rect(g, bx + 1, y - 1, 1, 1, '#222');
+      rect(g, bx + 5, y - 1, 1, 1, '#222');
+      const tx = facing > 0 ? bx + 6 : bx;
+      rect(g, tx, y - 12, 1, 3, '#2e2e32'); // выдвижная ручка
+      rect(g, Math.min(tx, x - facing), y - 12, Math.abs(tx - (x - facing)) + 1, 1, '#2e2e32');
+      return;
+    }
     if (carrying === 'flowers') {
       // букет: стебли и головки цветов
       rect(g, hx, y - 12, 1, 6, '#4a8a3a');
